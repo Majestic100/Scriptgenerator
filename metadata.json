@@ -2,5 +2,5 @@
   "name": "Jalal Visuals MetaScript Generator",
   "description": "Den ultimative script generator til Meta video-annoncer med hooks, body-tempi, konkurrent-vinkler og multi-format scripts.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
