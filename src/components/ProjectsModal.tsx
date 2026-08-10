@@ -60,6 +60,8 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
       p.scripts?.some((s) => s.title.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const [sharedInput, setSharedInput] = useState(false);
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nameInput.trim()) return;
@@ -72,12 +74,14 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
         body: JSON.stringify({
           name: nameInput.trim(),
           description: descInput.trim(),
+          shared: sharedInput,
         }),
       });
       const data = await res.json();
       if (data.success) {
         setNameInput('');
         setDescInput('');
+        setSharedInput(false);
         setIsCreating(false);
         await onRefreshProjects();
         if (data.project?.id) {
@@ -247,6 +251,21 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                     placeholder="f.eks. Vinkel-tests for C-Vitamin serum"
                     className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-base text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
                   />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={sharedInput}
+                      onChange={(e) => setSharedInput(e.target.checked)}
+                      className="mt-1 w-4 h-4 accent-[#e52328] cursor-pointer"
+                    />
+                    <span className="text-base text-slate-700">
+                      <span className="font-semibold text-slate-900 block">Fælles projekt</span>
+                      Synligt for begge virksomheder. Uden flueben ser kun din egen virksomhed projektet.
+                    </span>
+                  </label>
                 </div>
               </div>
 

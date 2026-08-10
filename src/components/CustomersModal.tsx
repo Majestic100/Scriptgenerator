@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Users, Plus, Pencil, Trash2, FileText, ArrowRight } from 'lucide-react';
+import { X, Users, Plus, Pencil, Trash2, FileText, ArrowRight, Share2 } from 'lucide-react';
 import { Customer } from '../types';
 
 interface CustomersModalProps {
@@ -21,7 +21,8 @@ const EMPTY_FORM = {
   offerOrCta: '',
   competitorsText: '',
   toneOfVoice: '',
-  notes: ''
+  notes: '',
+  shared: false
 };
 
 export const CustomersModal: React.FC<CustomersModalProps> = ({
@@ -56,7 +57,8 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
       offerOrCta: c.offerOrCta || '',
       competitorsText: (c.competitors || []).join(', '),
       toneOfVoice: c.toneOfVoice || '',
-      notes: c.notes || ''
+      notes: c.notes || '',
+      shared: !!c.shared
     });
     setEditingId(c.id);
     setIsCreating(true);
@@ -145,7 +147,18 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                       className="border border-slate-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3 hover:border-slate-300 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-ink text-xl truncate">{c.name || c.companyName}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-ink text-xl truncate">{c.name || c.companyName}</p>
+                          {c.shared ? (
+                            <span className="inline-flex items-center gap-1 text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded">
+                              <Share2 className="w-3.5 h-3.5" /> Fælleskunde
+                            </span>
+                          ) : c.ownerLabel ? (
+                            <span className="text-sm font-semibold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
+                              {c.ownerLabel}
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="text-lg text-slate-500 truncate">
                           {c.companyName}
                           {c.productName ? ` · ${c.productName}` : ''}
@@ -244,6 +257,19 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                 <label className={labelCls}>Interne noter</label>
                 <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
+
+              <label className="flex items-start gap-3 p-3.5 border border-slate-300 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={form.shared}
+                  onChange={(e) => setForm({ ...form, shared: e.target.checked })}
+                  className="mt-1 w-4 h-4 accent-[#e52328] cursor-pointer"
+                />
+                <span className="text-base text-slate-700">
+                  <span className="font-semibold text-slate-900 block">Fælleskunde</span>
+                  Sæt flueben, hvis begge virksomheder arbejder på denne kunde. Uden flueben er kunden kun synlig for din egen virksomhed.
+                </span>
+              </label>
 
               <p className="text-base text-slate-500">
                 Tip: Målgruppeanalysen (PDF/Word) gemmes automatisk på kunden, når du bruger "Gem som kunde" fra formularen efter at have uploadet den.

@@ -8,7 +8,7 @@ import { SaveToProjectModal } from './components/SaveToProjectModal';
 import { TeleprompterModal } from './components/TeleprompterModal';
 import { CustomersModal } from './components/CustomersModal';
 import { LoginScreen } from './components/LoginScreen';
-import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer } from './types';
+import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer, AppUserInfo } from './types';
 import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from './utils/exportUtils';
@@ -30,12 +30,16 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
   const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
+  const [currentUser, setCurrentUser] = useState<AppUserInfo | null>(null);
 
   // Tjek adgang ved start
   useEffect(() => {
     fetch('/api/auth/status')
       .then((r) => r.json())
-      .then((d) => setAuthState(d.required && !d.authed ? 'login' : 'ready'))
+      .then((d) => {
+        setCurrentUser(d.user || null);
+        setAuthState(d.required && !d.authed ? 'login' : 'ready');
+      })
       .catch(() => setAuthState('ready'));
   }, []);
 
@@ -43,7 +47,15 @@ export default function App() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {}
+    setCurrentUser(null);
     setAuthState('login');
+  };
+
+  const refreshCurrentUser = () => {
+    fetch('/api/auth/status')
+      .then((r) => r.json())
+      .then((d) => setCurrentUser(d.user || null))
+      .catch(() => {});
   };
 
   // Enforce light theme
@@ -297,7 +309,14 @@ export default function App() {
   }
 
   if (authState === 'login') {
-    return <LoginScreen onSuccess={() => setAuthState('ready')} />;
+    return (
+      <LoginScreen
+        onSuccess={() => {
+          refreshCurrentUser();
+          setAuthState('ready');
+        }}
+      />
+    );
   }
 
   return (
@@ -313,6 +332,7 @@ export default function App() {
         onOpenCustomers={() => setIsCustomersModalOpen(true)}
         onLoadExample={handleLoadExample}
         onLogout={handleLogout}
+        currentUser={currentUser}
       />
 
       {/* Hero / Main Area */}
