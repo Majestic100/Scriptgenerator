@@ -18,10 +18,11 @@ app.use(express.json({ limit: "25mb" }));
 
 // Helper function to extract text from uploaded analysis document (PDF, Word, Text)
 async function extractTextFromAnalysisDoc(doc: { name?: string; mimeType?: string; base64?: string; extractedText?: string }): Promise<string> {
-  if (!doc || !doc.base64) return "";
+  if (!doc) return "";
   if (doc.extractedText && doc.extractedText.trim().length > 0) {
     return doc.extractedText.trim();
   }
+  if (!doc.base64) return "";
 
   try {
     const buffer = Buffer.from(doc.base64, 'base64');
@@ -347,7 +348,9 @@ app.post("/api/generate-scripts", async (req, res) => {
       offerOrCta = "",
       scriptFocus = "product",
       language = "da",
-      globalAnalogies = []
+      globalAnalogies = [],
+      toneOfVoice = "",
+      explainHookPsychology = false
     } = req.body;
 
     if (!companyName) {
@@ -434,12 +437,20 @@ CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til DIREKTE 
 
     const scriptTypeMasterGuidelines = getScriptTypeGuidelinesPrompt(requestedTypes);
 
+    const toneInstruction = typeof toneOfVoice === "string" && toneOfVoice.trim().length > 0
+      ? `\nTONE OF VOICE / TALESPROG (SKAL GENNEMSYRE ALLE TALTE REPLIKKER):\n"${toneOfVoice.trim()}"\n- Alle audioDialogue-replikker skal lyde som denne tone, uden at bryde hook-reglerne og sprogforbuddene.\n`
+      : "";
+
+    const psychologyInstruction = explainHookPsychology
+      ? `\nPSYKOLOGI BAG HOOKS: For hver hook SKAL du udfylde feltet "psychology" med 1-2 korte danske sætninger, der forklarer den psykologiske mekanisme bag hooket (f.eks. loss aversion, curiosity gap, social proof) og hvorfor den stopper scrollen for netop denne målgruppe.\n`
+      : "";
+
     const prompt = `
 Du er en verdensklasse Direct Response Meta Ads (Facebook & Instagram Video Ads) copywriter og video instruktør.
 Din opgave er at generere præcis ${numScripts} højkonverterende video-script-koncepter til en Meta annoncekampagne.
 
 ${focusInstruction}
-${scriptTypeMasterGuidelines}
+${toneInstruction}${psychologyInstruction}${scriptTypeMasterGuidelines}
 PRODUKT / VIRKSOMHED DETALJER:
 - Virksomhedsnavn: "${companyName}"
 ${companyWebsite ? `- Virksomhedens Hjemmeside: "${companyWebsite}"` : ""}
@@ -593,6 +604,10 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       },
       required: ["scripts"]
     };
+
+    if (explainHookPsychology) {
+      ((responseSchema as any).properties.scripts.items.properties.hooks.items.properties).psychology = { type: Type.STRING };
+    }
 
     const response = await generateContentJson({
       prompt,
@@ -1665,6 +1680,201 @@ Returnér et JSON-objekt jf. schema.
   } catch (error: any) {
     console.error("Fejl i /api/generate-analogy:", error);
     res.status(500).json({ success: false, error: error.message || "Fejl under generering af analogier" });
+  }
+});
+
+// Customers Persistent Storage (kundekartotek)
+const CUSTOMERS_FILE = path.join(process.cwd(), "data", "customers.json");
+
+function ensureCustomersFile() {
+  const dir = path.dirname(CUSTOMERS_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(CUSTOMERS_FILE)) {
+    fs.writeFileSync(CUSTOMERS_FILE, JSON.stringify([], null, 2), "utf-8");
+  }
+}
+
+function getCustomersData() {
+  ensureCustomersFile();
+  try {
+    return JSON.parse(fs.readFileSync(CUSTOMERS_FILE, "utf-8"));
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveCustomersData(customers: any[]) {
+  ensureCustomersFile();
+  fs.writeFileSync(CUSTOMERS_FILE, JSON.stringify(customers, null, 2), "utf-8");
+}
+
+// Fælles: normaliser kundefelter fra request-body
+async function buildCustomerFields(body: any) {
+  const fields: any = {
+    name: (body.name || body.companyName || "").trim(),
+    companyName: (body.companyName || "").trim(),
+    companyWebsite: (body.companyWebsite || "").trim(),
+    productName: (body.productName || "").trim(),
+    productDescription: (body.productDescription || "").trim(),
+    targetAudience: (body.targetAudience || "").trim(),
+    demographics: (body.demographics || "").trim(),
+    offerOrCta: (body.offerOrCta || "").trim(),
+    competitors: Array.isArray(body.competitors) ? body.competitors.filter((c: any) => typeof c === "string" && c.trim()).slice(0, 3) : [],
+    toneOfVoice: (body.toneOfVoice || "").trim(),
+    notes: (body.notes || "").trim()
+  };
+
+  // Analysedokument: udtræk og gem KUN teksten, så den kan genbruges uden ny upload
+  if (body.analysisDocument && (body.analysisDocument.base64 || body.analysisDocument.extractedText)) {
+    const extractedText = await extractTextFromAnalysisDoc(body.analysisDocument);
+    if (extractedText && extractedText.trim().length > 0) {
+      fields.analysisDocument = {
+        name: body.analysisDocument.name || "Analyse",
+        extractedText: extractedText.trim()
+      };
+    }
+  } else if (body.analysisDocument === null) {
+    fields.analysisDocument = undefined;
+  }
+
+  return fields;
+}
+
+// GET all customers
+app.get("/api/customers", (req, res) => {
+  try {
+    res.json({ success: true, customers: getCustomersData() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST create customer
+app.post("/api/customers", async (req, res) => {
+  try {
+    const fields = await buildCustomerFields(req.body);
+    if (!fields.companyName && !fields.name) {
+      return res.status(400).json({ success: false, error: "Kundenavn eller virksomhedsnavn er påkrævet." });
+    }
+    const customers = getCustomersData();
+    const newCustomer = {
+      id: `customer-${Date.now()}`,
+      ...fields,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    customers.unshift(newCustomer);
+    saveCustomersData(customers);
+    res.json({ success: true, customer: newCustomer, customers });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT update customer
+app.put("/api/customers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const customers = getCustomersData();
+    const idx = customers.findIndex((c: any) => c.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: "Kunden blev ikke fundet." });
+    }
+    const fields = await buildCustomerFields(req.body);
+    // Behold eksisterende analysedokument hvis der ikke sendes et nyt
+    if (fields.analysisDocument === undefined && req.body.analysisDocument !== null) {
+      fields.analysisDocument = customers[idx].analysisDocument;
+    }
+    customers[idx] = {
+      ...customers[idx],
+      ...fields,
+      updatedAt: new Date().toISOString()
+    };
+    saveCustomersData(customers);
+    res.json({ success: true, customer: customers[idx], customers });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE customer
+app.delete("/api/customers/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    let customers = getCustomersData();
+    customers = customers.filter((c: any) => c.id !== id);
+    saveCustomersData(customers);
+    res.json({ success: true, customers });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/generate-visuals - komplet shot list for alle hooks og scener i et script
+app.post("/api/generate-visuals", async (req, res) => {
+  try {
+    const { script } = req.body;
+    if (!script) {
+      return res.status(400).json({ success: false, error: "Script mangler." });
+    }
+
+    const hooksList = (script.hooks || [])
+      .map((h: any, i: number) => `Hook ${i + 1}: "${h.audioDialogue}" (Vinkel: ${h.angleType || 'Ukendt'})`)
+      .join("\n");
+    const scenesList = (script.scenes || [])
+      .map((s: any, i: number) => `Scene ${i + 1} [${s.timecode || ''} / ${s.section || ''}]: Replik: "${s.audioDialogue}"`)
+      .join("\n");
+
+    const prompt = `
+Du er en prisvindende video-director og content producer for Meta Ads.
+Opgave: Lav en komplet, konkret og let-filmbar SHOT LIST på dansk for følgende video-annonce-script.
+
+VIRKSOMHED/PRODUKT: "${script.companyName || ''} ${script.productName || ''}"
+SCRIPT TYPE: "${script.scriptType || ''}"
+
+HOOKS:
+${hooksList}
+
+SCENER (BODY):
+${scenesList}
+
+KRAV:
+1. For HVER hook: en konkret visuel optage-idé for sekund 0-3 (hvad skuespilleren/kameraet præcist gør, lokation, energi, kropssprog).
+2. For HVER scene: en konkret visuel beskrivelse (kameravinkel, B-roll, handling, props, klipperytme) der matcher replikken 1:1.
+3. Alt skal kunne filmes med en telefon og 1-2 personer. Vær specifik og inspirerende, aldrig generisk.
+4. Returnér præcis ${(script.hooks || []).length} hook-visuals og ${(script.scenes || []).length} scene-visuals i samme rækkefølge som ovenfor.
+`;
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        hookVisuals: { type: Type.ARRAY, items: { type: Type.STRING } },
+        sceneVisuals: { type: Type.ARRAY, items: { type: Type.STRING } }
+      },
+      required: ["hookVisuals", "sceneVisuals"]
+    };
+
+    const response = await generateContentJson({ prompt, schema, maxTokens: 8000 });
+    const parsed = JSON.parse(response.text || "{}");
+
+    const updatedScript = {
+      ...script,
+      hooks: (script.hooks || []).map((h: any, i: number) => ({
+        ...h,
+        visualDirection: parsed.hookVisuals?.[i] || h.visualDirection
+      })),
+      scenes: (script.scenes || []).map((sc: any, i: number) => ({
+        ...sc,
+        visualDescription: parsed.sceneVisuals?.[i] || sc.visualDescription
+      }))
+    };
+
+    return res.json({ success: true, script: updatedScript });
+  } catch (error: any) {
+    console.error("Fejl i /api/generate-visuals:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

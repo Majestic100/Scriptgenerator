@@ -69,6 +69,8 @@ export interface ScriptRequest {
   scriptFocus?: 'product' | 'lead';
   language?: 'da' | 'en';
   globalAnalogies?: string[];
+  toneOfVoice?: string;
+  explainHookPsychology?: boolean;
 }
 
 export interface HookItem {
@@ -79,6 +81,7 @@ export interface HookItem {
   textOnScreen: string; // Big text overlay / captions
   audioDialogue: string; // Spoken dialogue / voiceover
   estimatedDurationSec: number;
+  psychology?: string; // Optional: the psychology behind the hook
 }
 
 export interface ScriptScene {
@@ -136,4 +139,22 @@ export interface GenerationResponse {
   success: boolean;
   scripts?: GeneratedScript[];
   error?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string; // label i kundekartoteket
+  companyName: string;
+  companyWebsite?: string;
+  productName?: string;
+  productDescription?: string;
+  targetAudience?: string;
+  demographics?: string;
+  offerOrCta?: string;
+  competitors?: string[];
+  toneOfVoice?: string;
+  notes?: string;
+  analysisDocument?: { name: string; extractedText: string };
+  createdAt: string;
+  updatedAt: string;
 }

@@ -6,7 +6,8 @@ import { AiTrainingModal } from './components/AiTrainingModal';
 import { ProjectsModal } from './components/ProjectsModal';
 import { SaveToProjectModal } from './components/SaveToProjectModal';
 import { TeleprompterModal } from './components/TeleprompterModal';
-import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType } from './types';
+import { CustomersModal } from './components/CustomersModal';
+import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer } from './types';
 import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from './utils/exportUtils';
@@ -25,6 +26,8 @@ export default function App() {
   const [teleprompterScript, setTeleprompterScript] = useState<GeneratedScript | null>(null);
   const [formData, setFormData] = useState<Partial<ScriptRequest>>({});
   const [copiedAll, setCopiedAll] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
 
   // Enforce light theme
   useEffect(() => {
@@ -67,6 +70,81 @@ export default function App() {
   useEffect(() => {
     fetchAiTrainingItems();
   }, []);
+
+  // Kundekartotek (/api/customers)
+  const fetchCustomers = async () => {
+    try {
+      const res = await fetch('/api/customers');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.customers)) {
+        setCustomers(data.customers);
+      }
+    } catch (err) {
+      console.error('Kunne ikke hente kunder:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  // Vælg kunde: udfylder formularen med al gemt kundeinfo inkl. analyse
+  const handleSelectCustomer = (customer: Customer) => {
+    setFormData({
+      documentTitle: `${customer.companyName || customer.name} - Scripts`,
+      companyName: customer.companyName || customer.name,
+      companyWebsite: customer.companyWebsite || '',
+      productName: customer.productName || '',
+      productDescription: customer.productDescription || '',
+      targetAudience: customer.targetAudience || '',
+      demographics: customer.demographics || '',
+      offerOrCta: customer.offerOrCta || '',
+      competitors: customer.competitors || [],
+      toneOfVoice: customer.toneOfVoice || '',
+      analysisDocument: customer.analysisDocument?.extractedText
+        ? {
+            name: customer.analysisDocument.name,
+            mimeType: 'text/plain',
+            base64: '',
+            extractedText: customer.analysisDocument.extractedText
+          }
+        : undefined
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Gem formularens nuværende indhold som kunde
+  const handleSaveAsCustomer = async (data: Partial<ScriptRequest>) => {
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.companyName,
+          companyName: data.companyName,
+          companyWebsite: data.companyWebsite,
+          productName: data.productName,
+          productDescription: data.productDescription,
+          targetAudience: data.targetAudience,
+          demographics: data.demographics,
+          offerOrCta: data.offerOrCta,
+          competitors: data.competitors,
+          toneOfVoice: data.toneOfVoice,
+          analysisDocument: data.analysisDocument
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        fetchCustomers();
+        alert(`"${data.companyName}" er gemt som kunde. Fremover kan du vælge kunden under "Kunder" i toppen.`);
+      } else {
+        alert(result.error || 'Kunden kunne ikke gemmes.');
+      }
+    } catch (err) {
+      console.error('Fejl ved gem som kunde:', err);
+      alert('Kunden kunne ikke gemmes. Prøv igen.');
+    }
+  };
 
   const handleAddAiTrainingItem = async (type: AiTrainingType, text: string, title?: string, brandContext?: string) => {
     try {
@@ -206,6 +284,8 @@ export default function App() {
         onOpenAiTraining={() => setIsAiTrainingOpen(true)}
         projectsCount={projects.length}
         onOpenProjects={() => setIsProjectsModalOpen(true)}
+        customersCount={customers.length}
+        onOpenCustomers={() => setIsCustomersModalOpen(true)}
         onLoadExample={handleLoadExample}
       />
 
@@ -226,15 +306,16 @@ export default function App() {
           initialData={formData}
           onSubmit={handleGenerateScripts}
           isLoading={isLoading}
+          onSaveAsCustomer={handleSaveAsCustomer}
         />
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-900 text-sm animate-fadeIn">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-900 text-base animate-fadeIn">
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div>
               <span className="font-bold block text-red-900">Kunne ikke generere script</span>
-              <p className="text-xs mt-0.5 text-red-700">{errorMessage}</p>
+              <p className="text-sm mt-0.5 text-red-700">{errorMessage}</p>
             </div>
           </div>
         )}
@@ -254,14 +335,14 @@ export default function App() {
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="f.eks. JP Køl og Klima - Script 2"
-                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-lg px-3.5 py-2 text-base font-semibold text-slate-900 transition-all shadow-2xs"
                 />
               </div>
 
               <div className="flex flex-wrap items-center gap-2 self-start md:self-end">
                 <button
                   onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
                   title="Download alle scripts som Google Docs (.docx) - 1 script pr. side"
                 >
                   <FileText className="w-4 h-4 text-white" />
@@ -270,7 +351,7 @@ export default function App() {
 
                 <button
                   onClick={() => downloadScriptsAsPdf(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-ink rounded-md text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-ink rounded-md text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
                   title="Download alle scripts som PDF (.pdf) - 1 script pr. side"
                 >
                   <FileDown className="w-4 h-4 text-ink" />
@@ -279,7 +360,7 @@ export default function App() {
 
                 <button
                   onClick={handleCopyAllScripts}
-                  className="px-3.5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-3.5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="Kopiér alle scripts med perfekt Google Docs formatering (Arial 11pt)"
                 >
                   {copiedAll ? (
@@ -300,7 +381,7 @@ export default function App() {
                     const el = document.querySelector('form');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-sm font-semibold text-ink flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-rec" />
                   <span>Nye parametre</span>
@@ -335,6 +416,15 @@ export default function App() {
         )}
 
       </main>
+
+      {/* Customers Modal */}
+      <CustomersModal
+        isOpen={isCustomersModalOpen}
+        onClose={() => setIsCustomersModalOpen(false)}
+        customers={customers}
+        onRefreshCustomers={fetchCustomers}
+        onSelectCustomer={handleSelectCustomer}
+      />
 
       {/* AI Training & Gold Standards Modal */}
       <AiTrainingModal

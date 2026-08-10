@@ -37,6 +37,7 @@ interface ScriptFormProps {
   onSubmit: (request: ScriptRequest) => void;
   isLoading: boolean;
   initialData?: Partial<ScriptRequest>;
+  onSaveAsCustomer?: (data: Partial<ScriptRequest>) => void;
 }
 
 const SCRIPT_TYPES: { type: ScriptType; desc: string; icon: string }[] = [
@@ -241,7 +242,8 @@ const SAMPLE_EXAMPLE_DATA = {
 export const ScriptForm: React.FC<ScriptFormProps> = ({
   onSubmit,
   isLoading,
-  initialData
+  initialData,
+  onSaveAsCustomer
 }) => {
   const [companyName, setCompanyName] = useState(initialData?.companyName || SAMPLE_EXAMPLE_DATA.companyName);
   const [documentTitle, setDocumentTitle] = useState(
@@ -249,6 +251,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   );
   const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || SAMPLE_EXAMPLE_DATA.companyWebsite);
   const [analysisDoc, setAnalysisDoc] = useState<AnalysisDocument | null>(initialData?.analysisDocument || null);
+  const [toneOfVoice, setToneOfVoice] = useState(initialData?.toneOfVoice || '');
+  const [explainHookPsychology, setExplainHookPsychology] = useState(!!initialData?.explainHookPsychology);
   const [isReadingDoc, setIsReadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -410,9 +414,24 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       demographics: demographics.trim(),
       offerOrCta: offerOrCta.trim(),
       scriptFocus,
-      language
+      language,
+      toneOfVoice: toneOfVoice.trim() || undefined,
+      explainHookPsychology
     });
   };
+
+  const collectCustomerData = (): Partial<ScriptRequest> => ({
+    companyName: companyName.trim(),
+    companyWebsite: companyWebsite.trim(),
+    productName: productName.trim(),
+    productDescription: productDescription.trim(),
+    targetAudience: targetAudience.trim(),
+    demographics: demographics.trim(),
+    offerOrCta: offerOrCta.trim(),
+    competitors,
+    toneOfVoice: toneOfVoice.trim() || undefined,
+    analysisDocument: analysisDoc || undefined
+  });
 
   const currentCfg = scriptConfigs[activeTab] || defaultPresets[0];
 
@@ -437,7 +456,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <button
             type="button"
             onClick={handleFillExampleData}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all cursor-pointer shadow-2xs"
             title="Udfyld formularen med klar testdata"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-600" />
@@ -449,7 +468,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <button
               type="button"
               onClick={() => setLanguage('da')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded text-sm font-semibold transition-all cursor-pointer ${
                 language === 'da'
                   ? 'bg-white text-[#E52328] shadow-xs font-bold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -460,7 +479,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <button
               type="button"
               onClick={() => setLanguage('en')}
-              className={`px-3 py-1 rounded text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded text-sm font-semibold transition-all cursor-pointer ${
                 language === 'en'
                   ? 'bg-white text-[#E52328] shadow-xs font-bold'
                   : 'text-slate-600 hover:text-slate-900'
@@ -478,7 +497,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         {/* 1. Virksomheds Navn & Hjemmeside */}
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <label className="block text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-[#E52328]" />
                 Virksomheds Navn <span className="text-[#E52328]">*</span>
@@ -494,17 +513,17 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 setDocumentTitle(`${val} - Script 2`);
               }}
               placeholder="f.eks. JP Køl og Klima"
-              className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2.5 text-base text-slate-900 placeholder-slate-400 transition-all"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+            <label className="block text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5 text-[#E52328]" />
                 Virksomhedens Hjemmeside / Link
               </span>
-              <span className="text-[10px] text-[#E52328] font-bold bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+              <span className="text-xs text-[#E52328] font-bold bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
                 <span>AI Analyserer Siden</span>
               </span>
@@ -514,19 +533,19 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
               placeholder="f.eks. https://jpkoelogklima.dk"
-              className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2 text-xs font-mono text-slate-900 placeholder-slate-400 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2 text-sm font-mono text-slate-900 placeholder-slate-400 transition-all"
             />
 
           </div>
 
           {/* Upload Målgruppe- / Virksomhedsanalyse (PDF, Word, Text) */}
           <div className="space-y-1.5 md:col-span-2 pt-1 border-t border-slate-100">
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+            <label className="block text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-[#E52328]" />
                 Målgruppeanalyse / Virksomhedsanalyse (PDF, Word, Text)
               </span>
-              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+              <span className="text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-emerald-600" />
                 <span>AI Dybdegående Grundlag</span>
               </span>
@@ -548,7 +567,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   <Upload className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-800 group-hover:text-[#E52328] transition-colors">
+                  <div className="text-sm font-bold text-slate-800 group-hover:text-[#E52328] transition-colors">
                     {isReadingDoc ? 'Læser fil...' : 'Upload PDF, Word eller Text analyse'}
                   </div>
 
@@ -561,13 +580,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     <FileCheck className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-800 truncate flex items-center gap-2">
+                    <div className="text-sm font-bold text-slate-800 truncate flex items-center gap-2">
                       <span className="truncate">{analysisDoc.name}</span>
                       <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-300 shrink-0">
                         Analyse Tilknyttet
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-600 flex items-center gap-2 mt-0.5">
+                    <div className="text-xs text-slate-600 flex items-center gap-2 mt-0.5">
                       <span>{analysisDoc.size ? `${(analysisDoc.size / 1024).toFixed(0)} KB` : 'Dokument tilknyttet'}</span>
                       <span>•</span>
                       <span className="text-emerald-700 font-semibold">Bruges som direkte fundament for dine scripts</span>
@@ -592,28 +611,28 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
         {/* 2. Produktets Navn & Script Fokus */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+          <label className="block text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Package className="w-3.5 h-3.5 text-[#E52328]" />
               Produktets Navn
             </span>
-            <span className="text-[10px] text-slate-400 font-normal">Valgfri</span>
+            <span className="text-xs text-slate-400 font-normal">Valgfri</span>
           </label>
           <input
             type="text"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
             placeholder={scriptFocus === 'lead' ? "f.eks. Gratis E-bog / Konsultation" : "f.eks. Hydrating Face Serum"}
-            className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition-all"
+            className="w-full bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2.5 text-base text-slate-900 placeholder-slate-400 transition-all"
           />
 
           {/* Script Fokus Type Selector */}
           <div className="pt-1">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                 Script Fokus
               </span>
-              <span className="text-[10px] font-medium text-slate-500">
+              <span className="text-xs font-medium text-slate-500">
                 {scriptFocus === 'product' ? '🛒 Produkt & Salg' : '🎯 Lead Generering'}
               </span>
             </div>
@@ -621,7 +640,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               <button
                 type="button"
                 onClick={() => setScriptFocus('product')}
-                className={`py-1.5 px-2 text-xs font-bold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`py-1.5 px-2 text-sm font-bold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   scriptFocus === 'product'
                     ? 'bg-white text-[#E52328] shadow-xs border border-slate-200/80 font-bold'
                     : 'text-slate-600 hover:text-slate-900 font-medium'
@@ -633,7 +652,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               <button
                 type="button"
                 onClick={() => setScriptFocus('lead')}
-                className={`py-1.5 px-2 text-xs font-bold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`py-1.5 px-2 text-sm font-bold rounded transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   scriptFocus === 'lead'
                     ? 'bg-white text-[#E52328] shadow-xs border border-slate-200/80 font-bold'
                     : 'text-slate-600 hover:text-slate-900 font-medium'
@@ -648,12 +667,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
         {/* 3. Konkurrenter (Op til 3) */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+          <label className="block text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <Users2 className="w-3.5 h-3.5 text-[#E52328]" />
               Konkurrenter (Op til 3)
             </span>
-            <span className="text-[11px] text-slate-400 font-normal">
+            <span className="text-xs text-slate-400 font-normal">
               {competitors.length}/3 tilføjet
             </span>
           </label>
@@ -671,13 +690,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               }}
               disabled={competitors.length >= 3}
               placeholder={competitors.length >= 3 ? "Maksimalt 3 konkurrenter" : "f.eks. Luminance, Mærke Y"}
-              className="flex-1 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 transition-all disabled:opacity-50"
+              className="flex-1 bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-md px-3.5 py-2 text-base text-slate-900 placeholder-slate-400 transition-all disabled:opacity-50"
             />
             <button
               type="button"
               onClick={handleAddCompetitor}
               disabled={!competitorInput.trim() || competitors.length >= 3}
-              className="px-3.5 py-2 bg-[#181E2B] hover:bg-slate-800 disabled:opacity-40 text-white rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+              className="px-3.5 py-2 bg-[#181E2B] hover:bg-slate-800 disabled:opacity-40 text-white rounded-md text-sm font-semibold flex items-center gap-1 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Tilføj
@@ -690,9 +709,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               {competitors.map((comp, idx) => (
                 <span
                   key={idx}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-900 text-xs rounded-md font-medium"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 text-red-900 text-sm rounded-md font-medium"
                 >
-                  <span className="text-[10px] text-[#E52328] font-bold">{idx + 1}</span>
+                  <span className="text-xs text-[#E52328] font-bold">{idx + 1}</span>
                   {comp}
                   <button
                     type="button"
@@ -712,11 +731,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       {/* GLOBAL SCRIPT COUNT SLIDER */}
       <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
         <div className="flex justify-between items-center">
-          <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+          <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
             <Layers className="w-4 h-4 text-[#E52328]" />
             <span>Antal scripts</span>
           </label>
-          <span className="text-xs font-bold text-red-700 bg-red-50 px-3 py-1 rounded-full border border-red-200">
+          <span className="text-sm font-bold text-red-700 bg-red-50 px-3 py-1 rounded-full border border-red-200">
             {numScripts} {numScripts === 1 ? 'script' : 'forskellige scripts'}
           </span>
         </div>
@@ -732,7 +751,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           }}
           className="w-full accent-[#E52328] bg-slate-200 rounded-lg h-2 cursor-pointer"
         />
-        <div className="flex justify-between text-[11px] text-slate-500 font-medium overflow-x-auto gap-1">
+        <div className="flex justify-between text-xs text-slate-500 font-medium overflow-x-auto gap-1">
           <span>1 script</span>
           <span>2 scripts</span>
           <span>3 scripts</span>
@@ -748,7 +767,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       <div className="space-y-4 pt-2">
         
         <div className="border-b border-slate-200 pb-2">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <Sliders className="w-4 h-4 text-[#E52328]" />
             <span>Tilpas Parametre Pr. Script</span>
           </h3>
@@ -764,7 +783,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   key={idx}
                   type="button"
                   onClick={() => setActiveTab(idx)}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer border ${
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer border ${
                     isActive
                       ? 'bg-[#E52328] border-red-700 text-white shadow-xs'
                       : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700'
@@ -780,7 +799,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <button
               type="button"
               onClick={handleApplyToAll}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-red-50 hover:bg-red-100 text-[#E52328] font-bold text-xs rounded-lg border border-red-300 hover:border-red-400 transition-all shadow-xs shrink-0 cursor-pointer active:scale-98"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-red-50 hover:bg-red-100 text-[#E52328] font-bold text-sm rounded-lg border border-red-300 hover:border-red-400 transition-all shadow-xs shrink-0 cursor-pointer active:scale-98"
               title="Kopier alle parametre fra Script 1 til alle andre scripts"
             >
               <Copy className="w-3.5 h-3.5 text-[#E52328]" />
@@ -793,10 +812,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         <div className="p-5 bg-slate-50/70 border border-slate-200 rounded-xl space-y-5">
           
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-            <span className="text-xs font-extrabold text-[#E52328] uppercase tracking-wider">
+            <span className="text-sm font-extrabold text-[#E52328] uppercase tracking-wider">
               ⚙️ Indstillinger for Script {activeTab + 1}
             </span>
-            <span className="text-xs text-slate-500 font-medium">
+            <span className="text-sm text-slate-500 font-medium">
               Vinkel: <strong className="text-slate-800">{currentCfg.scriptType.split('(')[0].trim()}</strong>
             </span>
           </div>
@@ -807,11 +826,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             {/* Hooks for this script */}
             <div className="space-y-2 bg-white p-3.5 rounded-lg border border-slate-200">
               <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-amber-500" />
                   Antal hooks for Script {activeTab + 1}
                 </label>
-                <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
+                <span className="text-sm font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-200">
                   {currentCfg.numHooks} {currentCfg.numHooks === 1 ? 'hook' : 'hooks'}
                 </span>
               </div>
@@ -823,7 +842,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 onChange={(e) => updateCurrentScriptConfig('numHooks', parseInt(e.target.value))}
                 className="w-full accent-amber-500 bg-slate-200 rounded-lg h-2 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
+              <div className="flex justify-between text-xs text-slate-400 font-medium px-0.5">
                 <span>1</span>
                 <span>2</span>
                 <span>3</span>
@@ -834,14 +853,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
             {/* Duration for this script */}
             <div className="space-y-2 bg-white p-3.5 rounded-lg border border-slate-200">
-              <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <label className="block text-sm font-semibold text-slate-700 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#E52328]" />
                 Samlet varighed for Script {activeTab + 1}
               </label>
               <select
                 value={currentCfg.bodyDuration}
                 onChange={(e) => updateCurrentScriptConfig('bodyDuration', e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 focus:border-[#E52328] focus:outline-none rounded-md px-3 py-2 text-xs text-slate-800 font-medium"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-[#E52328] focus:outline-none rounded-md px-3 py-2 text-sm text-slate-800 font-medium"
               >
                 {DURATION_OPTIONS.map((d) => (
                   <option key={d.value} value={d.value}>
@@ -857,13 +876,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <div className="space-y-2.5 bg-white p-3.5 rounded-lg border border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-1">
               <div>
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
                   <Brain className="w-3.5 h-3.5 text-[#E52328]" />
                   Awareness Stadie for Script {activeTab + 1}
                 </label>
 
               </div>
-              <div className="text-[11px] font-semibold text-[#E52328] bg-red-50 px-2.5 py-1 rounded-full border border-red-200 shrink-0 self-start sm:self-auto">
+              <div className="text-xs font-semibold text-[#E52328] bg-red-50 px-2.5 py-1 rounded-full border border-red-200 shrink-0 self-start sm:self-auto">
                 {currentCfg.awarenessStage || 'Problem Aware'}
               </div>
             </div>
@@ -890,14 +909,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   >
                     <div>
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className={`text-xs font-bold ${isSelected ? 'text-[#E52328]' : 'text-slate-800'}`}>
+                        <span className={`text-sm font-bold ${isSelected ? 'text-[#E52328]' : 'text-slate-800'}`}>
                           {st.short}
                         </span>
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
                           {st.badge}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-600 font-medium leading-snug line-clamp-2">
+                      <p className="text-xs text-slate-600 font-medium leading-snug line-clamp-2">
                         {st.desc}
                       </p>
                     </div>
@@ -914,7 +933,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <div className="space-y-2.5 bg-white p-3.5 rounded-lg border border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-1">
               <div>
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
                   <Repeat className="w-3.5 h-3.5 text-[#E52328]" />
                   Trafik-type & Retargeting for Script {activeTab + 1}
                 </label>
@@ -937,16 +956,16 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-xs font-bold ${isSelected ? 'text-[#E52328]' : 'text-slate-800'}`}>
+                      <span className={`text-sm font-bold ${isSelected ? 'text-[#E52328]' : 'text-slate-800'}`}>
                         {tt.title}
                       </span>
-                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                      <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-xs font-bold ${
                         isSelected ? 'bg-[#E52328] border-[#E52328] text-white' : 'border-slate-300 bg-white text-transparent'
                       }`}>
                         ✓
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       {tt.desc}
                     </p>
                   </button>
@@ -957,7 +976,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             {/* If retargeting is selected, offer a retargeting notes input */}
             {(currentCfg.trafficType === 'retargeting') && (
               <div className="mt-2.5 pt-2 border-t border-slate-200/80 space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                   <Repeat className="w-3 h-3 text-[#E52328]" />
                   Særlige retargeting-vinkler / noter (valgfrit)
                 </label>
@@ -966,7 +985,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   value={currentCfg.retargetingNotes || ''}
                   onChange={(e) => updateCurrentScriptConfig('retargetingNotes', e.target.value)}
                   placeholder="f.eks. Glemte varer i kurven, nævn 15% rabatkode 'KOMTILBAGE', fremhæv 100 dages fuld returret..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:bg-white transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:bg-white transition-all"
                 />
               </div>
             )}
@@ -976,13 +995,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <div className="space-y-3 bg-white p-3.5 rounded-lg border border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b border-slate-100">
               <div>
-                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
                   <Flame className="w-3.5 h-3.5 text-[#E52328]" />
                   1 Hook-vinkel pr. Hook (Script {activeTab + 1})
                 </label>
 
               </div>
-              <div className="text-[11px] font-semibold text-[#E52328] bg-red-50 px-2.5 py-1 rounded-full border border-red-200 shrink-0 self-start sm:self-auto">
+              <div className="text-xs font-semibold text-[#E52328] bg-red-50 px-2.5 py-1 rounded-full border border-red-200 shrink-0 self-start sm:self-auto">
                 {currentCfg.numHooks} {currentCfg.numHooks === 1 ? 'vinkel valgt' : 'vinkler valgt'} (1 pr. hook)
               </div>
             </div>
@@ -996,13 +1015,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 return (
                   <div key={hookIdx} className="bg-slate-50/80 p-3 rounded-lg border border-slate-200 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-full bg-[#E52328] text-white text-[10px] flex items-center justify-center font-black">
+                      <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-full bg-[#E52328] text-white text-xs flex items-center justify-center font-black">
                           {hookIdx + 1}
                         </span>
                         Hook {hookIdx + 1} Vinkel
                       </span>
-                      <span className="text-[10px] font-bold text-[#E52328] bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-bold text-[#E52328] bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
                         {selectedOption.label}
                       </span>
                     </div>
@@ -1010,7 +1029,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     <select
                       value={selectedAngleId}
                       onChange={(e) => setHookAngleForHookIndex(hookIdx, e.target.value)}
-                      className="w-full bg-white border border-slate-200 focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] focus:outline-none rounded-md px-2.5 py-1.5 text-xs text-slate-800 font-medium cursor-pointer"
+                      className="w-full bg-white border border-slate-200 focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] focus:outline-none rounded-md px-2.5 py-1.5 text-sm text-slate-800 font-medium cursor-pointer"
                     >
                       {HOOK_TYPE_OPTIONS.map((ht) => (
                         <option key={ht.id} value={ht.id}>
@@ -1033,7 +1052,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Produktbeskrivelse / USP */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                 <Target className="w-3 h-3 text-[#E52328]" />
                 {scriptFocus === 'lead' ? 'Ydelse / USP (Unikke fordele)' : 'Produkt / USP (Unikke fordele)'}
               </label>
@@ -1045,13 +1064,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   if (activeTab === 0) setProductDescription(e.target.value);
                 }}
                 placeholder={scriptFocus === 'lead' ? "f.eks. Gratis e-bog med 5 trin til bedre søvn, uforpligtende rådgivning, 1:1 strategi-session..." : "f.eks. Lavendel duft, justerbar skum og kølende side..."}
-                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
+                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
               />
             </div>
 
             {/* Ideelle kunde */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                 <Users2 className="w-3 h-3 text-[#E52328]" />
                 Ideelle kunde
               </label>
@@ -1063,13 +1082,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   if (activeTab === 0) setTargetAudience(e.target.value);
                 }}
                 placeholder="f.eks. folk med soveproblemer, travle forældre, boligejere eller B2B-virksomheder..."
-                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
+                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
               />
             </div>
 
             {/* Hvor i landet */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-[#E52328]" />
                 Hvor i landet
               </label>
@@ -1081,13 +1100,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   if (activeTab === 0) setDemographics(e.target.value);
                 }}
                 placeholder="f.eks. Hele Danmark, Storkøbenhavn, Jylland & Fyn, lokalområdet inden for 50 km..."
-                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
+                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
               />
             </div>
 
             {/* Call to Action (CTA) */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                 <Gift className="w-3 h-3 text-[#E52328]" />
                 Call to Action (CTA)
               </label>
@@ -1099,14 +1118,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   if (activeTab === 0) setOfferOrCta(e.target.value);
                 }}
                 placeholder="f.eks. Klik på knappen nedenfor og bestil/hent i dag, Book en gratis uforpligtende samtale..."
-                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
+                className="w-full min-h-[280px] bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
               />
             </div>
           </div>
 
           {/* SPECIFIKKE TING DER SKAL INKLUDERES (PER SCRIPT) */}
           <div className="space-y-1.5 bg-white p-3.5 rounded-lg border border-slate-200">
-            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
+            <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
               <ListPlus className="w-3.5 h-3.5 text-[#E52328]" />
               Specifikke ting & Offer / Tilbud der SKAL inkluderes i Script {activeTab + 1}
             </label>
@@ -1116,14 +1135,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               value={currentCfg.mustInclude ?? ''}
               onChange={(e) => updateCurrentScriptConfig('mustInclude', e.target.value)}
               placeholder="f.eks. Offer: 'Køb 2 og få 1 gratis med koden SOMMER', husk at nævne vores 100 dages returret, og vis den grønne flaske i nærbillede..."
-              className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
+              className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] transition-all"
             />
           </div>
 
           {/* Script Type selector for this script */}
           <div className="space-y-2.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                 <Film className="w-3.5 h-3.5 text-[#E52328]" />
                 Script Type / Style for Script {activeTab + 1}
               </label>
@@ -1133,7 +1152,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 <select
                   value={currentCfg.scriptType}
                   onChange={(e) => updateCurrentScriptConfig('scriptType', e.target.value)}
-                  className="w-full bg-white border border-slate-300 focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] focus:outline-none rounded-md px-3 py-1.5 text-xs text-slate-900 font-bold shadow-2xs"
+                  className="w-full bg-white border border-slate-300 focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328] focus:outline-none rounded-md px-3 py-1.5 text-sm text-slate-900 font-bold shadow-2xs"
                 >
                   {SCRIPT_TYPES.map((st) => (
                     <option key={st.type} value={st.type}>
@@ -1167,8 +1186,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                       )}
                     </div>
                     <div className="mt-2">
-                      <div className="text-xs font-bold text-slate-900">{st.type}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                      <div className="text-sm font-bold text-slate-900">{st.type}</div>
+                      <div className="text-xs text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
                         {st.desc}
                       </div>
                     </div>
@@ -1183,17 +1202,73 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       </div>
 
 
+      {/* TONE OF VOICE & HOOK-PSYKOLOGI */}
+      <div className="border-t border-slate-200 pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-base font-bold text-slate-800">
+            Talesprog / tone of voice
+          </label>
+          <input
+            list="tone-presets"
+            value={toneOfVoice}
+            onChange={(e) => setToneOfVoice(e.target.value)}
+            placeholder="Vælg fra listen eller skriv din egen tone"
+            className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-md px-3.5 py-2.5 text-base text-slate-900 transition-all"
+          />
+          <datalist id="tone-presets">
+            <option value="Afslappet dansk talesprog, som en god ven der anbefaler" />
+            <option value="Ungt og energisk, TikTok-tempo" />
+            <option value="Professionelt og troværdigt, business-tone" />
+            <option value="Varmt og omsorgsfuldt, empatisk" />
+            <option value="Direkte og kontant, ingen omsvøb" />
+            <option value="Humoristisk og selvironisk" />
+          </datalist>
+          <p className="text-sm text-slate-500">Måden replikkerne skal tales på. Gennemsyrer alle hooks, body og CTA.</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-base font-bold text-slate-800">Psykologi bag hooks</label>
+          <label className="flex items-start gap-3 p-3.5 border border-slate-300 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={explainHookPsychology}
+              onChange={(e) => setExplainHookPsychology(e.target.checked)}
+              className="mt-1 w-4 h-4 accent-[#e52328] cursor-pointer"
+            />
+            <span className="text-base text-slate-700">
+              <span className="font-semibold text-slate-900 block">Forklar psykologien bag hvert hook</span>
+              AI'en tilføjer 1-2 sætninger pr. hook om den psykologiske mekanisme (f.eks. loss aversion, curiosity gap).
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {/* GEM SOM KUNDE */}
+      {onSaveAsCustomer && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAsCustomer(collectCustomerData())}
+            disabled={!companyName.trim()}
+            className="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-base font-semibold cursor-pointer disabled:opacity-50"
+            title="Gem alle udfyldte kundeoplysninger (inkl. uploadet analyse) i kundekartoteket"
+          >
+            + Gem som kunde
+          </button>
+        </div>
+      )}
+
       {/* SUBMIT BUTTON */}
       <div className="pt-2">
         <button
           type="submit"
           disabled={isLoading || !companyName.trim()}
-          className="w-full py-4 px-6 rounded-md font-bold text-sm bg-rec hover:bg-[#c81e22] text-white shadow-md shadow-red-200/50 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+          className="w-full py-4 px-6 rounded-md font-bold text-base bg-rec hover:bg-[#c81e22] text-white shadow-md shadow-red-200/50 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
         >
           {isLoading ? (
             <>
               <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
-              <span className="font-mono text-xs font-semibold tracking-[0.14em] uppercase">REC · Genererer {numScripts} scripts…</span>
+              <span className="font-mono text-sm font-semibold tracking-[0.14em] uppercase">REC · Genererer {numScripts} scripts…</span>
             </>
           ) : (
             <>
