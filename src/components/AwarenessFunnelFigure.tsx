@@ -147,24 +147,24 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
 
               {/* Inactive Soft Color Gradients for Light Theme */}
               <linearGradient id="unawareGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#3B82F6" />
-                <stop offset="100%" stopColor="#2563EB" />
+                <stop offset="0%" stopColor="#7FA6C9" />
+                <stop offset="100%" stopColor="#5E8BB5" />
               </linearGradient>
               <linearGradient id="problemGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#60A5FA" />
-                <stop offset="100%" stopColor="#3B82F6" />
+                <stop offset="0%" stopColor="#9AA3B5" />
+                <stop offset="100%" stopColor="#7C8699" />
               </linearGradient>
               <linearGradient id="solutionGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#818CF8" />
-                <stop offset="100%" stopColor="#6366F1" />
+                <stop offset="0%" stopColor="#D9A05B" />
+                <stop offset="100%" stopColor="#C98A43" />
               </linearGradient>
               <linearGradient id="productGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#A78BFA" />
-                <stop offset="100%" stopColor="#8B5CF6" />
+                <stop offset="0%" stopColor="#E2703A" />
+                <stop offset="100%" stopColor="#D25A2B" />
               </linearGradient>
               <linearGradient id="mostGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#C084FC" />
-                <stop offset="100%" stopColor="#A855F7" />
+                <stop offset="0%" stopColor="#E52328" />
+                <stop offset="100%" stopColor="#C81E22" />
               </linearGradient>
 
               {/* Shadow Filter for Active Layer */}
