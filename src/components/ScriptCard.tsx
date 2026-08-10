@@ -406,27 +406,27 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+    <div className="bg-white border border-ink/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all">
       
       {/* Top Action Bar */}
-      <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-3.5 bg-ink text-white flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-extrabold text-[#181E2B] text-sm">
-            Script {scriptIndex + 1}
+          <span className="font-mono text-xs font-semibold tracking-[0.14em] uppercase text-white">
+            <span className="text-rec">●</span> Script {String(scriptIndex + 1).padStart(2, '0')}
           </span>
-          <span className="text-[11px] bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded">
+          <span className="font-mono text-[11px] bg-white/10 text-white/80 font-medium px-2 py-0.5 rounded">
             {script.scriptType || 'UGC'}
           </span>
           {script.awarenessStage && (
-            <span className="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 font-semibold px-2 py-0.5 rounded flex items-center gap-1">
+            <span className="font-mono text-[11px] bg-white/10 text-amber-300 font-medium px-2 py-0.5 rounded flex items-center gap-1">
               🧠 {script.awarenessStage}
             </span>
           )}
           {script.trafficType && (
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 border ${
               script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting')
-                ? 'bg-red-50 text-[#E52328] border-red-200'
-                : 'bg-blue-50 text-blue-700 border-blue-200'
+                ? 'bg-rec/25 text-red-300 border-transparent'
+                : 'bg-white/10 text-sky-300 border-transparent'
             }`}>
               {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting') ? '🔄 Retargeting' : '❄️ Kold Trafik'}
             </span>
@@ -438,10 +438,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           {onSaveToProject && (
             <button
               onClick={() => onSaveToProject(script)}
-              className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-[#E52328] rounded-md text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
               title="Gem dette script til et projekt"
             >
-              <FolderPlus className="w-3.5 h-3.5 text-[#E52328]" />
+              <FolderPlus className="w-3.5 h-3.5 text-red-300" />
               <span>Gem til Projekt</span>
             </button>
           )}
@@ -450,30 +450,30 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           <button
             onClick={handleRegenerateFullScript}
             disabled={isRegeneratingScript || regeneratingHookIndex !== null || isRegeneratingBody || isRegeneratingCta}
-            className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 hover:text-[#E52328] rounded-md text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
             title="Gen-generér hele dette script (hooks, body og CTA)"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingScript ? 'animate-spin text-[#E52328]' : 'text-slate-500'}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingScript ? 'animate-spin text-red-300' : 'text-white/60'}`} />
             <span>{isRegeneratingScript ? 'Regenererer hele script...' : 'Regenerér hele script'}</span>
           </button>
 
           {/* Single Script Download Docs Button */}
           <button
             onClick={() => downloadScriptsAsDocx([script], script.documentTitle)}
-            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 rounded-md text-xs font-bold flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
+            className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-md text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
             title="Download dette enkelt script som Google Docs (.docx)"
           >
-            <FileText className="w-3.5 h-3.5 text-blue-600" />
+            <FileText className="w-3.5 h-3.5 text-white/70" />
             <span>Docs</span>
           </button>
 
           {/* Single Script Download PDF Button */}
           <button
             onClick={() => downloadScriptsAsPdf([script], script.documentTitle)}
-            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-md text-xs font-bold flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
+            className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-md text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
             title="Download dette enkelt script som PDF (.pdf)"
           >
-            <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+            <FileDown className="w-3.5 h-3.5 text-white/70" />
             <span>PDF</span>
           </button>
 

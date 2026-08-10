@@ -198,7 +198,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-[#E52328] selection:text-white">
+    <div className="min-h-screen bg-studio text-ink flex flex-col font-sans selection:bg-rec selection:text-white">
       
       {/* Top Navbar Header */}
       <Navbar
@@ -212,11 +212,15 @@ export default function App() {
       {/* Hero / Main Area */}
       <main className="flex-1 max-w-[1536px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 md:py-8 space-y-8">
         
-        {/* Title */}
-        <div className="text-center max-w-3xl mx-auto pt-2 pb-1">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#181E2B] tracking-tight">
-            Script <span className="text-[#E52328]">Generator</span>
-          </h1>
+        {/* Call sheet-hoved */}
+        <div className="pt-3 pb-4 border-b-2 border-ink">
+          <p className="eyebrow text-ink/45 mb-2.5">Produktionsværktøj · Meta video-annoncer</p>
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+            <h1 className="font-display text-4xl sm:text-5xl uppercase leading-[0.95] text-ink">
+              Script Generator<span className="text-rec">.</span>
+            </h1>
+            <p className="eyebrow text-ink/40 pb-1.5">Hook · Body · CTA — optageklar på dansk</p>
+          </div>
         </div>
 
         {/* Script Configurator Form */}
@@ -240,12 +244,12 @@ export default function App() {
 
         {/* GENERATED RESULTS SECTION */}
         {generatedScripts.length > 0 && (
-          <div id="generated-results" className="space-y-6 pt-6 border-t border-slate-200 animate-fadeIn">
+          <div id="generated-results" className="space-y-6 pt-6 animate-fadeIn">
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-2xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-ink/10 rounded-lg p-4 shadow-sm">
               <div className="flex-1 space-y-1">
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-[#E52328]" />
+                <label className="eyebrow text-slate-500 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-rec" />
                   <span>Dokument Titel (Vises øverst på eksporteret PDF & Docs)</span>
                 </label>
                 <input
@@ -253,14 +257,14 @@ export default function App() {
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="f.eks. JP Køl og Klima - Script 2"
-                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#E52328]/20 focus:border-[#E52328] rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-900 transition-all shadow-2xs"
                 />
               </div>
 
               <div className="flex flex-wrap items-center gap-2 self-start md:self-end">
                 <button
                   onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
                   title="Download alle scripts som Google Docs (.docx) - 1 script pr. side"
                 >
                   <FileText className="w-4 h-4 text-white" />
@@ -269,16 +273,16 @@ export default function App() {
 
                 <button
                   onClick={() => downloadScriptsAsPdf(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-ink rounded-md text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
                   title="Download alle scripts som PDF (.pdf) - 1 script pr. side"
                 >
-                  <FileDown className="w-4 h-4 text-white" />
+                  <FileDown className="w-4 h-4 text-ink" />
                   <span>Download PDF (.pdf)</span>
                 </button>
 
                 <button
                   onClick={handleCopyAllScripts}
-                  className="px-3.5 py-2.5 bg-[#E52328] hover:bg-[#c81e22] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  className="px-3.5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="Kopiér alle scripts med perfekt Google Docs formatering (Arial 11pt)"
                 >
                   {copiedAll ? (
@@ -299,9 +303,9 @@ export default function App() {
                     const el = document.querySelector('form');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-xs font-semibold text-ink flex items-center gap-1.5 cursor-pointer"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-[#E52328]" />
+                  <RefreshCw className="w-3.5 h-3.5 text-rec" />
                   <span>Nye parametre</span>
                 </button>
               </div>
