@@ -46,7 +46,7 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
           <div className="flex items-center gap-2">
             <Bookmark className="w-5 h-5 text-[#E52328]" />
             <h3 className="font-bold text-lg text-[#181E2B]">Gemte Meta Scripts</h3>
-            <span className="text-xs bg-red-50 text-[#E52328] font-bold px-2 py-0.5 rounded-full border border-red-200">
+            <span className="text-sm bg-red-50 text-[#E52328] font-bold px-2 py-0.5 rounded-full border border-red-200">
               {savedScripts.length}
             </span>
           </div>
@@ -68,7 +68,7 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Søg i gemte scripts..."
-              className="w-full bg-white border border-slate-200 rounded-md pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328]"
+              className="w-full bg-white border border-slate-200 rounded-md pl-9 pr-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328]"
             />
           </div>
         </div>
@@ -78,7 +78,7 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-slate-400 space-y-2">
               <Bookmark className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs">
+              <p className="text-sm">
                 {searchTerm ? 'Ingen matcher din søgning' : 'Du har ingen gemte scripts endnu. Klik på gem-ikonet på et script for at have det lige ved hånden.'}
               </p>
             </div>
@@ -90,10 +90,10 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-bold text-[#E52328] uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-[#E52328] uppercase tracking-wider block">
                       {script.companyName}
                     </span>
-                    <h4 className="text-sm font-bold text-[#181E2B] line-clamp-1">
+                    <h4 className="text-base font-bold text-[#181E2B] line-clamp-1">
                       {script.title}
                     </h4>
                   </div>
@@ -107,7 +107,7 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] text-slate-600">
+                <div className="flex items-center gap-2 text-xs text-slate-600">
                   <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200">
                     <Film className="w-3 h-3 text-[#E52328]" />
                     {script.scriptType.split(' ')[0]}
@@ -124,7 +124,7 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
                       onSelectScript(script);
                       onClose();
                     }}
-                    className="text-xs text-[#E52328] hover:text-red-800 font-semibold flex items-center gap-1 cursor-pointer"
+                    className="text-sm text-[#E52328] hover:text-red-800 font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <span>Åbn fuld visning</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -132,7 +132,7 @@ export const SavedScriptsDrawer: React.FC<SavedScriptsDrawerProps> = ({
 
                   <button
                     onClick={() => handleCopyQuick(script, idx)}
-                    className="text-xs text-slate-700 hover:text-slate-900 flex items-center gap-1 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer"
+                    className="text-sm text-slate-700 hover:text-slate-900 flex items-center gap-1 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer"
                   >
                     {copiedId === script.id ? (
                       <>

@@ -173,11 +173,11 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-bold text-lg text-[#181E2B]">Projekter</h2>
-                <span className="text-xs bg-red-100 text-[#E52328] font-extrabold px-2 py-0.5 rounded-full">
+                <span className="text-sm bg-red-100 text-[#E52328] font-extrabold px-2 py-0.5 rounded-full">
                   {projects.length}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-slate-500">
                 Gem og organiser scripts i fælles projekter. Gemmes automatisk til alle brugere.
               </p>
             </div>
@@ -187,7 +187,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
             {!isCreating && (
               <button
                 onClick={() => setIsCreating(true)}
-                className="px-3.5 py-2 bg-[#E52328] hover:bg-[#c81e22] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-2 bg-[#E52328] hover:bg-[#c81e22] text-white rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nyt Projekt</span>
@@ -208,14 +208,14 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
           <div className="p-4 bg-red-50/50 border-b border-red-100 animate-fadeIn">
             <form onSubmit={handleCreateProject} className="space-y-3 max-w-xl mx-auto">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-[#E52328] uppercase tracking-wider flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-[#E52328] uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
                   Opret et nyt projekt
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsCreating(false)}
-                  className="text-xs text-slate-500 hover:text-slate-800 font-semibold"
+                  className="text-sm text-slate-500 hover:text-slate-800 font-semibold"
                 >
                   Annuller
                 </button>
@@ -223,7 +223,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
                     Projektnavn *
                   </label>
                   <input
@@ -232,12 +232,12 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                     placeholder="f.eks. Kampagne Q3, Skønhed & Hudpleje"
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
                     Beskrivelse (Valgfri)
                   </label>
                   <input
@@ -245,7 +245,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                     value={descInput}
                     onChange={(e) => setDescInput(e.target.value)}
                     placeholder="f.eks. Vinkel-tests for C-Vitamin serum"
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
                   />
                 </div>
               </div>
@@ -254,7 +254,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting || !nameInput.trim()}
-                  className="px-4 py-2 bg-[#E52328] text-white rounded-lg text-xs font-bold hover:bg-[#c81e22] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 bg-[#E52328] text-white rounded-lg text-sm font-bold hover:bg-[#c81e22] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
@@ -282,7 +282,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Søg i projekter eller scripts..."
-              className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328]"
+              className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328]"
             />
           </div>
         </div>
@@ -292,7 +292,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
           {filteredProjects.length === 0 ? (
             <div className="text-center py-16 text-slate-400 space-y-3">
               <Folder className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-xs font-medium text-slate-600">
+              <p className="text-sm font-medium text-slate-600">
                 {searchTerm
                   ? 'Ingen projekter matcher din søgning.'
                   : 'Du har ingen oprettede projekter endnu. Klik på "Nyt Projekt" for at komme i gang!'}
@@ -300,7 +300,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
               {!searchTerm && (
                 <button
                   onClick={() => setIsCreating(true)}
-                  className="px-4 py-2 bg-[#E52328] text-white rounded-lg text-xs font-bold hover:bg-[#c81e22] transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 bg-[#E52328] text-white rounded-lg text-sm font-bold hover:bg-[#c81e22] transition-all inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Opret dit første projekt</span>
@@ -332,19 +332,19 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-sm text-[#181E2B] truncate">
+                            <h3 className="font-bold text-base text-[#181E2B] truncate">
                               {proj.name}
                             </h3>
-                            <span className="text-[11px] bg-white border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-white border border-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">
                               {scriptCount} {scriptCount === 1 ? 'script' : 'scripts'}
                             </span>
                           </div>
                           {proj.description && (
-                            <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                            <p className="text-sm text-slate-500 line-clamp-1 mt-0.5">
                               {proj.description}
                             </p>
                           )}
-                          <span className="text-[10px] text-slate-400 block mt-1">
+                          <span className="text-xs text-slate-400 block mt-1">
                             Opdateret {new Date(proj.updatedAt || proj.createdAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -356,7 +356,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           placeholder="Projektnavn"
-                          className="bg-white border border-slate-300 rounded-md p-1.5 text-xs font-bold outline-none focus:border-[#E52328]"
+                          className="bg-white border border-slate-300 rounded-md p-1.5 text-sm font-bold outline-none focus:border-[#E52328]"
                         />
                         <div className="flex items-center gap-2">
                           <input
@@ -364,17 +364,17 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                             value={editDesc}
                             onChange={(e) => setEditDesc(e.target.value)}
                             placeholder="Beskrivelse"
-                            className="w-full bg-white border border-slate-300 rounded-md p-1.5 text-xs outline-none focus:border-[#E52328]"
+                            className="w-full bg-white border border-slate-300 rounded-md p-1.5 text-sm outline-none focus:border-[#E52328]"
                           />
                           <button
                             onClick={() => handleUpdateProject(proj.id)}
-                            className="px-2.5 py-1.5 bg-[#E52328] text-white rounded text-xs font-bold shrink-0"
+                            className="px-2.5 py-1.5 bg-[#E52328] text-white rounded text-sm font-bold shrink-0"
                           >
                             Gem
                           </button>
                           <button
                             onClick={() => setEditingProjectId(null)}
-                            className="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded text-xs shrink-0"
+                            className="px-2.5 py-1.5 bg-slate-200 text-slate-700 rounded text-sm shrink-0"
                           >
                             X
                           </button>
@@ -424,12 +424,12 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                   {/* Expanded Scripts inside Project */}
                   {isExpanded && (
                     <div className="p-4 border-t border-slate-200 bg-slate-100/50 space-y-3 animate-fadeIn">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                      <div className="flex items-center justify-between text-sm font-bold text-slate-700">
                         <span>Gemte scripts i dette projekt ({scriptCount})</span>
                       </div>
 
                       {scriptCount === 0 ? (
-                        <div className="p-6 text-center bg-white rounded-lg border border-dashed border-slate-200 text-slate-400 text-xs">
+                        <div className="p-6 text-center bg-white rounded-lg border border-dashed border-slate-200 text-slate-400 text-sm">
                           Der er endnu ingen scripts gemt i dette projekt. Når du genererer et script, kan du klikke "Gem til Projekt".
                         </div>
                       ) : (
@@ -445,10 +445,10 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
-                                    <span className="text-[10px] font-bold text-[#E52328] uppercase tracking-wider block">
+                                    <span className="text-xs font-bold text-[#E52328] uppercase tracking-wider block">
                                       {script.companyName}
                                     </span>
-                                    <h4 className="text-sm font-bold text-[#181E2B]">
+                                    <h4 className="text-base font-bold text-[#181E2B]">
                                       {script.title}
                                     </h4>
                                   </div>
@@ -467,17 +467,17 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                   </button>
                                 </div>
 
-                                <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
-                                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-[11px]">
+                                <div className="flex items-center gap-2 text-sm text-slate-600 flex-wrap">
+                                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-xs">
                                     <Film className="w-3 h-3 text-[#E52328]" />
                                     {script.scriptType}
                                   </span>
-                                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-[11px]">
+                                  <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-xs">
                                     <Clock className="w-3 h-3 text-emerald-600" />
                                     {script.bodyDuration}
                                   </span>
                                   {script.hooks?.length > 0 && (
-                                    <span className="text-[11px] text-slate-500">
+                                    <span className="text-xs text-slate-500">
                                       {script.hooks.length} Hooks
                                     </span>
                                   )}
@@ -490,7 +490,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                         onSelectScript(script);
                                         onClose();
                                       }}
-                                      className="text-xs text-[#E52328] hover:text-red-800 font-bold flex items-center gap-1 cursor-pointer bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded border border-red-200 transition-colors"
+                                      className="text-sm text-[#E52328] hover:text-red-800 font-bold flex items-center gap-1 cursor-pointer bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded border border-red-200 transition-colors"
                                     >
                                       <span>Vis Script</span>
                                       <ExternalLink className="w-3.5 h-3.5" />
@@ -501,7 +501,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                         onOpenTeleprompter(script);
                                         onClose();
                                       }}
-                                      className="text-xs text-indigo-700 hover:text-indigo-900 font-bold flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded border border-indigo-200 transition-colors"
+                                      className="text-sm text-indigo-700 hover:text-indigo-900 font-bold flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded border border-indigo-200 transition-colors"
                                     >
                                       <Video className="w-3.5 h-3.5" />
                                       <span>Teleprompter Mode</span>
@@ -510,7 +510,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
 
                                   <button
                                     onClick={() => handleCopyScript(script, scriptIdx)}
-                                    className="text-xs text-slate-700 hover:text-slate-900 flex items-center gap-1 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded border border-slate-200 cursor-pointer"
+                                    className="text-sm text-slate-700 hover:text-slate-900 flex items-center gap-1 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded border border-slate-200 cursor-pointer"
                                   >
                                     {copiedScriptId === script.id ? (
                                       <>

@@ -111,7 +111,7 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-200">
         <div className="flex items-center gap-2">
           <BrainIcon className="w-4 h-4 text-[#E52328]" />
-          <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+          <span className="text-sm font-black uppercase tracking-wider text-slate-800">
             AWARENESS FUNNEL (DE 5 BEVIDSTHEDSSTADIER)
           </span>
         </div>
@@ -122,10 +122,10 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#E52328]"></span>
           </span>
-          <span className="text-xs font-bold text-slate-800">
+          <span className="text-sm font-bold text-slate-800">
             Aktiv: <span className="text-[#E52328] font-extrabold">{activeStage.short}</span>
           </span>
-          <span className="text-[10px] text-slate-400 font-medium">({activeStage.level}/5)</span>
+          <span className="text-xs text-slate-400 font-medium">({activeStage.level}/5)</span>
         </div>
       </div>
 
@@ -257,25 +257,25 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[#E52328] text-white text-xs font-black flex items-center justify-center shadow-2xs">
+                <span className="w-6 h-6 rounded-full bg-[#E52328] text-white text-sm font-black flex items-center justify-center shadow-2xs">
                   {activeStage.level}
                 </span>
-                <span className="font-extrabold text-slate-900 text-sm sm:text-base">
+                <span className="font-extrabold text-slate-900 text-base sm:text-base">
                   {activeStage.title}
                 </span>
               </div>
-              <span className={`text-xs font-extrabold px-2.5 py-1 rounded-md border ${activeStage.badgeColor}`}>
+              <span className={`text-sm font-extrabold px-2.5 py-1 rounded-md border ${activeStage.badgeColor}`}>
                 {activeStage.badge}
               </span>
             </div>
 
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed font-medium">
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-medium">
               {activeStage.desc}
             </p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs space-y-1.5">
-            <span className="text-[#E52328] font-black block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-sm space-y-1.5">
+            <span className="text-[#E52328] font-black block text-xs uppercase tracking-wider flex items-center gap-1.5">
               <TargetIcon className="w-3.5 h-3.5" />
               Strategisk Fokus:
             </span>
