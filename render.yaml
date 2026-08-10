@@ -12,7 +12,7 @@ services:
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: APP_PASSWORDS
+      - key: APP_USERS
         sync: false
       - key: NODE_ENV
         value: production

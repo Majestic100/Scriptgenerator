@@ -27,6 +27,21 @@ npm run build
 npm start
 ```
 
+## Adgang og virksomheder
+
+Appen er lukket bag en login-side. Brugerne defineres i miljøvariablen `APP_USERS`
+med formatet `Navn:Virksomhed:kode`, adskilt af komma:
+
+```
+APP_USERS=Sinan:Hero Media:kode1,Jalal:Jalal Visuals:kode2,Mette:Hero Media:kode3
+```
+
+- Hver bruger ser sin egen virksomheds kunder og projekter
+- Kunder og projekter kan markeres som **fælles**, så begge virksomheder ser dem
+- Fjern en persons kode fra listen for at lukke adgangen
+- Sættes `APP_USERS` ikke, er appen åben (kun til lokal udvikling).
+  Den gamle `APP_PASSWORDS` (kun koder) virker stadig og deler alt mellem alle.
+
 ## Offentlig hosting (Render.com — gratis)
 
 Repoet indeholder en `render.yaml`, så deploy er få klik:

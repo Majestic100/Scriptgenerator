@@ -118,6 +118,10 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  shared?: boolean;
+  owner?: string;
+  ownerLabel?: string;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
   scripts: GeneratedScript[];
@@ -155,6 +159,16 @@ export interface Customer {
   toneOfVoice?: string;
   notes?: string;
   analysisDocument?: { name: string; extractedText: string };
+  shared?: boolean;
+  owner?: string;
+  ownerLabel?: string;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AppUserInfo {
+  name: string;
+  company: string;
+  companyLabel: string;
 }

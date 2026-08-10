@@ -17,16 +17,47 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: "25mb" }));
 
-// --- Adgangsbeskyttelse ---
-// Sæt APP_PASSWORDS i miljøet (kommasepareret liste, én kode pr. person).
-// Fjern en kode fra listen for at lukke den persons adgang. Ingen koder sat = åben app (lokal udvikling).
-const getAllowedPasswords = (): string[] =>
-  (process.env.APP_PASSWORDS || process.env.APP_PASSWORD || "")
+// --- Adgang & virksomheder ---
+// APP_USERS: "Navn:Virksomhed:kode" adskilt af komma, fx
+//   Sinan:Hero Media:sinan-x92k,Jalal:Jalal Visuals:jalal-t44m
+// Hver bruger ser sin egen virksomheds data + alt der er markeret som fælles.
+// Fallback: APP_PASSWORDS (kun koder) = alle deler alt, som før.
+interface AppUser {
+  name: string;
+  companyLabel: string;
+  company: string; // normaliseret nøgle
+  password: string;
+}
+
+const normalizeCompany = (label: string) =>
+  label.trim().toLowerCase().replace(/\s+/g, "-") || "alle";
+
+function getAppUsers(): AppUser[] {
+  const structured = (process.env.APP_USERS || "").split(",").map((e) => e.trim()).filter(Boolean);
+  if (structured.length > 0) {
+    return structured.map((entry) => {
+      const parts = entry.split(":").map((p) => p.trim());
+      if (parts.length >= 3) {
+        const [name, companyLabel, ...rest] = parts;
+        return { name, companyLabel, company: normalizeCompany(companyLabel), password: rest.join(":") };
+      }
+      // Uden virksomhed: brugeren ser alt
+      const password = parts[parts.length - 1];
+      const name = parts.length > 1 ? parts[0] : "Bruger";
+      return { name, companyLabel: "Alle", company: "alle", password };
+    }).filter((u) => u.password);
+  }
+
+  return (process.env.APP_PASSWORDS || process.env.APP_PASSWORD || "")
     .split(",")
     .map((p) => p.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((password) => ({ name: "Bruger", companyLabel: "Alle", company: "alle", password }));
+}
 
-const AUTH_SECRET = process.env.AUTH_SECRET || "sg-auth-" + (process.env.APP_PASSWORDS || "dev");
+const AUTH_SECRET =
+  process.env.AUTH_SECRET ||
+  "sg-auth-" + (process.env.APP_USERS || process.env.APP_PASSWORDS || "dev");
 
 const authTokenFor = (password: string) =>
   crypto.createHmac("sha256", AUTH_SECRET).update(password).digest("hex");
@@ -41,28 +72,51 @@ function getCookie(req: any, name: string): string | null {
   return null;
 }
 
-function isAuthed(req: any): boolean {
-  const allowed = getAllowedPasswords();
-  if (allowed.length === 0) return true;
+// Returnerer den loggede bruger, eller null hvis adgangskontrol er slået fra
+function getCurrentUser(req: any): AppUser | null {
+  const users = getAppUsers();
+  if (users.length === 0) return null;
   const token = getCookie(req, "sg_auth");
-  return !!token && allowed.some((p) => authTokenFor(p) === token);
+  if (!token) return null;
+  return users.find((u) => authTokenFor(u.password) === token) || null;
+}
+
+const isAuthRequired = () => getAppUsers().length > 0;
+const isAuthed = (req: any) => !isAuthRequired() || !!getCurrentUser(req);
+
+// Ser denne bruger dette element? (fælles + egen virksomhed + gamle elementer uden ejer)
+function canAccess(item: any, user: AppUser | null): boolean {
+  if (!user || user.company === "alle") return true;
+  if (item?.shared) return true;
+  if (!item?.owner) return true;
+  return item.owner === user.company;
 }
 
 app.get("/api/auth/status", (req, res) => {
-  res.json({ success: true, required: getAllowedPasswords().length > 0, authed: isAuthed(req) });
+  const user = getCurrentUser(req);
+  res.json({
+    success: true,
+    required: isAuthRequired(),
+    authed: isAuthed(req),
+    user: user ? { name: user.name, company: user.company, companyLabel: user.companyLabel } : null
+  });
 });
 
 app.post("/api/auth/login", (req, res) => {
   const { password } = req.body || {};
-  const allowed = getAllowedPasswords();
-  if (allowed.length === 0) return res.json({ success: true });
-  if (typeof password === "string" && allowed.includes(password.trim())) {
+  const users = getAppUsers();
+  if (users.length === 0) return res.json({ success: true });
+  const match = typeof password === "string" ? users.find((u) => u.password === password.trim()) : null;
+  if (match) {
     const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
     res.setHeader(
       "Set-Cookie",
-      `sg_auth=${authTokenFor(password.trim())}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${secure}`
+      `sg_auth=${authTokenFor(match.password)}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${secure}`
     );
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      user: { name: match.name, company: match.company, companyLabel: match.companyLabel }
+    });
   }
   return res.status(401).json({ success: false, error: "Forkert adgangskode." });
 });
@@ -1257,7 +1311,8 @@ app.delete("/api/ai-training/:id", (req, res) => {
 // GET all projects
 app.get("/api/projects", (req, res) => {
   try {
-    const projects = getProjectsData();
+    const user = getCurrentUser(req);
+    const projects = getProjectsData().filter((p: any) => canAccess(p, user));
     res.json({ success: true, projects });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -1271,18 +1326,23 @@ app.post("/api/projects", (req, res) => {
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: "Projektnavn er påkrævet." });
     }
+    const user = getCurrentUser(req);
     const projects = getProjectsData();
     const newProject = {
       id: `project-${Date.now()}`,
       name: name.trim(),
       description: description.trim(),
+      shared: !!req.body.shared,
+      owner: user?.company || "alle",
+      ownerLabel: user?.companyLabel || "",
+      createdBy: user?.name || "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       scripts: []
     };
     projects.unshift(newProject);
     saveProjectsData(projects);
-    res.json({ success: true, project: newProject, projects });
+    res.json({ success: true, project: newProject, projects: projects.filter((p: any) => canAccess(p, user)) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1298,11 +1358,15 @@ app.put("/api/projects/:id", (req, res) => {
     if (idx === -1) {
       return res.status(404).json({ success: false, error: "Projektet blev ikke fundet." });
     }
+    if (!canAccess(projects[idx], getCurrentUser(req))) {
+      return res.status(403).json({ success: false, error: "Du har ikke adgang til dette projekt." });
+    }
+    if (req.body.shared !== undefined) projects[idx].shared = !!req.body.shared;
     if (name !== undefined) projects[idx].name = name.trim();
     if (description !== undefined) projects[idx].description = description.trim();
     projects[idx].updatedAt = new Date().toISOString();
     saveProjectsData(projects);
-    res.json({ success: true, project: projects[idx], projects });
+    res.json({ success: true, project: projects[idx], projects: projects.filter((p: any) => canAccess(p, getCurrentUser(req))) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1312,10 +1376,15 @@ app.put("/api/projects/:id", (req, res) => {
 app.delete("/api/projects/:id", (req, res) => {
   try {
     const { id } = req.params;
-    let projects = getProjectsData();
-    projects = projects.filter((p: any) => p.id !== id);
-    saveProjectsData(projects);
-    res.json({ success: true, projects });
+    const user = getCurrentUser(req);
+    const projects = getProjectsData();
+    const target = projects.find((p: any) => p.id === id);
+    if (target && !canAccess(target, user)) {
+      return res.status(403).json({ success: false, error: "Du har ikke adgang til dette projekt." });
+    }
+    const remaining = projects.filter((p: any) => p.id !== id);
+    saveProjectsData(remaining);
+    res.json({ success: true, projects: remaining.filter((p: any) => canAccess(p, user)) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1786,7 +1855,8 @@ async function buildCustomerFields(body: any) {
     offerOrCta: (body.offerOrCta || "").trim(),
     competitors: Array.isArray(body.competitors) ? body.competitors.filter((c: any) => typeof c === "string" && c.trim()).slice(0, 3) : [],
     toneOfVoice: (body.toneOfVoice || "").trim(),
-    notes: (body.notes || "").trim()
+    notes: (body.notes || "").trim(),
+    shared: !!body.shared
   };
 
   // Analysedokument: udtræk og gem KUN teksten, så den kan genbruges uden ny upload
@@ -1808,7 +1878,8 @@ async function buildCustomerFields(body: any) {
 // GET all customers
 app.get("/api/customers", (req, res) => {
   try {
-    res.json({ success: true, customers: getCustomersData() });
+    const user = getCurrentUser(req);
+    res.json({ success: true, customers: getCustomersData().filter((c: any) => canAccess(c, user)) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1821,16 +1892,20 @@ app.post("/api/customers", async (req, res) => {
     if (!fields.companyName && !fields.name) {
       return res.status(400).json({ success: false, error: "Kundenavn eller virksomhedsnavn er påkrævet." });
     }
+    const user = getCurrentUser(req);
     const customers = getCustomersData();
     const newCustomer = {
       id: `customer-${Date.now()}`,
       ...fields,
+      owner: user?.company || "alle",
+      ownerLabel: user?.companyLabel || "",
+      createdBy: user?.name || "",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     customers.unshift(newCustomer);
     saveCustomersData(customers);
-    res.json({ success: true, customer: newCustomer, customers });
+    res.json({ success: true, customer: newCustomer, customers: customers.filter((c: any) => canAccess(c, user)) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1845,6 +1920,9 @@ app.put("/api/customers/:id", async (req, res) => {
     if (idx === -1) {
       return res.status(404).json({ success: false, error: "Kunden blev ikke fundet." });
     }
+    if (!canAccess(customers[idx], getCurrentUser(req))) {
+      return res.status(403).json({ success: false, error: "Du har ikke adgang til denne kunde." });
+    }
     const fields = await buildCustomerFields(req.body);
     // Behold eksisterende analysedokument hvis der ikke sendes et nyt
     if (fields.analysisDocument === undefined && req.body.analysisDocument !== null) {
@@ -1856,7 +1934,7 @@ app.put("/api/customers/:id", async (req, res) => {
       updatedAt: new Date().toISOString()
     };
     saveCustomersData(customers);
-    res.json({ success: true, customer: customers[idx], customers });
+    res.json({ success: true, customer: customers[idx], customers: customers.filter((c: any) => canAccess(c, getCurrentUser(req))) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1866,10 +1944,15 @@ app.put("/api/customers/:id", async (req, res) => {
 app.delete("/api/customers/:id", (req, res) => {
   try {
     const { id } = req.params;
-    let customers = getCustomersData();
-    customers = customers.filter((c: any) => c.id !== id);
-    saveCustomersData(customers);
-    res.json({ success: true, customers });
+    const user = getCurrentUser(req);
+    const customers = getCustomersData();
+    const target = customers.find((c: any) => c.id === id);
+    if (target && !canAccess(target, user)) {
+      return res.status(403).json({ success: false, error: "Du har ikke adgang til denne kunde." });
+    }
+    const remaining = customers.filter((c: any) => c.id !== id);
+    saveCustomersData(remaining);
+    res.json({ success: true, customers: remaining.filter((c: any) => canAccess(c, user)) });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

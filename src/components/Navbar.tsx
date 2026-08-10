@@ -10,6 +10,7 @@ interface NavbarProps {
   onOpenCustomers?: () => void;
   onLoadExample: (presetKey: string) => void;
   onLogout?: () => void;
+  currentUser?: { name: string; companyLabel: string } | null;
 }
 
 export const JalalVisualsLogo: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = () => {
@@ -25,6 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCustomers,
   onLoadExample,
   onLogout,
+  currentUser,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 text-ink px-4 sm:px-6 lg:px-10 py-3 shadow-xs">
