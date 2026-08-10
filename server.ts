@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
 import * as pdfParseModule from "pdf-parse";
 const pdfParse = (pdfParseModule as any).default || pdfParseModule;
@@ -142,21 +142,69 @@ function getScriptTypeGuidelinesPrompt(requestedTypes: string[]): string {
   return `\n\n🎯 REGEL-SÆT OG BEATS FOR VALGTE SCRIPT-TYPER (SKAL OVERHOLDES 100%):\n${sections.join("\n\n")}\n\n`;
 }
 
-// Gemini setup
-const getGeminiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
+// Claude setup
+const CLAUDE_MODEL = "claude-fable-5";
+
+const getAnthropicClient = () => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY miljøvariabel er ikke konfigureret i Settings > Secrets.");
+    throw new Error("ANTHROPIC_API_KEY miljøvariabel er ikke konfigureret. Tilføj den i en .env fil i projektets rod.");
   }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
-      },
-    },
-  });
+  return new Anthropic({ apiKey });
 };
+
+// JSON Schema type-navne (samme form som @google/genai's Type-enum, så schemaerne nedenfor er standard JSON Schema)
+const Type = {
+  OBJECT: "object",
+  ARRAY: "array",
+  STRING: "string",
+  INTEGER: "integer",
+  NUMBER: "number",
+  BOOLEAN: "boolean",
+} as const;
+
+// Structured outputs kræver additionalProperties: false og fuld required-liste på alle objekter
+function toStrictSchema(node: any): any {
+  if (Array.isArray(node)) return node.map(toStrictSchema);
+  if (node && typeof node === "object") {
+    const out: Record<string, any> = {};
+    for (const [key, value] of Object.entries(node)) out[key] = toStrictSchema(value);
+    if (out.type === "object" && out.properties) {
+      out.additionalProperties = false;
+      out.required = Object.keys(out.properties);
+    }
+    return out;
+  }
+  return node;
+}
+
+// Kalder Claude (Fable 5) og returnerer svaret som JSON-tekst jf. det angivne schema.
+// Fable 5 styrer selv sin thinking (ingen thinking-config) og accepterer ikke temperature.
+// fallbacks: "default" gør at et evt. sikkerhedsafslag automatisk besvares af en fallback-model.
+async function generateContentJson(options: {
+  prompt: string;
+  schema: Record<string, any>;
+  system?: string;
+  maxTokens?: number;
+}): Promise<{ text: string }> {
+  const client = getAnthropicClient();
+  const response: any = await (client.beta.messages.create as any)({
+    model: CLAUDE_MODEL,
+    max_tokens: options.maxTokens ?? 16000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    ...(options.system ? { system: options.system } : {}),
+    output_config: { format: { type: "json_schema", schema: toStrictSchema(options.schema) } },
+    messages: [{ role: "user", content: options.prompt }],
+  });
+
+  if (response.stop_reason === "refusal") {
+    throw new Error("AI-modellen afviste forespørgslen. Prøv at omformulere dit input.");
+  }
+
+  const text = response.content?.find((block: any) => block.type === "text")?.text ?? "{}";
+  return { text };
+}
 
 // Helper function to scrape and analyze website content
 async function scrapeWebsiteContent(urlStr: string): Promise<string> {
@@ -305,8 +353,6 @@ app.post("/api/generate-scripts", async (req, res) => {
     if (!companyName) {
       return res.status(400).json({ success: false, error: "Virksomhedsnavn er påkrævet." });
     }
-
-    const ai = getGeminiClient();
 
     let websiteAnalysisText = "";
     if (companyWebsite && companyWebsite.trim().length > 0) {
@@ -548,16 +594,10 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       required: ["scripts"]
     };
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
-        temperature: 0.8,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-        responseMimeType: "application/json",
-        responseSchema: responseSchema
-      }
+    const response = await generateContentJson({
+      prompt,
+              system: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
+        schema: responseSchema
     });
 
     const rawText = response.text || "{}";
@@ -565,7 +605,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
     try {
       parsedData = JSON.parse(rawText);
     } catch (e) {
-      console.error("Fejl ved parsing af JSON fra Gemini:", rawText);
+      console.error("Fejl ved parsing af JSON fra AI-modellen:", rawText);
       return res.status(500).json({ success: false, error: "Ugyldigt format modtaget fra AI modellen." });
     }
 
@@ -629,7 +669,6 @@ app.post("/api/regenerate-element", async (req, res) => {
       return res.status(400).json({ success: false, error: "Manglende parametre til re-generering." });
     }
 
-    const ai = getGeminiClient();
     const promptLanguage = language === "en" ? "English" : "Danish";
 
     if (elementType === "hook") {
@@ -674,14 +713,9 @@ Returnér UDELUKKENDE et JSON-objekt:
 }
 `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          temperature: 0.9,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-          responseMimeType: "application/json",
-          responseSchema: {
+      const response = await generateContentJson({
+        prompt,
+                  schema: {
             type: Type.OBJECT,
             properties: {
               angleType: { type: Type.STRING },
@@ -692,7 +726,6 @@ Returnér UDELUKKENDE et JSON-objekt:
             },
             required: ["angleType", "visualDirection", "textOnScreen", "audioDialogue"]
           }
-        }
       });
 
       const newHookData = JSON.parse(response.text || "{}");
@@ -746,21 +779,15 @@ Returnér UDELUKKENDE et JSON-objekt:
 }
 `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          temperature: 0.85,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-          responseMimeType: "application/json",
-          responseSchema: {
+      const response = await generateContentJson({
+        prompt,
+                  schema: {
             type: Type.OBJECT,
             properties: {
               callToAction: { type: Type.STRING }
             },
             required: ["callToAction"]
           }
-        }
       });
 
       const newCtaData = JSON.parse(response.text || "{}");
@@ -817,14 +844,9 @@ Returnér UDELUKKENDE et JSON-objekt:
 }
 `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          temperature: 0.85,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-          responseMimeType: "application/json",
-          responseSchema: {
+      const response = await generateContentJson({
+        prompt,
+                  schema: {
             type: Type.OBJECT,
             properties: {
               scenes: {
@@ -845,7 +867,6 @@ Returnér UDELUKKENDE et JSON-objekt:
             },
             required: ["scenes"]
           }
-        }
       });
 
       const parsed = JSON.parse(response.text || "{}");
@@ -884,21 +905,15 @@ Returnér UDELUKKENDE et JSON-objekt:
 }
 `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          temperature: 0.85,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-          responseMimeType: "application/json",
-          responseSchema: {
+      const response = await generateContentJson({
+        prompt,
+                  schema: {
             type: Type.OBJECT,
             properties: {
               visualDirection: { type: Type.STRING }
             },
             required: ["visualDirection"]
           }
-        }
       });
 
       const parsed = JSON.parse(response.text || "{}");
@@ -999,15 +1014,9 @@ Returnér et komplet JSON-objekt:
         required: ["title", "conceptAngle", "hooks", "scenes", "callToAction"]
       };
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          temperature: 0.85,
-          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-          responseMimeType: "application/json",
-          responseSchema: responseSchema
-        }
+      const response = await generateContentJson({
+        prompt,
+                  schema: responseSchema
       });
 
       const parsed = JSON.parse(response.text || "{}");
@@ -1300,8 +1309,6 @@ app.post("/api/integrate-analogy", async (req, res) => {
       return res.status(400).json({ success: false, error: "Mangler bodyTekst eller analogiTekst." });
     }
 
-    const ai = getGeminiClient();
-
     const prompt = `
 Du er en verdensklasse dansk copywriter for Meta Ads.
 Opgave: Omskriv den eksisterende manuskript-body ("EKSISTERENDE BODY TEKST") således at den medfølgende analogi ("ANALOGI") flettes SØMLØST, NATURLIGT og SPROGLIGT KORREKT ind i ca. midten af teksten (mellem problemstillingen og løsningen).
@@ -1327,21 +1334,15 @@ Returnér et JSON-objekt:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-        responseMimeType: "application/json",
-        responseSchema: {
+    const response = await generateContentJson({
+      prompt,
+              schema: {
           type: Type.OBJECT,
           properties: {
             wovenText: { type: Type.STRING }
           },
           required: ["wovenText"]
         }
-      }
     });
 
     const parsed = JSON.parse(response.text || "{}");
@@ -1368,8 +1369,6 @@ app.post("/api/analyze-ad-link", async (req, res) => {
     if (!adUrl && !adText) {
       return res.status(400).json({ success: false, error: "Angiv enten et Facebook Ad Library link eller en annoncetekst." });
     }
-
-    const ai = getGeminiClient();
 
     const prompt = `
 Du er en verdensklasse Meta Ads strateg og dansk UGC manuskriptforfatter.
@@ -1478,14 +1477,9 @@ Returnér et komplet JSON-objekt med følgende struktur:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-        responseMimeType: "application/json",
-        responseSchema: {
+    const response = await generateContentJson({
+      prompt,
+              schema: {
           type: Type.OBJECT,
           properties: {
             adAnalysis: {
@@ -1554,7 +1548,6 @@ Returnér et komplet JSON-objekt med følgende struktur:
           },
           required: ["adAnalysis", "script"]
         }
-      }
     });
 
     const parsed = JSON.parse(response.text || "{}");
@@ -1581,8 +1574,6 @@ app.post("/api/generate-analogy", async (req, res) => {
       targetType = "hook",
       currentText = ""
     } = req.body;
-    const ai = getGeminiClient();
-
     const categoryInstruction = category && category !== "Alle" 
       ? `Fokusér udelukkende på vinklen: "${category}".`
       : `Fordel analogierne ligeligt mellem de 3 kategorier: "Skabe frygt", "Vis forbedring", og "Skabe interesse".`;
@@ -1645,14 +1636,9 @@ Returnér et JSON-objekt jf. schema.
 `;
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: {
-        temperature: 0.95,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-        responseMimeType: "application/json",
-        responseSchema: {
+    const response = await generateContentJson({
+      prompt,
+              schema: {
           type: Type.OBJECT,
           properties: {
             analogies: {
@@ -1671,7 +1657,6 @@ Returnér et JSON-objekt jf. schema.
           },
           required: ["analogies"]
         }
-      }
     });
 
     const parsed = JSON.parse(response.text || "{}");

@@ -438,7 +438,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
         {/* FOOTER */}
         <div className="px-6 py-3.5 bg-slate-100 border-t border-slate-200 flex justify-between items-center shrink-0">
           <div className="text-xs text-slate-500 font-medium hidden sm:block">
-            Disse eksempler inkluderes i hver prompt til Gemini.
+            Disse eksempler inkluderes i hver prompt til Claude.
           </div>
           <button
             onClick={onClose}
