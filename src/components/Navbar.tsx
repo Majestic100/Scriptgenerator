@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Zap, Folder, Users } from 'lucide-react';
+import { Brain, Zap, Folder, Users, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   aiTrainingCount?: number;
@@ -9,6 +9,7 @@ interface NavbarProps {
   customersCount?: number;
   onOpenCustomers?: () => void;
   onLoadExample: (presetKey: string) => void;
+  onLogout?: () => void;
 }
 
 export const JalalVisualsLogo: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = () => {
@@ -23,6 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   customersCount = 0,
   onOpenCustomers,
   onLoadExample,
+  onLogout,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 text-ink px-4 sm:px-6 lg:px-10 py-3 shadow-xs">
@@ -31,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand */}
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="rec-dot shrink-0" aria-hidden="true" />
-          <span className="font-display text-base sm:text-lg uppercase tracking-wide text-ink whitespace-nowrap">
+          <span className="font-display text-lg sm:text-xl uppercase tracking-wide text-ink whitespace-nowrap">
             Script Generator
           </span>
         </div>
@@ -40,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Preset dropdown */}
           <div className="relative group hidden md:block">
-            <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-md transition-colors cursor-pointer">
+            <button className="flex items-center gap-1.5 px-3.5 py-2 text-base font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-md transition-colors cursor-pointer">
               <Zap className="w-4 h-4 text-slate-400" />
               <span>Eksempler</span>
             </button>
@@ -50,24 +52,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <button
                 onClick={() => onLoadExample('ecommerce')}
-                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                className="w-full text-left px-3 py-2 text-base text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
               >
                 <span className="font-medium">Naturhud (Skincare)</span>
-                <span className="font-mono text-xs bg-red-50 text-rec px-1.5 py-0.5 rounded font-semibold">UGC</span>
+                <span className="font-mono text-sm bg-red-50 text-rec px-1.5 py-0.5 rounded font-semibold">UGC</span>
               </button>
               <button
                 onClick={() => onLoadExample('saas')}
-                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                className="w-full text-left px-3 py-2 text-base text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
               >
                 <span className="font-medium">TaskFlow (SaaS)</span>
-                <span className="font-mono text-xs bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-semibold">VS</span>
+                <span className="font-mono text-sm bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-semibold">VS</span>
               </button>
               <button
                 onClick={() => onLoadExample('fitness')}
-                className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                className="w-full text-left px-3 py-2 text-base text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
               >
                 <span className="font-medium">FitPulse (Træning)</span>
-                <span className="font-mono text-xs bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-semibold">PAS</span>
+                <span className="font-mono text-sm bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-semibold">PAS</span>
               </button>
             </div>
           </div>
@@ -76,12 +78,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           {onOpenCustomers && (
             <button
               onClick={onOpenCustomers}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-bold bg-white hover:bg-slate-50 text-ink border border-slate-300 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-md text-base font-bold bg-white hover:bg-slate-50 text-ink border border-slate-300 transition-all cursor-pointer"
               title="Åbn kundekartotek"
             >
               <Users className="w-4 h-4 text-slate-500" />
               <span className="hidden sm:inline">Kunder</span>
-              <span className="bg-slate-100 text-slate-700 font-mono text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+              <span className="bg-slate-100 text-slate-700 font-mono text-sm font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                 {customersCount}
               </span>
             </button>
@@ -91,12 +93,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           {onOpenProjects && (
             <button
               onClick={onOpenProjects}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-bold bg-white hover:bg-slate-50 text-ink border border-slate-300 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-md text-base font-bold bg-white hover:bg-slate-50 text-ink border border-slate-300 transition-all cursor-pointer"
               title="Åbn projekter"
             >
               <Folder className="w-4 h-4 text-slate-500" />
               <span className="hidden sm:inline">Projekter</span>
-              <span className="bg-slate-100 text-slate-700 font-mono text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+              <span className="bg-slate-100 text-slate-700 font-mono text-sm font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                 {projectsCount}
               </span>
             </button>
@@ -106,14 +108,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           {onOpenAiTraining && (
             <button
               onClick={onOpenAiTraining}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold bg-rec hover:bg-[#c81e22] text-white transition-all relative cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-base font-bold bg-rec hover:bg-[#c81e22] text-white transition-all relative cursor-pointer"
               title="AI Træning: dine stjernemarkerede guldstandarder"
             >
               <Brain className="w-4 h-4 text-white" />
               <span className="hidden sm:inline">AI Træning</span>
-              <span className="bg-white/25 text-white font-mono text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+              <span className="bg-white/25 text-white font-mono text-sm font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                 {aiTrainingCount}
               </span>
+            </button>
+          )}
+
+          {/* Log ud */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="p-2.5 rounded-md bg-white hover:bg-slate-50 border border-slate-300 transition-all cursor-pointer"
+              title="Log ud"
+            >
+              <LogOut className="w-4 h-4 text-slate-500" />
             </button>
           )}
         </div>

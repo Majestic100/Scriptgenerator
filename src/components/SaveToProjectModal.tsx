@@ -98,8 +98,8 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
               <FolderPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-[#181E2B]">Gem til Projekt</h3>
-              <p className="text-sm text-slate-500 line-clamp-1">
+              <h3 className="font-bold text-lg text-[#181E2B]">Gem til Projekt</h3>
+              <p className="text-base text-slate-500 line-clamp-1">
                 "{script.title || script.companyName}"
               </p>
             </div>
@@ -116,7 +116,7 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
         {/* Body */}
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base font-medium">
               {errorMsg}
             </div>
           )}
@@ -124,12 +124,12 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
           {!isCreatingNew ? (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                <span className="text-base font-semibold text-slate-600 uppercase tracking-wider">
                   Vælg et eksisterende projekt
                 </span>
                 <button
                   onClick={() => setIsCreatingNew(true)}
-                  className="text-sm text-[#E52328] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-base text-[#E52328] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Nyt Projekt</span>
@@ -139,12 +139,12 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
               {projects.length === 0 ? (
                 <div className="text-center py-8 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 space-y-3">
                   <Folder className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="text-sm text-slate-600">
+                  <p className="text-base text-slate-600">
                     Du har ingen oprettede projekter endnu. Opret dit første projekt herunder!
                   </p>
                   <button
                     onClick={() => setIsCreatingNew(true)}
-                    className="px-4 py-2 bg-[#E52328] text-white rounded-lg text-sm font-bold hover:bg-[#c81e22] transition-all flex items-center gap-1.5 mx-auto cursor-pointer"
+                    className="px-4 py-2 bg-[#E52328] text-white rounded-lg text-base font-bold hover:bg-[#c81e22] transition-all flex items-center gap-1.5 mx-auto cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Opret Nyt Projekt</span>
@@ -174,21 +174,21 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-[#181E2B] truncate">
+                              <h4 className="text-base font-bold text-[#181E2B] truncate">
                                 {proj.name}
                               </h4>
                               {isAlreadyIn && (
-                                <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-1.5 py-0.2 rounded border border-amber-200">
+                                <span className="text-sm bg-amber-50 text-amber-700 font-semibold px-1.5 py-0.2 rounded border border-amber-200">
                                   Indeholder script
                                 </span>
                               )}
                             </div>
                             {proj.description && (
-                              <p className="text-xs text-slate-500 truncate mt-0.5">
+                              <p className="text-sm text-slate-500 truncate mt-0.5">
                                 {proj.description}
                               </p>
                             )}
-                            <span className="text-xs text-slate-400 block mt-0.5">
+                            <span className="text-sm text-slate-400 block mt-0.5">
                               {proj.scripts?.length || 0} scripts gemt
                             </span>
                           </div>
@@ -198,12 +198,12 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                           {isLoading ? (
                             <Loader2 className="w-4 h-4 animate-spin text-[#E52328]" />
                           ) : isSuccess ? (
-                            <div className="flex items-center gap-1 text-sm font-bold text-emerald-600">
+                            <div className="flex items-center gap-1 text-base font-bold text-emerald-600">
                               <Check className="w-4 h-4" />
                               <span>Gemt!</span>
                             </div>
                           ) : (
-                            <span className="text-sm font-bold text-[#E52328] hover:underline">
+                            <span className="text-base font-bold text-[#E52328] hover:underline">
                               {isAlreadyIn ? 'Opdatér' : 'Gem hér'}
                             </span>
                           )}
@@ -217,20 +217,20 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
           ) : (
             <form onSubmit={handleCreateAndSave} className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                <h4 className="text-base font-bold text-slate-800 uppercase tracking-wider">
                   Opret nyt projekt & gem script
                 </h4>
                 <button
                   type="button"
                   onClick={() => setIsCreatingNew(false)}
-                  className="text-sm text-slate-500 hover:text-slate-800 font-semibold"
+                  className="text-base text-slate-500 hover:text-slate-800 font-semibold"
                 >
                   Annuller
                 </button>
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-base font-semibold text-slate-700">
                   Projektnavn *
                 </label>
                 <input
@@ -239,12 +239,12 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="f.eks. Sommer Kampagne 2026, Q3 Meta Ads, Bodyscrub Launch"
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-base text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-base font-semibold text-slate-700">
                   Beskrivelse (valgfri)
                 </label>
                 <textarea
@@ -252,14 +252,14 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                   value={newProjectDesc}
                   onChange={(e) => setNewProjectDesc(e.target.value)}
                   placeholder="f.eks. Vinkel-test af C-vitamin serum til kvinder 25-45 år"
-                  className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                  className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-base text-slate-800 placeholder-slate-400 outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isCreatingProject || !newProjectName.trim()}
-                className="w-full mt-2 py-2.5 bg-[#E52328] hover:bg-[#c81e22] text-white rounded-lg text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full mt-2 py-2.5 bg-[#E52328] hover:bg-[#c81e22] text-white rounded-lg text-base font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isCreatingProject ? (
                   <>

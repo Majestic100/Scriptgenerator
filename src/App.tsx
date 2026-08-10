@@ -7,6 +7,7 @@ import { ProjectsModal } from './components/ProjectsModal';
 import { SaveToProjectModal } from './components/SaveToProjectModal';
 import { TeleprompterModal } from './components/TeleprompterModal';
 import { CustomersModal } from './components/CustomersModal';
+import { LoginScreen } from './components/LoginScreen';
 import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer } from './types';
 import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
@@ -28,6 +29,22 @@ export default function App() {
   const [copiedAll, setCopiedAll] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
+  const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
+
+  // Tjek adgang ved start
+  useEffect(() => {
+    fetch('/api/auth/status')
+      .then((r) => r.json())
+      .then((d) => setAuthState(d.required && !d.authed ? 'login' : 'ready'))
+      .catch(() => setAuthState('ready'));
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    setAuthState('login');
+  };
 
   // Enforce light theme
   useEffect(() => {
@@ -51,8 +68,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (authState === 'ready') fetchProjects();
+  }, [authState]);
 
   // Fetch AI Training Items from backend (/api/ai-training)
   const fetchAiTrainingItems = async () => {
@@ -68,8 +85,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchAiTrainingItems();
-  }, []);
+    if (authState === 'ready') fetchAiTrainingItems();
+  }, [authState]);
 
   // Kundekartotek (/api/customers)
   const fetchCustomers = async () => {
@@ -85,8 +102,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    if (authState === 'ready') fetchCustomers();
+  }, [authState]);
 
   // Vælg kunde: udfylder formularen med al gemt kundeinfo inkl. analyse
   const handleSelectCustomer = (customer: Customer) => {
@@ -275,6 +292,14 @@ export default function App() {
     setTimeout(() => setCopiedAll(false), 2500);
   };
 
+  if (authState === 'loading') {
+    return <div className="min-h-[100dvh] bg-studio" />;
+  }
+
+  if (authState === 'login') {
+    return <LoginScreen onSuccess={() => setAuthState('ready')} />;
+  }
+
   return (
     <div className="min-h-screen bg-studio text-ink flex flex-col font-sans selection:bg-rec selection:text-white">
       
@@ -287,6 +312,7 @@ export default function App() {
         customersCount={customers.length}
         onOpenCustomers={() => setIsCustomersModalOpen(true)}
         onLoadExample={handleLoadExample}
+        onLogout={handleLogout}
       />
 
       {/* Hero / Main Area */}
@@ -311,11 +337,11 @@ export default function App() {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-900 text-base animate-fadeIn">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-900 text-lg animate-fadeIn">
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div>
               <span className="font-bold block text-red-900">Kunne ikke generere script</span>
-              <p className="text-sm mt-0.5 text-red-700">{errorMessage}</p>
+              <p className="text-base mt-0.5 text-red-700">{errorMessage}</p>
             </div>
           </div>
         )}
@@ -335,14 +361,14 @@ export default function App() {
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="f.eks. JP Køl og Klima - Script 2"
-                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-lg px-3.5 py-2 text-base font-semibold text-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-lg px-3.5 py-2 text-lg font-semibold text-slate-900 transition-all shadow-2xs"
                 />
               </div>
 
               <div className="flex flex-wrap items-center gap-2 self-start md:self-end">
                 <button
                   onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-base font-bold flex items-center gap-2 transition-all cursor-pointer"
                   title="Download alle scripts som Google Docs (.docx) - 1 script pr. side"
                 >
                   <FileText className="w-4 h-4 text-white" />
@@ -351,7 +377,7 @@ export default function App() {
 
                 <button
                   onClick={() => downloadScriptsAsPdf(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-ink rounded-md text-sm font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-ink rounded-md text-base font-bold flex items-center gap-2 transition-all cursor-pointer"
                   title="Download alle scripts som PDF (.pdf) - 1 script pr. side"
                 >
                   <FileDown className="w-4 h-4 text-ink" />
@@ -360,7 +386,7 @@ export default function App() {
 
                 <button
                   onClick={handleCopyAllScripts}
-                  className="px-3.5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-3.5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-base font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="Kopiér alle scripts med perfekt Google Docs formatering (Arial 11pt)"
                 >
                   {copiedAll ? (
@@ -381,7 +407,7 @@ export default function App() {
                     const el = document.querySelector('form');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-sm font-semibold text-ink flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-base font-semibold text-ink flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-rec" />
                   <span>Nye parametre</span>
