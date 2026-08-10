@@ -27,6 +27,17 @@ npm run build
 npm start
 ```
 
+## Offentlig hosting (Render.com — gratis)
+
+Repoet indeholder en `render.yaml`, så deploy er få klik:
+
+1. Opret en konto på [render.com](https://render.com) og log ind med GitHub
+2. Klik **New → Blueprint** og vælg `Majestic100/Scriptgenerator`-repoet
+3. Indsæt din `ANTHROPIC_API_KEY`, når Render spørger efter den
+4. Klik **Apply** — efter et par minutter kører appen på en offentlig URL a la `https://metascript-generator.onrender.com`
+
+Bemærk: På gratis-planen "sover" appen efter inaktivitet (første besøg tager ~30 sek.), og gemte projekter/AI-træning nulstilles ved re-deploy, da de gemmes på serverens lokale disk.
+
 ## Sådan virker det
 
 - Frontenden (React/Vite) er uændret fra den oprindelige app.
