@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
@@ -15,6 +16,68 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: "25mb" }));
+
+// --- Adgangsbeskyttelse ---
+// Sæt APP_PASSWORDS i miljøet (kommasepareret liste, én kode pr. person).
+// Fjern en kode fra listen for at lukke den persons adgang. Ingen koder sat = åben app (lokal udvikling).
+const getAllowedPasswords = (): string[] =>
+  (process.env.APP_PASSWORDS || process.env.APP_PASSWORD || "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+const AUTH_SECRET = process.env.AUTH_SECRET || "sg-auth-" + (process.env.APP_PASSWORDS || "dev");
+
+const authTokenFor = (password: string) =>
+  crypto.createHmac("sha256", AUTH_SECRET).update(password).digest("hex");
+
+function getCookie(req: any, name: string): string | null {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const [key, ...value] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(value.join("="));
+  }
+  return null;
+}
+
+function isAuthed(req: any): boolean {
+  const allowed = getAllowedPasswords();
+  if (allowed.length === 0) return true;
+  const token = getCookie(req, "sg_auth");
+  return !!token && allowed.some((p) => authTokenFor(p) === token);
+}
+
+app.get("/api/auth/status", (req, res) => {
+  res.json({ success: true, required: getAllowedPasswords().length > 0, authed: isAuthed(req) });
+});
+
+app.post("/api/auth/login", (req, res) => {
+  const { password } = req.body || {};
+  const allowed = getAllowedPasswords();
+  if (allowed.length === 0) return res.json({ success: true });
+  if (typeof password === "string" && allowed.includes(password.trim())) {
+    const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+    res.setHeader(
+      "Set-Cookie",
+      `sg_auth=${authTokenFor(password.trim())}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${secure}`
+    );
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ success: false, error: "Forkert adgangskode." });
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  res.setHeader("Set-Cookie", "sg_auth=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  res.json({ success: true });
+});
+
+// Alle øvrige API-ruter kræver login
+app.use("/api", (req, res, next) => {
+  if (req.path.startsWith("/auth/")) return next();
+  if (isAuthed(req)) return next();
+  return res.status(401).json({ success: false, error: "Log ind for at bruge appen." });
+});
 
 // Helper function to extract text from uploaded analysis document (PDF, Word, Text)
 async function extractTextFromAnalysisDoc(doc: { name?: string; mimeType?: string; base64?: string; extractedText?: string }): Promise<string> {

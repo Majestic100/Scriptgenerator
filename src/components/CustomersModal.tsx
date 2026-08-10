@@ -101,8 +101,8 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
   };
 
   const inputCls =
-    'w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-md px-3 py-2.5 text-base text-slate-900 transition-all';
-  const labelCls = 'block text-sm font-bold text-slate-700 mb-1.5';
+    'w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-md px-3 py-2.5 text-lg text-slate-900 transition-all';
+  const labelCls = 'block text-base font-bold text-slate-700 mb-1.5';
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 backdrop-blur-sm p-4 overflow-y-auto">
@@ -112,8 +112,8 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Users className="w-5 h-5 text-rec" />
-            <h2 className="text-xl font-extrabold text-ink">Kunder</h2>
-            <span className="text-base text-slate-500">Gem kundeinfo én gang, genbrug til alle scripts</span>
+            <h2 className="text-2xl font-extrabold text-ink">Kunder</h2>
+            <span className="text-lg text-slate-500">Gem kundeinfo én gang, genbrug til alle scripts</span>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-md cursor-pointer" title="Luk">
             <X className="w-5 h-5 text-slate-500" />
@@ -126,14 +126,14 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
             <>
               <button
                 onClick={startCreate}
-                className="w-full py-3 px-4 bg-rec hover:bg-[#c81e22] text-white rounded-md text-base font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-3 px-4 bg-rec hover:bg-[#c81e22] text-white rounded-md text-lg font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Plus className="w-5 h-5" />
                 <span>Opret ny kunde</span>
               </button>
 
               {customers.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 text-base">
+                <div className="text-center py-10 text-slate-500 text-lg">
                   <p className="font-semibold text-slate-600 mb-1">Ingen kunder endnu</p>
                   <p>Opret din første kunde, eller udfyld formularen og brug "Gem som kunde".</p>
                 </div>
@@ -145,13 +145,13 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                       className="border border-slate-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3 hover:border-slate-300 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-ink text-lg truncate">{c.name || c.companyName}</p>
-                        <p className="text-base text-slate-500 truncate">
+                        <p className="font-bold text-ink text-xl truncate">{c.name || c.companyName}</p>
+                        <p className="text-lg text-slate-500 truncate">
                           {c.companyName}
                           {c.productName ? ` · ${c.productName}` : ''}
                         </p>
                         {c.analysisDocument?.extractedText && (
-                          <p className="text-sm text-emerald-700 flex items-center gap-1 mt-1">
+                          <p className="text-base text-emerald-700 flex items-center gap-1 mt-1">
                             <FileText className="w-4 h-4" />
                             Målgruppeanalyse gemt ({c.analysisDocument.name})
                           </p>
@@ -177,7 +177,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                             onSelectCustomer(c);
                             onClose();
                           }}
-                          className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-base font-bold flex items-center gap-2 cursor-pointer"
+                          className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-lg font-bold flex items-center gap-2 cursor-pointer"
                           title="Udfyld formularen med denne kundes info"
                         >
                           <span>Brug kunde</span>
@@ -245,7 +245,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                 <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
-              <p className="text-sm text-slate-500">
+              <p className="text-base text-slate-500">
                 Tip: Målgruppeanalysen (PDF/Word) gemmes automatisk på kunden, når du bruger "Gem som kunde" fra formularen efter at have uploadet den.
               </p>
 
@@ -253,7 +253,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                 <button
                   onClick={handleSave}
                   disabled={isSaving || (!form.companyName.trim() && !form.name.trim())}
-                  className="px-5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-base font-bold cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-lg font-bold cursor-pointer disabled:opacity-50"
                 >
                   {isSaving ? 'Gemmer...' : editingId ? 'Gem ændringer' : 'Opret kunde'}
                 </button>
@@ -262,7 +262,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                     setIsCreating(false);
                     setEditingId(null);
                   }}
-                  className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-base font-semibold cursor-pointer"
+                  className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-lg font-semibold cursor-pointer"
                 >
                   Annullér
                 </button>

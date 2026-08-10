@@ -32,7 +32,7 @@ body {
 /* Call sheet-labels: mono, uppercase, spatieret */
 .eyebrow {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
