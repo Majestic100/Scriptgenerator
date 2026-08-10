@@ -1,2 +1,80 @@
 @import "tailwindcss";
 
+/*
+  Designsystem: "Produktionspapirer"
+  Blæk på papir, kold beton-grå studio-baggrund og én REC-rød accent.
+  Display: Archivo Black · Brødtekst: Instrument Sans · Timecode/labels: IBM Plex Mono
+*/
+
+@theme {
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-ink: #191c24;
+  --color-studio: #eceef0;
+  --color-rec: #e52328;
+}
+
+body {
+  background-color: var(--color-studio);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Overskrifter i plakat-grotesk */
+.font-display {
+  font-family: "Archivo Black", var(--font-sans);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+/* Call sheet-labels: mono, uppercase, spatieret */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* REC-indikator */
+.rec-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background-color: var(--color-rec);
+}
+
+.rec-blink {
+  animation: rec-blink 1.2s steps(1) infinite;
+}
+
+@keyframes rec-blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-blink,
+  .animate-fadeIn {
+    animation: none;
+  }
+}

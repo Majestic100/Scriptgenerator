@@ -417,7 +417,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const currentCfg = scriptConfigs[activeTab] || defaultPresets[0];
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 md:p-8 shadow-sm space-y-6 text-slate-800">
+    <form onSubmit={handleSubmit} className="bg-white border border-ink/10 rounded-lg p-6 md:p-8 shadow-sm space-y-6 text-slate-800">
       
       {/* Form Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
@@ -1188,12 +1188,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         <button
           type="submit"
           disabled={isLoading || !companyName.trim()}
-          className="w-full py-4 px-6 rounded-lg font-bold text-sm bg-[#E52328] hover:bg-[#c81e22] text-white shadow-md shadow-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
+          className="w-full py-4 px-6 rounded-md font-bold text-sm bg-rec hover:bg-[#c81e22] text-white shadow-md shadow-red-200/50 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed group cursor-pointer"
         >
           {isLoading ? (
             <>
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Genererer {numScripts} Meta Ads Scripts...</span>
+              <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
+              <span className="font-mono text-xs font-semibold tracking-[0.14em] uppercase">REC · Genererer {numScripts} scripts…</span>
             </>
           ) : (
             <>
