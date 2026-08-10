@@ -31,6 +31,8 @@ export default function App() {
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
   const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
   const [currentUser, setCurrentUser] = useState<AppUserInfo | null>(null);
+  // Fælles kode til alle => ingen virksomhedsadskillelse => skjul "fælles"-valgene
+  const teamsEnabled = !!currentUser && currentUser.company !== 'alle';
 
   // Tjek adgang ved start
   useEffect(() => {
@@ -470,6 +472,7 @@ export default function App() {
         customers={customers}
         onRefreshCustomers={fetchCustomers}
         onSelectCustomer={handleSelectCustomer}
+        showSharing={teamsEnabled}
       />
 
       {/* AI Training & Gold Standards Modal */}
@@ -489,6 +492,7 @@ export default function App() {
         onClose={() => setIsProjectsModalOpen(false)}
         projects={projects}
         onRefreshProjects={fetchProjects}
+        showSharing={teamsEnabled}
         onOpenTeleprompter={(script) => setTeleprompterScript(script)}
         onSelectScript={(script) => {
           setGeneratedScripts([script]);
@@ -509,6 +513,7 @@ export default function App() {
         script={selectedScriptForSave}
         projects={projects}
         onRefreshProjects={fetchProjects}
+        showSharing={teamsEnabled}
       />
 
       {/* Teleprompter Modal */}

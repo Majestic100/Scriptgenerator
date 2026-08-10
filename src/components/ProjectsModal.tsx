@@ -28,6 +28,7 @@ interface ProjectsModalProps {
   onRefreshProjects: () => Promise<void> | void;
   onOpenTeleprompter: (script: GeneratedScript) => void;
   onSelectScript: (script: GeneratedScript) => void;
+  showSharing?: boolean;
 }
 
 export const ProjectsModal: React.FC<ProjectsModalProps> = ({
@@ -37,6 +38,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
   onRefreshProjects,
   onOpenTeleprompter,
   onSelectScript,
+  showSharing = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
@@ -253,6 +255,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                   />
                 </div>
 
+                {showSharing && (
                 <div className="sm:col-span-2">
                   <label className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-slate-300 transition-colors">
                     <input
@@ -267,6 +270,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                     </span>
                   </label>
                 </div>
+                )}
               </div>
 
               <div className="flex justify-end">

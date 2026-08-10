@@ -8,6 +8,7 @@ interface CustomersModalProps {
   customers: Customer[];
   onRefreshCustomers: () => void;
   onSelectCustomer: (customer: Customer) => void;
+  showSharing?: boolean;
 }
 
 const EMPTY_FORM = {
@@ -30,7 +31,8 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
   onClose,
   customers,
   onRefreshCustomers,
-  onSelectCustomer
+  onSelectCustomer,
+  showSharing = false
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -149,7 +151,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-bold text-ink text-xl truncate">{c.name || c.companyName}</p>
-                          {c.shared ? (
+                          {!showSharing ? null : c.shared ? (
                             <span className="inline-flex items-center gap-1 text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded">
                               <Share2 className="w-3.5 h-3.5" /> Fælleskunde
                             </span>
@@ -258,6 +260,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                 <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
+              {showSharing && (
               <label className="flex items-start gap-3 p-3.5 border border-slate-300 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
                 <input
                   type="checkbox"
@@ -270,6 +273,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                   Sæt flueben, hvis begge virksomheder arbejder på denne kunde. Uden flueben er kunden kun synlig for din egen virksomhed.
                 </span>
               </label>
+              )}
 
               <p className="text-base text-slate-500">
                 Tip: Målgruppeanalysen (PDF/Word) gemmes automatisk på kunden, når du bruger "Gem som kunde" fra formularen efter at have uploadet den.
