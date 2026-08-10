@@ -1,0 +1,1709 @@
+import express from "express";
+import path from "path";
+import fs from "fs";
+import { createServer as createViteServer } from "vite";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
+import dotenv from "dotenv";
+import * as pdfParseModule from "pdf-parse";
+const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+import mammoth from "mammoth";
+import { SCRIPT_TYPE_GUIDELINES } from "./src/data/scriptTypeGuidelines";
+
+dotenv.config();
+
+const app = express();
+const PORT = 3000;
+
+app.use(express.json({ limit: "25mb" }));
+
+// Helper function to extract text from uploaded analysis document (PDF, Word, Text)
+async function extractTextFromAnalysisDoc(doc: { name?: string; mimeType?: string; base64?: string; extractedText?: string }): Promise<string> {
+  if (!doc || !doc.base64) return "";
+  if (doc.extractedText && doc.extractedText.trim().length > 0) {
+    return doc.extractedText.trim();
+  }
+
+  try {
+    const buffer = Buffer.from(doc.base64, 'base64');
+    const mime = (doc.mimeType || '').toLowerCase();
+    const fileName = (doc.name || '').toLowerCase();
+
+    // Plain text or markdown
+    if (mime.includes('text') || fileName.endsWith('.txt') || fileName.endsWith('.md') || fileName.endsWith('.json')) {
+      return buffer.toString('utf-8');
+    }
+
+    // PDF
+    if (mime.includes('pdf') || fileName.endsWith('.pdf')) {
+      const parsed = await pdfParse(buffer);
+      if (parsed && parsed.text && parsed.text.trim().length > 0) {
+        return parsed.text.trim();
+      }
+    }
+
+    // DOCX / Word
+    if (mime.includes('word') || mime.includes('officedocument') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+      const result = await mammoth.extractRawText({ buffer });
+      if (result && result.value && result.value.trim().length > 0) {
+        return result.value.trim();
+      }
+    }
+
+    // Fallback utf-8
+    return buffer.toString('utf-8').replace(/[^\x20-\x7E\x0A\x0D\xC0-\xFF]/g, ' ').trim();
+  } catch (err: any) {
+    console.warn("[extractTextFromAnalysisDoc] Fejl ved udtræk af tekst fra dokument:", err?.message || err);
+    return "";
+  }
+}
+
+// Text Sanitization helper to guarantee forbidden words/anglicisms are never present in output
+function sanitizeText(text: string): string {
+  if (!text || typeof text !== "string") return text;
+  let s = text.trim();
+
+  // If text is in ALL CAPS (and contains at least 3 letters), convert to natural sentence case
+  const letters = s.replace(/[^a-zA-ZÆØÅæøå]/g, "");
+  if (letters.length >= 3 && letters === letters.toUpperCase()) {
+    const lower = s.toLowerCase();
+    s = lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
+
+  // Replace gamechanger / game changer / game-changer
+  s = s.replace(/game\s*[-–—]?\s*changer/gi, "kæmpe forskel");
+
+  // Replace forbidden cliché anglicisms
+  s = s.replace(/det handler om at/gi, "det drejer sig om at");
+  s = s.replace(/lad os dykke ned i/gi, "lad os kigge på");
+
+  // Replace forbidden cliché openings if they appear at start
+  s = s.replace(/^(Hej med jer|Er du træt af|Lad mig fortælle dig|Du vil ikke tro|Stop op|I dagens video|POV:\s*du)[,!\.]?\s*/i, "");
+
+  // Clean dashes used as mid-sentence hyphens in spoken dialogue or overlays
+  s = s.replace(/\s+[-–—]\s+/g, ", ");
+
+  return s;
+}
+
+function sanitizeScript(script: any): any {
+  if (!script || typeof script !== "object") return script;
+  const clone = JSON.parse(JSON.stringify(script));
+
+  if (clone.title) clone.title = sanitizeText(clone.title);
+  if (clone.conceptAngle) clone.conceptAngle = sanitizeText(clone.conceptAngle);
+  if (clone.callToAction) clone.callToAction = sanitizeText(clone.callToAction);
+  if (clone.competitorDifferentiation) clone.competitorDifferentiation = sanitizeText(clone.competitorDifferentiation);
+
+  if (Array.isArray(clone.hooks)) {
+    clone.hooks = clone.hooks.map((h: any) => ({
+      ...h,
+      angleType: sanitizeText(h.angleType || ""),
+      visualDirection: sanitizeText(h.visualDirection || ""),
+      textOnScreen: sanitizeText(h.textOnScreen || ""),
+      audioDialogue: sanitizeText(h.audioDialogue || "")
+    }));
+  }
+
+  if (Array.isArray(clone.scenes)) {
+    clone.scenes = clone.scenes.map((sc: any) => ({
+      ...sc,
+      visualDescription: sanitizeText(sc.visualDescription || ""),
+      textOnScreen: sanitizeText(sc.textOnScreen || ""),
+      audioDialogue: sanitizeText(sc.audioDialogue || ""),
+      soundEffects: sanitizeText(sc.soundEffects || "")
+    }));
+  }
+
+  return clone;
+}
+
+// Helper to build prompt section for specific script type guidelines
+function getScriptTypeGuidelinesPrompt(requestedTypes: string[]): string {
+  const uniqueTypes = Array.from(new Set(requestedTypes)).filter(Boolean);
+  if (uniqueTypes.length === 0) return "";
+
+  const sections = uniqueTypes.map(st => {
+    let guide = SCRIPT_TYPE_GUIDELINES[st];
+    if (!guide) {
+      const key = Object.keys(SCRIPT_TYPE_GUIDELINES).find(k =>
+        k.toLowerCase() === st.toLowerCase() ||
+        k.toLowerCase().includes(st.toLowerCase()) ||
+        st.toLowerCase().includes(k.toLowerCase())
+      );
+      if (key) guide = SCRIPT_TYPE_GUIDELINES[key];
+    }
+
+    if (guide) {
+      return `--- MEKANIK, BEATS, KRAV OG FEJLMODER FOR SCRIPT TYPE: "${st}" ---\n${guide}`;
+    }
+    return `--- SCRIPT TYPE: "${st}" ---\nFølg bedste konverteringspraksis og skarpe beats for denne type.`;
+  });
+
+  return `\n\n🎯 REGEL-SÆT OG BEATS FOR VALGTE SCRIPT-TYPER (SKAL OVERHOLDES 100%):\n${sections.join("\n\n")}\n\n`;
+}
+
+// Gemini setup
+const getGeminiClient = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY miljøvariabel er ikke konfigureret i Settings > Secrets.");
+  }
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build",
+      },
+    },
+  });
+};
+
+// Helper function to scrape and analyze website content
+async function scrapeWebsiteContent(urlStr: string): Promise<string> {
+  if (!urlStr || typeof urlStr !== "string") return "";
+  const rawUrl = urlStr.trim();
+  if (!rawUrl) return "";
+
+  // Extract clean domain name without protocol or trailing paths
+  let cleanDomain = rawUrl
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "")
+    .trim();
+
+  // Create candidate URLs to try in sequence
+  const candidates: string[] = [];
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+    candidates.push(rawUrl);
+    // Also add HTTP alternative if HTTPS was provided
+    if (rawUrl.startsWith("https://")) {
+      candidates.push("http://" + rawUrl.substring(8));
+    }
+  } else {
+    candidates.push(`https://${cleanDomain}`);
+    candidates.push(`http://${cleanDomain}`);
+    if (!cleanDomain.startsWith("www.")) {
+      candidates.push(`https://www.${cleanDomain}`);
+      candidates.push(`http://www.${cleanDomain}`);
+    }
+  }
+
+  const uniqueCandidates = Array.from(new Set(candidates));
+
+  let successfulHtml = "";
+  let successfulUrl = uniqueCandidates[0];
+
+  for (const candidateUrl of uniqueCandidates) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000); // 6s per candidate
+
+      const response = await fetch(candidateUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "da,en-US;q=0.9,en;q=0.8",
+        },
+      });
+
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        successfulHtml = await response.text();
+        successfulUrl = candidateUrl;
+        break;
+      }
+    } catch {
+      // Continue trying next candidate gracefully
+      continue;
+    }
+  }
+
+  if (!successfulHtml) {
+    return `Hjemmeside Link: "${rawUrl}" (Domæne: ${cleanDomain}). Brug virksomhedsnavnet og domænenavnet til at udlede deres ydelser, produkter og branche.`;
+  }
+
+  try {
+    // Extract title
+    const titleMatch = successfulHtml.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim() : "";
+
+    // Extract meta description
+    const metaDescMatch = successfulHtml.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+                          successfulHtml.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
+    const metaDesc = metaDescMatch ? metaDescMatch[1].replace(/\s+/g, " ").trim() : "";
+
+    // Extract headings (h1, h2, h3)
+    const headings: string[] = [];
+    const headingMatches = successfulHtml.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi);
+    for (const match of headingMatches) {
+      const cleanHeading = match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      if (cleanHeading && cleanHeading.length > 3 && cleanHeading.length < 150) {
+        headings.push(cleanHeading);
+      }
+    }
+
+    // Strip scripts, styles, svg, nav, footer, header
+    let cleanText = successfulHtml
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&quot;/gi, '"')
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (cleanText.length > 3000) {
+      cleanText = cleanText.substring(0, 3000) + "...";
+    }
+
+    let summaryParts: string[] = [];
+    summaryParts.push(`Hjemmeside Link: "${successfulUrl}"`);
+    if (title) summaryParts.push(`Side-titel: "${title}"`);
+    if (metaDesc) summaryParts.push(`Meta-beskrivelse: "${metaDesc}"`);
+    if (headings.length > 0) {
+      const uniqueHeadings = Array.from(new Set(headings)).slice(0, 15);
+      summaryParts.push(`Hovedoverskrifter og Ydelser fundet på siden:\n- ${uniqueHeadings.join("\n- ")}`);
+    }
+    if (cleanText) {
+      summaryParts.push(`Ekstraheret tekstindhold fra hjemmesiden:\n"${cleanText}"`);
+    }
+
+    return summaryParts.join("\n\n");
+  } catch (err: any) {
+    return `Hjemmeside Link: "${rawUrl}" (Domæne: ${cleanDomain}). Brug virksomhedsnavnet og domænet til at identificere deres services, produkter og branche.`;
+  }
+}
+
+// API Endpoint for generating Meta Ads scripts
+app.post("/api/generate-scripts", async (req, res) => {
+  try {
+    const {
+      companyName,
+      companyWebsite = "",
+      analysisDocument,
+      productName = "",
+      competitors = [],
+      numScripts = 2,
+      scriptConfigs = [],
+      numHooksPerScript = 3,
+      bodyDuration = "30 sekunder",
+      scriptType = "UGC (User Generated Content)",
+      productDescription = "",
+      targetAudience = "",
+      demographics = "",
+      offerOrCta = "",
+      scriptFocus = "product",
+      language = "da",
+      globalAnalogies = []
+    } = req.body;
+
+    if (!companyName) {
+      return res.status(400).json({ success: false, error: "Virksomhedsnavn er påkrævet." });
+    }
+
+    const ai = getGeminiClient();
+
+    let websiteAnalysisText = "";
+    if (companyWebsite && companyWebsite.trim().length > 0) {
+      websiteAnalysisText = await scrapeWebsiteContent(companyWebsite.trim());
+    }
+
+    let analysisDocText = "";
+    if (analysisDocument) {
+      analysisDocText = await extractTextFromAnalysisDoc(analysisDocument);
+    }
+
+    const filteredCompetitors = Array.isArray(competitors)
+      ? competitors.filter((c: any) => typeof c === "string" && c.trim().length > 0).slice(0, 3)
+      : [];
+
+    const competitorsText = filteredCompetitors.length > 0
+      ? `Konkurrenter at differentiere sig imod: ${filteredCompetitors.join(", ")}.`
+      : "Ingen specifikke konkurrenter angivet (fokuser på generelle alternativer i markedet).";
+
+    const promptLanguage = language === "en" ? "English" : "Danish";
+
+    const globalAnalogiesText = Array.isArray(globalAnalogies) && globalAnalogies.length > 0
+      ? `\n\nSTÆRKE ANALOGIER & TALESPROG DER SKAL INTEGRERES I MANUSKRIPTERNE:\n` + globalAnalogies.map((a: string) => `- "${a}"`).join("\n")
+      : "";
+
+    let perScriptSpecs = "";
+    if (Array.isArray(scriptConfigs) && scriptConfigs.length > 0) {
+      perScriptSpecs = scriptConfigs.slice(0, numScripts).map((cfg: any, i: number) => {
+        const scriptProdDesc = cfg.productDescription || productDescription;
+        const scriptTargetAud = cfg.targetAudience || targetAudience;
+        const scriptDemographics = cfg.demographics || demographics;
+        const scriptOfferCta = cfg.offerOrCta || offerOrCta;
+        const scriptHookTypes = Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? cfg.preferredHookTypes : null;
+        const scriptMustInclude = cfg.mustInclude ? cfg.mustInclude.trim() : null;
+        const scriptAwareness = cfg.awarenessStage ? cfg.awarenessStage.trim() : null;
+        const scriptTrafficType = cfg.trafficType ? cfg.trafficType : 'cold';
+        const scriptRetargetingNotes = cfg.retargetingNotes ? cfg.retargetingNotes.trim() : null;
+        const scriptAnalogies = Array.isArray(cfg.analogies) && cfg.analogies.length > 0 ? cfg.analogies : null;
+
+        let extraDetails = [];
+        if (scriptAwareness) extraDetails.push(`AWARENESS STADIE: "${scriptAwareness}"`);
+        if (scriptTrafficType === 'retargeting') {
+          extraDetails.push(`MÅLGRUPPE: RETARGETING / VARM TRAFIK (tidligere besøgende/interagerede brugere).${scriptRetargetingNotes ? ` Særlige retargeting-noter: "${scriptRetargetingNotes}"` : ''}`);
+        } else {
+          extraDetails.push(`MÅLGRUPPE: KOLD TRAFIK (Helt nye potentielle kunder)`);
+        }
+        if (scriptProdDesc) extraDetails.push(`Produkt/USP: "${scriptProdDesc}"`);
+        if (scriptTargetAud) extraDetails.push(`Ideelle kunde: "${scriptTargetAud}"`);
+        if (scriptDemographics) extraDetails.push(`Hvor i landet / Geografi: "${scriptDemographics}"`);
+        if (scriptOfferCta) extraDetails.push(`Tilbud/CTA: "${scriptOfferCta}"`);
+        if (scriptHookTypes && scriptHookTypes.length > 0) {
+          const perHookFormatted = scriptHookTypes.slice(0, cfg.numHooks || 3).map((v: string, hIdx: number) => `Hook #${hIdx + 1} Vinkel: "${v}"`);
+          extraDetails.push(`Ønskede hook-vinkler (1 specifik vinkel pr. hook): [ ${perHookFormatted.join(" | ")} ]`);
+        }
+        if (scriptMustInclude) extraDetails.push(`SKAL INKLUDERES (specifikke punkter/elementer): "${scriptMustInclude}"`);
+        if (scriptAnalogies) extraDetails.push(`SPECIFIKKE ANALOGIER / TALESPROG DER SKAL BENYTTES: ${scriptAnalogies.map((a: string) => `"${a}"`).join(", ")}`);
+
+        return `SCRIPT #${i + 1}:
+- Type: "${cfg.scriptType || scriptType}"
+- Samlet varighed for HELE videoen (Hook + Body + CTA): "${cfg.bodyDuration || bodyDuration}"
+- Antal hooks: ${cfg.numHooks || numHooksPerScript}${extraDetails.length > 0 ? `\n- Specifikke detaljer for dette script: ${extraDetails.join(" | ")}` : ""}`;
+      }).join("\n\n");
+    } else {
+      perScriptSpecs = `Alle ${numScripts} scripts skal have standard type "${scriptType}", samlet varighed for hele videoen "${bodyDuration}" og ${numHooksPerScript} hooks.`;
+    }
+
+    const focusInstruction = scriptFocus === 'lead'
+      ? `SÆRLIGT KAMPAGNE-FOKUS: LEAD-GENERERING (LEAD FOKUSERET)
+CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til LEAD GENERERING (f.eks. tiltrække nye leads, tilmelding til en gratis guide / e-bog, booke en gratis uforpligtende samtale / konsultation, prøve en gratis demo, tilmelde sig webinar eller nyhedsbrev).
+- Alle hooks, dialoger og CTAs skal opbygge værdifuld nysgerrighed og opfordre til at klikke for at hente/booke/tilmelde sig (lead magnet).
+- Undgå direkte e-handel / produkt-købssprog ("Læg i kurv", "Køb nu i webshoppen"); brug i stedet lead-orienteret sprog ("Hent din gratis guide", "Book dit kald i dag", "Tilmeld dig nu").`
+      : `SÆRLIGT KAMPAGNE-FOKUS: PRODUKTSALG & E-COMMERCE (PRODUKT FOKUSERET)
+CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til DIREKTE PRODUKTSALG (f.eks. e-handel, køb af det fysiske eller digitale produkt, visning af produktet i brug, pris/rabat og opfordring til direkte køb).
+- Alle hooks, dialoger og CTAs skal fremhæve produktets unikke fordele og lede brugeren til direkte konvertering og køb.`;
+
+    const requestedTypes: string[] = Array.isArray(scriptConfigs) && scriptConfigs.length > 0
+      ? scriptConfigs.map((cfg: any) => cfg.scriptType || scriptType)
+      : [scriptType];
+
+    const scriptTypeMasterGuidelines = getScriptTypeGuidelinesPrompt(requestedTypes);
+
+    const prompt = `
+Du er en verdensklasse Direct Response Meta Ads (Facebook & Instagram Video Ads) copywriter og video instruktør.
+Din opgave er at generere præcis ${numScripts} højkonverterende video-script-koncepter til en Meta annoncekampagne.
+
+${focusInstruction}
+${scriptTypeMasterGuidelines}
+PRODUKT / VIRKSOMHED DETALJER:
+- Virksomhedsnavn: "${companyName}"
+${companyWebsite ? `- Virksomhedens Hjemmeside: "${companyWebsite}"` : ""}
+${productName ? `- Produktnavn: "${productName}"` : ""}
+- ${competitorsText}
+${productDescription ? `- Produktbeskrivelse / Unikke fordele: "${productDescription}"` : ""}
+${targetAudience ? `- Ideelle kunde: "${targetAudience}"` : ""}
+${demographics ? `- Hvor i landet / Geografi: "${demographics}"` : ""}
+${offerOrCta ? `- Tilbud / Call to Action: "${offerOrCta}"` : ""}${globalAnalogiesText}
+${websiteAnalysisText ? `\n🔍 VIRKSOMHEDENS HJEMMESIDE ANALYSE & ANVENDELIGT INDHOLD:\n${websiteAnalysisText}\n\nKRITISK REGEL FOR HJEMMESIDE-ANALYSE:\nAnvend de præcise services, ydelser, fagudtryk, løsninger og værditilbud fra hjemmeside-analysen ovenfor direkte i manuskripterne. Vinkl scriptsne så de passer 100% til de faktiske ydelser og produkter virksomheden sælger på deres webside!` : ""}
+${analysisDocText ? `\n\n🔍 VIRKSOMHEDS- OG MÅLGRUPPEANALYSE DOKUMENT ("${analysisDocument?.name || 'Målgruppeanalyse.pdf'}"):\nIndhold fra det uploadede analysedokument:\n"""\n${analysisDocText}\n"""\n\nKRITISK REGEL FOR UPLOADET ANALYSEDOKUMENT:\nAnvend den dybe viden fra den uploadede virksomheds- og målgruppeanalyse som det primære fundament for alle manuskripter:\n1. Beting alle hooks og dialoger på målgruppens reelle smertepunkter, ubevidste og bevidste frustrationer, købsudløsere (triggers) og barrierer fra analysen.\n2. BRUG BRANCHENS OG MÅLGRUPPENS EGNE ORD: Integrer de specifikke udtryk, fagsprog og citater fundet i analysen (f.eks. fagbegreber som 'KS', 'tilsyn', 'fejl og mangler', 'ryggen fri', eller målgruppens direkte udtalelser).\n3. Tilpas scriptsne til de specifikke kundepersonaer og brancher der er fremhævet i analysedokumentet.` : ""}
+- Sprog i scriptet: ${promptLanguage} (skal være flydende, autentisk, mundtligt og engagerende).
+
+INDIVIDUELLE SCRIPT SPECIFIKATIONER (Skal overholdes præcist for hvert enkelt script):
+${perScriptSpecs}
+
+REGLER FOR AWARENESS STADIE & TRAFIK-TYPE:
+- Hvis et script er angivet til et bestemt AWARENESS STADIE (f.eks. Unaware, Problem Aware, Solution Aware, Product Aware, Most Aware), SKAL hele vinklen, hooken og manuskriptet tilpasses dette stadium:
+  * Unaware (Ubevidst): Åbn med nysgerrighed eller en uventet opdagelse/smerte. Målgruppen ved endnu ikke de har et behov.
+  * Problem Aware (Problembevidst): Fremhæv smerten og de kendte frustrationer stærkt, opbyg empati og introducer kategorien.
+  * Solution Aware (Løsningsbevidst): Fokuser på hvorfor dit produkt/mekanisme virker anderledes og bedre end andre løsninger på markedet.
+  * Product Aware (Produktbevidst): Fjern tvivl og indvendinger, fremvis beviser, UGC, anmeldelser og produkt-demonstration.
+  * Most Aware (Mest bevidst / Købsklar): Fokuser direkte på tilbuddet, rabat, garanti, tidsfrist/urgency og en kontant CTA.
+- Hvis et script er markeret som RETARGETING / VARM TRAFIK:
+  * Brug sprog henvendt til folk der allerede kender brandet (f.eks. "Overvejer du stadig...", "Glemte du noget i kurven?", "Før du beslutter dig...").
+  * Fokuser på at fjerne de sidste købsforhindringer (risikofri prøve, gratis fragt, 100 dages returret, kunders anmeldelser) og giv et stærkt retargeting-tilbud.
+
+KRITISK REGEL FOR VARIGHED, TALEHASTIGHED OG REPLIKLÆNGDE (SAMLET TID FOR HELE VIDEOEN):
+- Den angivne varighed (f.eks. "15 sekunder", "20 sekunder", "30 sekunder", "45 sekunder", "60 sekunder") er den SAMLEDE LÆNGDE FOR HELE MANUSKRIPTET TILSAMMEN (Hook + Body-scener + CTA).
+- Mennesker taler i et roligt, naturligt og behageligt tempo i videoer (ca. 2.0 - 2.2 ord pr. sekund på dansk). Skuespillere skal ikke tale for hurtigt eller stresse.
+- SKAL VÆRE KORTE OG PRÆCISE: For at manuskriptet kan læses i roligt tempo og overholde den SAMLEDE tid, SKAL du STRICT begrænse det samlede ordantal af dialogen (audioDialogue) på tværs af hele scriptet:
+  * 15 sekunder total = MAKS 30–35 ord i alt (Hook + Body + CTA)
+  * 20 sekunder total = MAKS 40–45 ord i alt (Hook + Body + CTA)
+  * 25 sekunder total = MAKS 50–55 ord i alt (Hook + Body + CTA)
+  * 30 sekunder total = MAKS 60–65 ord i alt (Hook + Body + CTA)
+  * 35 sekunder total = MAKS 70–75 ord i alt (Hook + Body + CTA)
+  * 40 sekunder total = MAKS 80–85 ord i alt (Hook + Body + CTA)
+  * 45 sekunder total = MAKS 90–95 ord i alt (Hook + Body + CTA)
+  * 50 sekunder total = MAKS 100–105 ord i alt (Hook + Body + CTA)
+  * 60 sekunder total = MAKS 120–125 ord i alt (Hook + Body + CTA)
+- Replikkerne skal være mundtlige, skarpe, fængende og fri for fyldord!
+- Tidskoderne for Body-scenerne og CTA skal justeres præcist så de passer til den samlede angivne tid!
+
+REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
+- Generer det præcise antal hooks der er angivet for det pågældende script. Alle hooks til et script skal kunne klippes ind foran samme body.
+- KRITISK REGEL FOR HOOK-VINKLER: Der er angivet nøjagtig 1 specifik vinkel pr. hook i specifikationerne (f.eks. Hook #1 Vinkel, Hook #2 Vinkel, Hook #3 Vinkel). Hook #1 SKAL skabes 100% ud fra 'Hook #1 Vinkel', Hook #2 SKAL skabes ud fra 'Hook #2 Vinkel', Hook #3 ud fra 'Hook #3 Vinkel' osv.
+- opbygning af HVER HOOK REPLIK (Tre-delt opbygning i løbet af sek. 0-3):
+  1. CONTEXT (sekund 0): Navngiver emnet med en flad konstaterende sætning på 3-8 ord i nutid/datid. INGEN hilsen ("Hej med jer"), INTET spørgsmål ("Er du træt af"), INGEN optakt.
+  2. PULL (sekund 1-2): Lad fælden med præcis én af følgende typer:
+     * TABOO: Sig det der føles socialt farligt at sige højt.
+     * DARK: Afslør en skjult mekanisme der allerede rammer seeren uden deres viden.
+     * CONTRADICTION: Sig det direkte modsatte af målgruppens vante overbevisning.
+     * PROOF: Led med et konkret tal fra analysen/data (må kun bruges hvis tallet eksisterer!).
+  3. WHIPLASH (sekund 2-3): Ryk linen stik modsat af hvad optakten fik seeren til at forvente (reversal of goal/blame/outcome/role).
+- AWARENESS-STADIE MATRIX FOR HOOKS:
+  * Unaware: Context = situationen/vanen (aldrig problemet/produktet). Pull: Dark, Taboo, Contradiction. Produktnavn & tilbud FORBUDT.
+  * Problem Aware: Context = symptomet/situationen hvor smerten opstår. Pull: Dark, Contradiction, Taboo. Produktnavn FORBUDT.
+  * Solution Aware: Context = løsningskategorien. Pull: Contradiction, Dark, Proof. Produktnavn kun tilladt til sidst.
+  * Product Aware: Context = produktet/indvendingen. Pull: Proof, Taboo, Contradiction. Produktnavn TILLADT.
+  * Most Aware: Context = tilbuddet/garantien/deadline. Pull: Proof, Contradiction, Taboo. Tilbud SKAL optræde.
+- FASTE HOOK-REGLER:
+  * Maks 25 ord totalt pr. hook (under 3 sekunder taletid).
+  * Mundtligt dansk talesprog som en dansker taler.
+  * STRENGT FORBUDTE ORD OG ANGULICISMER: "gamechanger", "game changer", "game-changer" (brug i stedet "kæmpe forskel", "revolutionerende løsning"), "det handler om at", "lad os dykke ned i".
+  * STRENGT FORBUDTE ÅBNINGER: "Hej med jer", "Er du træt af", "Lad mig fortælle dig", "Du vil ikke tro", "Stop op", "I dagens video", "POV: du".
+  * SKRIV ALDRIG MED KUN STORE BOGSTAVER (ALL CAPS): Brug altid almindelig dansk retskrivning med kun stort begyndelsesbogstav og små bogstaver for at gøre teksten naturlig og letlæselig.
+  * INGEN tankestreger (-) i talte linjer eller overlays.
+  * Skal virke uden lyd: Skærm overlay skal være 3 til 7 stærke ord.
+  * Fysisk visuel handling i sekund 0 (beskriv hvad skuespiller/kamera gør i billedet).
+  * Nævn aldrig konkurrenter ved navn i talte replikker eller overlay.
+- Hver hook skal indeholde:
+  1. angleType (f.eks. "Pattern Interrupt", "Indvendingsknuser", "Contradiction", osv.)
+  2. visualDirection (hvad skuespilleren/kameraet fysisk gør i sekund 0-3)
+  3. textOnScreen (3-7 ord stor tekst-overlay til skærmen uden lyd)
+  4. audioDialogue (den talte replik opbygget med Context + Pull + Whiplash)
+  5. estimatedDurationSec (typisk 3 sekunder)
+
+REGLER FOR BODY SCENES (Manuskriptet):
+- Opdel kropsstykket af scriptet i strukturerede scener med præcise tidskoder tilpasset den angivne varighed for det script.
+- KRITISK REGEL FOR BODY: Body-scenerne SKAL KUN indeholde historien, problemløsningen, produktfordelene, B-roll og social proof. Body-scenerne må ALDRIG indeholde den afsluttende Call To Action, rabatkoder (f.eks. 'Spar 20%', 'Brug koden SCANDI20'), eller købsopfordringer! Alt tilbud og Call To Action placeres UDELUKKENDE i 'callToAction'.
+- Hver scene skal have:
+  1. timecode (f.eks. "0:03 - 0:08")
+  2. section (en af: 'Problem/Pain', 'Solution/Demo', 'Social Proof', 'Value Prop')
+  3. visualDescription (B-roll, skuespiller handling, produkt-demonstration, kameravinkel)
+  4. textOnScreen (dynamiske undertekster / overlays)
+  5. audioDialogue (mundtlig speak / voiceover / skuespiller replik)
+  6. soundEffects (SFX som swoosh, pop, baggrundsmusik stemning)
+
+DIFFERENTIERING MOD KONKURRENTER:
+- Hvis der er konkurrenter (${filteredCompetitors.join(", ")}), skal scriptet explicit fremhæve hvorfor ${companyName} er bedre eller anderledes (f.eks. "Hvorfor folk skifter fra ${filteredCompetitors[0] || 'andre'}...", "I modsætning til [Konkurrent] som er...", osv.).
+${buildAiTrainingPromptSnippet()}
+Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne JSON schema.
+`;
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        scripts: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              title: { type: Type.STRING },
+              conceptAngle: { type: Type.STRING },
+              scriptType: { type: Type.STRING },
+              bodyDuration: { type: Type.STRING },
+              companyName: { type: Type.STRING },
+              competitors: { type: Type.ARRAY, items: { type: Type.STRING } },
+              competitorDifferentiation: { type: Type.STRING },
+              awarenessStage: { type: Type.STRING },
+              trafficType: { type: Type.STRING },
+              hooks: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    hookNumber: { type: Type.INTEGER },
+                    angleType: { type: Type.STRING },
+                    visualDirection: { type: Type.STRING },
+                    textOnScreen: { type: Type.STRING },
+                    audioDialogue: { type: Type.STRING },
+                    estimatedDurationSec: { type: Type.INTEGER }
+                  },
+                  required: ["hookNumber", "angleType", "visualDirection", "textOnScreen", "audioDialogue"]
+                }
+              },
+              scenes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    timecode: { type: Type.STRING },
+                    section: { type: Type.STRING },
+                    visualDescription: { type: Type.STRING },
+                    textOnScreen: { type: Type.STRING },
+                    audioDialogue: { type: Type.STRING },
+                    soundEffects: { type: Type.STRING }
+                  },
+                  required: ["timecode", "section", "visualDescription", "textOnScreen", "audioDialogue"]
+                }
+              },
+              callToAction: { type: Type.STRING },
+              proTips: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["title", "conceptAngle", "hooks", "scenes", "callToAction", "competitorDifferentiation"]
+          }
+        }
+      },
+      required: ["scripts"]
+    };
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
+        temperature: 0.8,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        responseMimeType: "application/json",
+        responseSchema: responseSchema
+      }
+    });
+
+    const rawText = response.text || "{}";
+    let parsedData;
+    try {
+      parsedData = JSON.parse(rawText);
+    } catch (e) {
+      console.error("Fejl ved parsing af JSON fra Gemini:", rawText);
+      return res.status(500).json({ success: false, error: "Ugyldigt format modtaget fra AI modellen." });
+    }
+
+    const scripts = (parsedData.scripts || []).map((script: any, idx: number) => {
+      const cfg = Array.isArray(scriptConfigs) && scriptConfigs[idx] ? scriptConfigs[idx] : null;
+      const effectiveScriptType = cfg?.scriptType || script.scriptType || scriptType;
+      const effectiveBodyDuration = cfg?.bodyDuration || script.bodyDuration || bodyDuration;
+
+      const rawScript = {
+        ...script,
+        id: script.id || `script-${Date.now()}-${idx}`,
+        documentTitle: req.body.documentTitle || `${companyName} - Script 2`,
+        companyName: companyName,
+        productName: productName || undefined,
+        competitors: filteredCompetitors,
+        scriptType: effectiveScriptType,
+        bodyDuration: effectiveBodyDuration,
+        createdAt: new Date().toISOString(),
+        hooks: (script.hooks || []).map((h: any, hIdx: number) => ({
+          ...h,
+          id: h.id || `hook-${idx}-${hIdx}-${Date.now()}`,
+          hookNumber: h.hookNumber || hIdx + 1,
+          estimatedDurationSec: h.estimatedDurationSec || 3
+        })),
+        scenes: (script.scenes || []).map((s: any, sIdx: number) => ({
+          ...s,
+          id: s.id || `scene-${idx}-${sIdx}-${Date.now()}`
+        }))
+      };
+
+      return sanitizeScript(rawScript);
+    });
+
+    return res.json({ success: true, scripts });
+  } catch (error: any) {
+    console.error("Error generating scripts:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Der opstod en fejl under generering af scripts."
+    });
+  }
+});
+
+// API Endpoint for regenerating individual elements (hook, cta, or full script)
+app.post("/api/regenerate-element", async (req, res) => {
+  try {
+    const {
+      elementType, // 'hook' | 'cta' | 'script'
+      script,
+      hookIndex,
+      companyName,
+      productName,
+      productDescription,
+      targetAudience,
+      offerOrCta,
+      scriptFocus,
+      language = "da"
+    } = req.body;
+
+    if (!elementType || !script) {
+      return res.status(400).json({ success: false, error: "Manglende parametre til re-generering." });
+    }
+
+    const ai = getGeminiClient();
+    const promptLanguage = language === "en" ? "English" : "Danish";
+
+    if (elementType === "hook") {
+      const existingHook = script.hooks && script.hooks[hookIndex] ? script.hooks[hookIndex] : null;
+      const otherHooksText = (script.hooks || [])
+        .filter((_: any, idx: number) => idx !== hookIndex)
+        .map((h: any) => `Hook: "${h.audioDialogue}" (Vinkel: ${h.angleType || 'Ukendt'})`)
+        .join("\n");
+
+      const prompt = `
+Du er en verdensklasse Meta Ads copywriter.
+Opgave: Generér 1 NY, frisk, højkonverterende video-hook til en Meta video-annonce på ${promptLanguage}.
+
+VIRKSOMHED / PRODUKT DETALJER:
+- Navn: "${companyName || script.companyName || ''}"
+${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
+${productDescription ? `- Produktbeskrivelse: "${productDescription}"` : ''}
+${targetAudience ? `- Målgruppe: "${targetAudience}"` : ''}
+${scriptFocus === 'lead' ? '- Kampagnefokus: LEAD GENERERING (Tilmeld, hent guide, book samtale)' : '- Kampagnefokus: PRODUKTSALG'}
+
+DEN NUVÆRENDE HOOK SKAL UDSKIFTES:
+"${existingHook ? existingHook.audioDialogue : 'Ingen'}"
+
+ANDRE HOOKS I DETTE SCRIPT (Undgå at gentage disse vinkler eller ordlyd):
+${otherHooksText || 'Ingen andre hooks'}
+
+REGLER FOR DET NYE HOOK (3-DELT OPBYGNING: CONTEXT -> PULL -> WHIPLASH):
+1. CONTEXT (sek. 0): 3-8 ord flad konstatering der navngiver emnet på 1 sekund. Ingen "Hej med jer", intet spørgsmål, ingen optakt.
+2. PULL (sek. 1-2): Vælg præcis 1: Taboo, Dark, Contradiction, eller Proof.
+3. WHIPLASH (sek. 2-3): Ryk linen stik modsat af hvad optakten fik dem til at forvente.
+4. SPOR / STIL: Flydende dansk talesprog. Max 25 ord i alt (max 3 sekunder taletid).
+5. SKÆRM OVERLAY: 3-7 iøjnefaldende ord til visning uden lyd.
+6. VISUEL HANDLING: Konkret hvad skuespiller/kamera gør i sekund 0.
+
+Returnér UDELUKKENDE et JSON-objekt:
+{
+  "angleType": "f.eks. Pattern Interrupt / Loss Aversion / Specificitet / Status / Curiosity gap / Identity / Authority / Future pacing / Kontrast",
+  "visualDirection": "Kort beskrivelse af hvad skuespiller/kamera gør i de første 3 sekunder",
+  "textOnScreen": "Iøjnefaldende tekst-overlay til skærmen",
+  "audioDialogue": "Den nye talte replik / speak",
+  "estimatedDurationSec": 3
+}
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          temperature: 0.9,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              angleType: { type: Type.STRING },
+              visualDirection: { type: Type.STRING },
+              textOnScreen: { type: Type.STRING },
+              audioDialogue: { type: Type.STRING },
+              estimatedDurationSec: { type: Type.INTEGER }
+            },
+            required: ["angleType", "visualDirection", "textOnScreen", "audioDialogue"]
+          }
+        }
+      });
+
+      const newHookData = JSON.parse(response.text || "{}");
+      const updatedHooks = [...(script.hooks || [])];
+      const targetIdx = typeof hookIndex === 'number' && hookIndex >= 0 ? hookIndex : 0;
+
+      updatedHooks[targetIdx] = {
+        id: `hook-${Date.now()}-${targetIdx}`,
+        hookNumber: targetIdx + 1,
+        angleType: newHookData.angleType || "Frisk Vinkel",
+        visualDirection: newHookData.visualDirection || "",
+        textOnScreen: newHookData.textOnScreen || "",
+        audioDialogue: newHookData.audioDialogue || "",
+        estimatedDurationSec: newHookData.estimatedDurationSec || 3
+      };
+
+      const updatedScript = {
+        ...script,
+        hooks: updatedHooks
+      };
+
+      return res.json({ success: true, script: sanitizeScript(updatedScript) });
+
+    } else if (elementType === "cta") {
+      const bodySummary = (script.scenes || [])
+        .map((s: any) => s.audioDialogue)
+        .filter(Boolean)
+        .join(" ");
+
+      const prompt = `
+Du er en verdensklasse Meta Ads copywriter.
+Opgave: Generér 1 NY, stærk og overbevisende Call To Action (CTA) replik til en Meta video-annonce på ${promptLanguage}.
+
+VIRKSOMHED / PRODUKT DETALJER:
+- Navn: "${companyName || script.companyName || ''}"
+${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
+${offerOrCta ? `- Tilbud / CTA instruktion: "${offerOrCta}"` : ''}
+${scriptFocus === 'lead' ? '- Fokus: LEAD GENERERING (F.eks. Hent din gratis guide, Book en uforpligtende samtale, Tilmeld i dag)' : '- Fokus: PRODUKTSALG (F.eks. Bestil i dag med gratis fragt, Prøv i 100 dage uden risiko)'}
+
+VIDEO MANUSKRIPTETS INDHOLD:
+"${bodySummary}"
+
+DEN EKSISTERENDE CTA DER SKAL UDSKIFTES:
+"${script.callToAction || ''}"
+
+Generér en ny, skarp og handlingsanvisende CTA replik.
+
+Returnér UDELUKKENDE et JSON-objekt:
+{
+  "callToAction": "Den nye stærke CTA replik"
+}
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          temperature: 0.85,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              callToAction: { type: Type.STRING }
+            },
+            required: ["callToAction"]
+          }
+        }
+      });
+
+      const newCtaData = JSON.parse(response.text || "{}");
+      const updatedScript = {
+        ...script,
+        callToAction: newCtaData.callToAction || script.callToAction
+      };
+
+      return res.json({ success: true, script: sanitizeScript(updatedScript) });
+
+    } else if (elementType === "body") {
+      const scriptType = script.scriptType || "UGC (User Generated Content)";
+      const scriptTypeGuide = getScriptTypeGuidelinesPrompt([scriptType]);
+      const bodyDuration = script.bodyDuration || "30 sekunder";
+      const hooksSummary = (script.hooks || []).map((h: any) => h.audioDialogue).join(" / ");
+
+      const prompt = `
+Du er en verdensklasse Meta Ads copywriter.
+Opgave: Generér NYE, friske body-scener / manuskript for denne Meta video-annonce på ${promptLanguage}.
+
+${scriptTypeGuide}
+VIRKSOMHED & PRODUKT DETALJER:
+- Virksomhedsnavn: "${companyName || script.companyName || ''}"
+${productName || script.productName ? `- Produktnavn: "${productName || script.productName}"` : ''}
+${productDescription ? `- Produktbeskrivelse: "${productDescription}"` : ''}
+${targetAudience ? `- Målgruppe: "${targetAudience}"` : ''}
+${offerOrCta ? `- Tilbud/CTA: "${offerOrCta}"` : ''}
+- Sprog: ${promptLanguage}
+- Script Type: "${scriptType}"
+- Varighed: "${bodyDuration}"
+
+EKSISTERENDE HOOKS DER SKAL PASSES TIL:
+"${hooksSummary}"
+
+EKSISTERENDE BODY DER SKAL UDSKIFTES OG FORBEDRES:
+"${(script.scenes || []).map((s: any) => s.audioDialogue).join(' ')}"
+
+KRITISK REGEL FOR BODY:
+Generér KUN brødteksten/scenerne for bodyen (problem, løsning, demonstration, social proof).
+Må ALDRIG indeholde Call To Action, rabatkoder (f.eks. 'Spar 20%'), eller købsopfordringer! Alt tilbud placeres separat i CTA.
+
+Returnér UDELUKKENDE et JSON-objekt:
+{
+  "scenes": [
+    {
+      "timecode": "0:03 - 0:10",
+      "section": "Problem/Pain / Solution/Demo / Social Proof / Value Prop",
+      "visualDescription": "Beskrivelse af hvad der filmes i denne scene",
+      "textOnScreen": "Tekst-overlay på skærmen",
+      "audioDialogue": "Den talte replik / speak for denne del af bodyen",
+      "soundEffects": "Lydeffekter eller bakgrunnsmusikk"
+    }
+  ]
+}
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          temperature: 0.85,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              scenes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    timecode: { type: Type.STRING },
+                    section: { type: Type.STRING },
+                    visualDescription: { type: Type.STRING },
+                    textOnScreen: { type: Type.STRING },
+                    audioDialogue: { type: Type.STRING },
+                    soundEffects: { type: Type.STRING }
+                  },
+                  required: ["timecode", "section", "visualDescription", "textOnScreen", "audioDialogue"]
+                }
+              }
+            },
+            required: ["scenes"]
+          }
+        }
+      });
+
+      const parsed = JSON.parse(response.text || "{}");
+      const updatedScript = {
+        ...script,
+        scenes: (parsed.scenes || []).map((s: any, sIdx: number) => ({
+          ...s,
+          id: `scene-${Date.now()}-${sIdx}`
+        }))
+      };
+
+      return res.json({ success: true, script: sanitizeScript(updatedScript) });
+
+    } else if (elementType === "hook_visual") {
+      const targetIdx = typeof hookIndex === 'number' && hookIndex >= 0 ? hookIndex : 0;
+      const targetHook = script.hooks && script.hooks[targetIdx] ? script.hooks[targetIdx] : null;
+
+      const prompt = `
+Du er en prisvindende video-director for Meta Ads annoncer.
+Opgave: Generér 1 konkrete, kreative og let-filmbare VISUEL OPTAGE-IDÉ (B-roll / kameravinkel / skuespiller-handling) for følgende hook på ${promptLanguage}:
+
+HOOK REPLIK:
+"${targetHook ? targetHook.audioDialogue : ''}"
+
+HOOK VINKEL:
+"${targetHook ? targetHook.angleType : 'Pattern Interrupt'}"
+
+PRODUKT / VIRKSOMHED:
+"${companyName || script.companyName || ''}" - "${productName || script.productName || ''}"
+
+Beskriv præcist hvad skuespilleren/kameraet skal gøre i de første 3 sekunder for at fange opmærksomheden visuelt og matche replikken perfekt.
+
+Returnér UDELUKKENDE et JSON-objekt:
+{
+  "visualDirection": "Konkret og inspirerende beskrivelse af hvad der skal filmes (kamera, handling, b-roll, kropssprog)"
+}
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          temperature: 0.85,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              visualDirection: { type: Type.STRING }
+            },
+            required: ["visualDirection"]
+          }
+        }
+      });
+
+      const parsed = JSON.parse(response.text || "{}");
+      const updatedHooks = [...(script.hooks || [])];
+      if (updatedHooks[targetIdx]) {
+        updatedHooks[targetIdx] = {
+          ...updatedHooks[targetIdx],
+          visualDirection: parsed.visualDirection || updatedHooks[targetIdx].visualDirection || "Visuel optagelse foran spejl/skærm"
+        };
+      }
+
+      const updatedScript = {
+        ...script,
+        hooks: updatedHooks
+      };
+
+      return res.json({ success: true, script: updatedScript });
+
+    } else if (elementType === "script") {
+      const numHooks = (script.hooks || []).length || 3;
+      const scriptType = script.scriptType || "UGC (User Generated Content)";
+      const scriptTypeGuide = getScriptTypeGuidelinesPrompt([scriptType]);
+      const bodyDuration = script.bodyDuration || "30 sekunder";
+
+      const prompt = `
+Du er en verdensklasse Meta Ads copywriter.
+Opgave: Generér et HELT NYT komplet Meta Ads video-script (hooks, body scener og CTA) for ${companyName || script.companyName || 'Virksomheden'}.
+
+${scriptTypeGuide}
+VIRKSOMHED & PRODUKT DETALJER:
+- Virksomhedsnavn: "${companyName || script.companyName || ''}"
+${productName || script.productName ? `- Produktnavn: "${productName || script.productName}"` : ''}
+${productDescription ? `- Produktbeskrivelse: "${productDescription}"` : ''}
+${targetAudience ? `- Målgruppe: "${targetAudience}"` : ''}
+${offerOrCta ? `- Tilbud/CTA: "${offerOrCta}"` : ''}
+- Sprog: ${promptLanguage}
+- Script Type: "${scriptType}"
+- Varighed: "${bodyDuration}"
+- Antal hooks: ${numHooks}
+${scriptFocus === 'lead' ? '- Fokus: LEAD GENERERING (Gratis guide, book samtale, tilmeld)' : '- Fokus: PRODUKTSALG'}
+
+UNDGÅ DET EKSISTERENDE SCRIPT (Skab en helt ny vinkel og frisk dialog):
+- Tidligere vinkel: "${script.conceptAngle || ''}"
+- Tidligere CTA: "${script.callToAction || ''}"
+
+Returnér et komplet JSON-objekt:
+{
+  "title": "Nyt script navn",
+  "conceptAngle": "Nyt koncept / vinkel",
+  "scriptType": "${scriptType}",
+  "bodyDuration": "${bodyDuration}",
+  "competitorDifferentiation": "Hvordan dette nye script differentierer sig",
+  "hooks": [ ${numHooks} stks hooks med angleType, visualDirection, textOnScreen, audioDialogue, estimatedDurationSec ],
+  "scenes": [ opdelte scener med timecode, section, visualDescription, textOnScreen, audioDialogue, soundEffects ],
+  "callToAction": "Stærk afsluttende CTA"
+}
+`;
+
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          conceptAngle: { type: Type.STRING },
+          scriptType: { type: Type.STRING },
+          bodyDuration: { type: Type.STRING },
+          competitorDifferentiation: { type: Type.STRING },
+          hooks: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                angleType: { type: Type.STRING },
+                visualDirection: { type: Type.STRING },
+                textOnScreen: { type: Type.STRING },
+                audioDialogue: { type: Type.STRING },
+                estimatedDurationSec: { type: Type.INTEGER }
+              },
+              required: ["angleType", "visualDirection", "textOnScreen", "audioDialogue"]
+            }
+          },
+          scenes: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                timecode: { type: Type.STRING },
+                section: { type: Type.STRING },
+                visualDescription: { type: Type.STRING },
+                textOnScreen: { type: Type.STRING },
+                audioDialogue: { type: Type.STRING },
+                soundEffects: { type: Type.STRING }
+              },
+              required: ["timecode", "section", "visualDescription", "textOnScreen", "audioDialogue"]
+            }
+          },
+          callToAction: { type: Type.STRING }
+        },
+        required: ["title", "conceptAngle", "hooks", "scenes", "callToAction"]
+      };
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          temperature: 0.85,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      });
+
+      const parsed = JSON.parse(response.text || "{}");
+      const newScript = {
+        ...script,
+        id: `script-${Date.now()}`,
+        title: parsed.title || script.title,
+        conceptAngle: parsed.conceptAngle || script.conceptAngle,
+        competitorDifferentiation: parsed.competitorDifferentiation || script.competitorDifferentiation || "",
+        callToAction: parsed.callToAction || script.callToAction,
+        hooks: (parsed.hooks || []).map((h: any, hIdx: number) => ({
+          ...h,
+          id: `hook-${Date.now()}-${hIdx}`,
+          hookNumber: hIdx + 1,
+          estimatedDurationSec: h.estimatedDurationSec || 3
+        })),
+        scenes: (parsed.scenes || []).map((s: any, sIdx: number) => ({
+          ...s,
+          id: `scene-${Date.now()}-${sIdx}`
+        }))
+      };
+
+      return res.json({ success: true, script: newScript });
+    }
+
+    return res.status(400).json({ success: false, error: "Ugyldig elementType" });
+  } catch (error: any) {
+    console.error("Fejl ved re-generering af element:", error);
+    return res.status(500).json({ success: false, error: error.message || "Fejl ved re-generering af element." });
+  }
+});
+
+// Projects Persistent Storage
+const PROJECTS_FILE = path.join(process.cwd(), "data", "projects.json");
+
+function ensureProjectsFile() {
+  const dir = path.dirname(PROJECTS_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(PROJECTS_FILE)) {
+    fs.writeFileSync(PROJECTS_FILE, JSON.stringify([], null, 2), "utf-8");
+  }
+}
+
+function getProjectsData() {
+  ensureProjectsFile();
+  try {
+    const raw = fs.readFileSync(PROJECTS_FILE, "utf-8");
+    return JSON.parse(raw);
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveProjectsData(projects: any[]) {
+  ensureProjectsFile();
+  fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2), "utf-8");
+}
+
+// AI Training Persistent Storage
+const AI_TRAINING_FILE = path.join(process.cwd(), "data", "ai_training.json");
+
+function ensureAiTrainingFile() {
+  const dir = path.dirname(AI_TRAINING_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  if (!fs.existsSync(AI_TRAINING_FILE)) {
+    fs.writeFileSync(AI_TRAINING_FILE, JSON.stringify([], null, 2), "utf-8");
+  }
+}
+
+function getAiTrainingData() {
+  ensureAiTrainingFile();
+  try {
+    const raw = fs.readFileSync(AI_TRAINING_FILE, "utf-8");
+    return JSON.parse(raw);
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveAiTrainingData(items: any[]) {
+  ensureAiTrainingFile();
+  fs.writeFileSync(AI_TRAINING_FILE, JSON.stringify(items, null, 2), "utf-8");
+}
+
+function buildAiTrainingPromptSnippet(): string {
+  const items = getAiTrainingData();
+  if (!items || items.length === 0) return "";
+
+  const hooks = items.filter((i: any) => i.type === 'hook').slice(0, 8);
+  const bodies = items.filter((i: any) => i.type === 'body').slice(0, 8);
+  const ctas = items.filter((i: any) => i.type === 'cta').slice(0, 8);
+
+  let snippet = `\n\n🎯 BRUGERENS TRÆNEDE AI-GULDSTANDARDER (EFTERLIGN DENNE STIL, TONE OG STRUKTUR KVALITETSMÆSSIGT):\n`;
+
+  if (hooks.length > 0) {
+    snippet += `GODE HOOK-EKSEMPLER TIL EFTERLIGNING:\n` + hooks.map((h: any) => `- "${h.text}"${h.brandContext ? ` (${h.brandContext})` : ''}`).join('\n') + `\n`;
+  }
+  if (bodies.length > 0) {
+    snippet += `GODE BODY-MANUSKRIPTER TIL EFTERLIGNING:\n` + bodies.map((b: any) => `- "${b.text}"${b.brandContext ? ` (${b.brandContext})` : ''}`).join('\n') + `\n`;
+  }
+  if (ctas.length > 0) {
+    snippet += `GODE CTA-EKSEMPLER TIL EFTERLIGNING:\n` + ctas.map((c: any) => `- "${c.text}"${c.brandContext ? ` (${c.brandContext})` : ''}`).join('\n') + `\n`;
+  }
+
+  return snippet;
+}
+
+// GET all AI training items
+app.get("/api/ai-training", (req, res) => {
+  try {
+    const items = getAiTrainingData();
+    res.json({ success: true, items });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST add new AI training item
+app.post("/api/ai-training", (req, res) => {
+  try {
+    const { type, text, title = "", brandContext = "", notes = "" } = req.body;
+    if (!type || !text || !text.trim()) {
+      return res.status(400).json({ success: false, error: "Type og tekst er påkrævet." });
+    }
+    const items = getAiTrainingData();
+    const newItem = {
+      id: `train-${Date.now()}`,
+      type: type.trim(),
+      text: text.trim(),
+      title: title.trim(),
+      brandContext: brandContext.trim(),
+      notes: notes.trim(),
+      createdAt: new Date().toISOString()
+    };
+    items.unshift(newItem);
+    saveAiTrainingData(items);
+    res.json({ success: true, item: newItem, items });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE AI training item
+app.delete("/api/ai-training/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    let items = getAiTrainingData();
+    items = items.filter((item: any) => item.id !== id);
+    saveAiTrainingData(items);
+    res.json({ success: true, items });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET all projects
+app.get("/api/projects", (req, res) => {
+  try {
+    const projects = getProjectsData();
+    res.json({ success: true, projects });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST create project
+app.post("/api/projects", (req, res) => {
+  try {
+    const { name, description = "" } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: "Projektnavn er påkrævet." });
+    }
+    const projects = getProjectsData();
+    const newProject = {
+      id: `project-${Date.now()}`,
+      name: name.trim(),
+      description: description.trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      scripts: []
+    };
+    projects.unshift(newProject);
+    saveProjectsData(projects);
+    res.json({ success: true, project: newProject, projects });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT update project
+app.put("/api/projects/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    const projects = getProjectsData();
+    const idx = projects.findIndex((p: any) => p.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: "Projektet blev ikke fundet." });
+    }
+    if (name !== undefined) projects[idx].name = name.trim();
+    if (description !== undefined) projects[idx].description = description.trim();
+    projects[idx].updatedAt = new Date().toISOString();
+    saveProjectsData(projects);
+    res.json({ success: true, project: projects[idx], projects });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE project
+app.delete("/api/projects/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    let projects = getProjectsData();
+    projects = projects.filter((p: any) => p.id !== id);
+    saveProjectsData(projects);
+    res.json({ success: true, projects });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST add script to project
+app.post("/api/projects/:id/scripts", (req, res) => {
+  try {
+    const { id } = req.params;
+    const { script } = req.body;
+    if (!script || !script.id) {
+      return res.status(400).json({ success: false, error: "Script objekt med ID er påkrævet." });
+    }
+    const projects = getProjectsData();
+    const projIndex = projects.findIndex((p: any) => p.id === id);
+    if (projIndex === -1) {
+      return res.status(404).json({ success: false, error: "Projektet blev ikke fundet." });
+    }
+
+    const currentScripts = projects[projIndex].scripts || [];
+    const existingIdx = currentScripts.findIndex((s: any) => s.id === script.id);
+    if (existingIdx !== -1) {
+      currentScripts[existingIdx] = script;
+    } else {
+      currentScripts.unshift(script);
+    }
+    projects[projIndex].scripts = currentScripts;
+    projects[projIndex].updatedAt = new Date().toISOString();
+
+    saveProjectsData(projects);
+    res.json({ success: true, project: projects[projIndex], projects });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE script from project
+app.delete("/api/projects/:id/scripts/:scriptId", (req, res) => {
+  try {
+    const { id, scriptId } = req.params;
+    const projects = getProjectsData();
+    const projIndex = projects.findIndex((p: any) => p.id === id);
+    if (projIndex === -1) {
+      return res.status(404).json({ success: false, error: "Projektet blev ikke fundet." });
+    }
+
+    projects[projIndex].scripts = (projects[projIndex].scripts || []).filter((s: any) => s.id !== scriptId);
+    projects[projIndex].updatedAt = new Date().toISOString();
+
+    saveProjectsData(projects);
+    res.json({ success: true, project: projects[projIndex], projects });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/integrate-analogy
+app.post("/api/integrate-analogy", async (req, res) => {
+  try {
+    const { 
+      bodyText = "", 
+      analogyText = "", 
+      companyName = "", 
+      productName = "", 
+      productDescription = "" 
+    } = req.body;
+
+    if (!bodyText || !analogyText) {
+      return res.status(400).json({ success: false, error: "Mangler bodyTekst eller analogiTekst." });
+    }
+
+    const ai = getGeminiClient();
+
+    const prompt = `
+Du er en verdensklasse dansk copywriter for Meta Ads.
+Opgave: Omskriv den eksisterende manuskript-body ("EKSISTERENDE BODY TEKST") således at den medfølgende analogi ("ANALOGI") flettes SØMLØST, NATURLIGT og SPROGLIGT KORREKT ind i ca. midten af teksten (mellem problemstillingen og løsningen).
+
+EKSISTERENDE BODY TEKST:
+"${bodyText.trim()}"
+
+ANALOGI DER SKAL SÆTTES IND:
+"${analogyText.trim()}"
+
+PRODUKT/VIRKSOMHED:
+"${companyName} ${productName}" - "${productDescription}"
+
+REGLER FOR OMSKRIVNINGEN:
+1. Bevar det oprindelige budskab, tonen og nøglefordelene i manuskriptet.
+2. Tilpas gerne sætningerne før og efter analogien med naturlige overgangsord (f.eks. "Sagen er nemlig...", "For uden den rette dybdevirkning svarer det til...", "Men det behøver ikke være sådan..."), så analogien føles 100% integreret og meningsfuld i sammenhængen.
+3. Analogien skal placeres i midten af manuskriptet (typisk lige efter at problemstillingen er præsenteret og inden produktets løsning introduceres).
+4. Svaret SKAL være mundret dansk reklamesprog til video/UGC.
+
+Returnér et JSON-objekt:
+{
+  "wovenText": "Den komplette, færdige omskrevne body-tekst på dansk"
+}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            wovenText: { type: Type.STRING }
+          },
+          required: ["wovenText"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ success: true, wovenText: parsed.wovenText || bodyText });
+  } catch (error: any) {
+    console.error("Fejl i /api/integrate-analogy:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/analyze-ad-link
+app.post("/api/analyze-ad-link", async (req, res) => {
+  try {
+    const { 
+      adUrl = "", 
+      adText = "", 
+      companyName = "", 
+      productName = "", 
+      productDescription = "", 
+      targetAudience = "", 
+      offerOrCta = "" 
+    } = req.body;
+
+    if (!adUrl && !adText) {
+      return res.status(400).json({ success: false, error: "Angiv enten et Facebook Ad Library link eller en annoncetekst." });
+    }
+
+    const ai = getGeminiClient();
+
+    const prompt = `
+Du er en verdensklasse Meta Ads strateg og dansk UGC manuskriptforfatter.
+Opgave:
+1. Dekod og analysér den angivne Facebook/Meta annonce (baseret på URL og/eller den angivne tekstreference/transskription).
+2. Ekstrahér annoncens hook-psykologi, kernevinkel og opbygning.
+3. Omskriv og genskab denne præcise vinder-struktur til et 100% færdigt, mundret Meta Video Script (30 sekunder UGC/video) til brugerens eget brand:
+   - Virksomhed: "${companyName || 'Virksomhed'}"
+   - Produkt: "${productName || 'Produkt'}"
+   - Beskrivelse/USP: "${productDescription || ''}"
+   - Målgruppe: "${targetAudience || ''}"
+   - Tilbud/CTA: "${offerOrCta || ''}"
+
+FACEBOOK AD LINK / URL:
+"${adUrl}"
+
+ANNONCETEKST / REFERENCE:
+"${adText || 'Annoncelink angivet. Analysér vinklen baseret på konteksten af linket og skab et skræddersyet manuskript.'}"
+
+Returnér et komplet JSON-objekt med følgende struktur:
+{
+  "adAnalysis": {
+    "summary": "Kort resumé af den analyserede annonce og hvorfor den virker",
+    "hookType": "f.eks. Pattern Interrupt / Loss Aversion / Curiosity Gap",
+    "angleType": "f.eks. Problem-Solution PAS / UGC Review",
+    "keyHookText": "Oprindelige krog / overskrift fra annoncen",
+    "keyCoreMessage": "Kernepåstanden i den oprindelige annonce"
+  },
+  "script": {
+    "id": "ad-script-${Date.now()}",
+    "title": "Meta Ad Inspirations-Script (Facebook Ad Library)",
+    "conceptAngle": "Tilpasset vinder-struktur fra Facebook Ad Library",
+    "scriptType": "Problem–Solution / PAS",
+    "bodyDuration": "30 sekunder",
+    "companyName": "${companyName || 'Virksomhed'}",
+    "productName": "${productName || 'Produkt'}",
+    "competitors": [],
+    "competitorDifferentiation": "Baseret på konverteringsoptimeret struktur fra Facebook Ads Library",
+    "awarenessStage": "Problem Aware",
+    "trafficType": "cold",
+    "hooks": [
+      {
+        "id": "h1",
+        "hookNumber": 1,
+        "angleType": "Pattern Interrupt",
+        "visualDirection": "Visuel anvisning på kamera...",
+        "textOnScreen": "Tekst i videoen...",
+        "audioDialogue": "Det hvad skuespilleren siger i de første 3 sekunder...",
+        "estimatedDurationSec": 3
+      },
+      {
+        "id": "h2",
+        "hookNumber": 2,
+        "angleType": "Loss Aversion",
+        "visualDirection": "Visuel anvisning...",
+        "textOnScreen": "Tekst...",
+        "audioDialogue": "Alternativ hook vinkel...",
+        "estimatedDurationSec": 3
+      },
+      {
+        "id": "h3",
+        "hookNumber": 3,
+        "angleType": "Curiosity Gap",
+        "visualDirection": "Visuel anvisning...",
+        "textOnScreen": "Tekst...",
+        "audioDialogue": "Tredje hook vinkel...",
+        "estimatedDurationSec": 3
+      }
+    ],
+    "scenes": [
+      {
+        "id": "s1",
+        "timecode": "0:03 - 0:10",
+        "section": "Problem/Pain",
+        "visualDescription": "Nærbillede af problemstillingen...",
+        "textOnScreen": "Billedtekst...",
+        "audioDialogue": "Talemanuskript for scenen...",
+        "soundEffects": "Subtil hverdagslyd"
+      },
+      {
+        "id": "s2",
+        "timecode": "0:10 - 0:22",
+        "section": "Solution/Demo",
+        "visualDescription": "Produktet i brug...",
+        "textOnScreen": "Billedtekst...",
+        "audioDialogue": "Forklaring af løsningen...",
+        "soundEffects": "Swoosh effekt"
+      },
+      {
+        "id": "s3",
+        "timecode": "0:22 - 0:30",
+        "section": "CTA & Offer",
+        "visualDescription": "Viser hjemmesiden / tilbuddet...",
+        "textOnScreen": "Køb nu med rabatkode...",
+        "audioDialogue": "Afsluttende opfordring til handling...",
+        "soundEffects": "Pop-lyd"
+      }
+    ],
+    "callToAction": "${offerOrCta || 'Prøv i dag med gratis fragt'}",
+    "proTips": [
+      "Optag i naturligt dagslys for autentisk UGC følelse",
+      "Sørg for at den valgte hook matcher din primære målgruppe"
+    ],
+    "createdAt": "${new Date().toISOString()}"
+  }
+}
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+      config: {
+        temperature: 0.7,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            adAnalysis: {
+              type: Type.OBJECT,
+              properties: {
+                summary: { type: Type.STRING },
+                hookType: { type: Type.STRING },
+                angleType: { type: Type.STRING },
+                keyHookText: { type: Type.STRING },
+                keyCoreMessage: { type: Type.STRING }
+              },
+              required: ["summary", "hookType", "angleType", "keyHookText", "keyCoreMessage"]
+            },
+            script: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                title: { type: Type.STRING },
+                conceptAngle: { type: Type.STRING },
+                scriptType: { type: Type.STRING },
+                bodyDuration: { type: Type.STRING },
+                companyName: { type: Type.STRING },
+                productName: { type: Type.STRING },
+                competitors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                competitorDifferentiation: { type: Type.STRING },
+                awarenessStage: { type: Type.STRING },
+                trafficType: { type: Type.STRING },
+                hooks: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      id: { type: Type.STRING },
+                      hookNumber: { type: Type.NUMBER },
+                      angleType: { type: Type.STRING },
+                      visualDirection: { type: Type.STRING },
+                      textOnScreen: { type: Type.STRING },
+                      audioDialogue: { type: Type.STRING },
+                      estimatedDurationSec: { type: Type.NUMBER }
+                    },
+                    required: ["id", "hookNumber", "angleType", "visualDirection", "textOnScreen", "audioDialogue", "estimatedDurationSec"]
+                  }
+                },
+                scenes: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      id: { type: Type.STRING },
+                      timecode: { type: Type.STRING },
+                      section: { type: Type.STRING },
+                      visualDescription: { type: Type.STRING },
+                      textOnScreen: { type: Type.STRING },
+                      audioDialogue: { type: Type.STRING },
+                      soundEffects: { type: Type.STRING }
+                    },
+                    required: ["id", "timecode", "section", "visualDescription", "textOnScreen", "audioDialogue"]
+                  }
+                },
+                callToAction: { type: Type.STRING },
+                proTips: { type: Type.ARRAY, items: { type: Type.STRING } },
+                createdAt: { type: Type.STRING }
+              },
+              required: ["id", "title", "conceptAngle", "scriptType", "bodyDuration", "companyName", "hooks", "scenes", "callToAction"]
+            }
+          },
+          required: ["adAnalysis", "script"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ 
+      success: true, 
+      adAnalysis: parsed.adAnalysis, 
+      script: parsed.script 
+    });
+  } catch (error: any) {
+    console.error("Fejl i /api/analyze-ad-link:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/generate-analogy
+app.post("/api/generate-analogy", async (req, res) => {
+  try {
+    const { 
+      companyName = "", 
+      productName = "", 
+      productDescription = "", 
+      targetAudience = "", 
+      category = "Alle", 
+      targetType = "hook",
+      currentText = ""
+    } = req.body;
+    const ai = getGeminiClient();
+
+    const categoryInstruction = category && category !== "Alle" 
+      ? `Fokusér udelukkende på vinklen: "${category}".`
+      : `Fordel analogierne ligeligt mellem de 3 kategorier: "Skabe frygt", "Vis forbedring", og "Skabe interesse".`;
+
+    const hookConstraint = targetType === "hook"
+      ? `VIGTIGT FOR HOOKS: Hver færdig sætning SKAL være mundret, ultra-fængende og max 15-20 ord (3-5 sekunders taletid i en video).`
+      : `VIGTIGT FOR BODY: Hver færdig variation skal være en naturlig, forklarende del af manuskriptet.`;
+
+    let prompt = "";
+
+    if (currentText && currentText.trim().length > 5) {
+      prompt = `
+Du er en verdensklasse copywriter for Meta Ads og TikTok vaskekægte UGC-manuskripter.
+Din opgave er at tage den eksisterende ${targetType.toUpperCase()}-tekst herunder og skabe EXACT 5 FORSKELLIGE variationer, hvor du fletter en stærk, visuel billedsprog/analogi direkte og sprogligt korrekt ind i teksten.
+
+EKSISTERENDE TEKST: "${currentText.trim()}"
+VIRKSOMHED / PRODUKT: "${companyName} ${productName}"
+BESKRIVELSE: "${productDescription}"
+
+EKSEMPEL PÅ INDFLETNING:
+Eksisterende hook: "Hvis din hud stadig føles træt og mat efter din morgenrutine, gør du dette forkert."
+Med indflettet analogi: "Hvis din hud stadig føles træt og mat efter din morgenrutine, er det som at vaske en rude og stadig se snavs igennem den – du gør noget forkert."
+
+KRAV:
+1. Skab 5 unikke, fængende variationer af den eksisterende tekst med indflettet analogi/talesprog.
+2. ${hookConstraint}
+3. ${categoryInstruction}
+4. Teksten i "text" skal være den KOMPLETTE, færdige sætning med den indflettede analogi, klar til at erstatte eller opdatere hooket/bodyen direkte!
+5. "title" skal være en ultrakort beskrivelse af analogi-billedet (f.eks. "Som at vaske en beskidt rude").
+
+De 3 tilladte kategorier er UDELUKKENDE:
+1. "Skabe frygt" (Fokus på spild af penge, tabte muligheder, risiko og ineffektivitet)
+2. "Vis forbedring" (Fokus på transformation, lyntog, turbo, fantastisk fremdrift og overskud)
+3. "Skabe interesse" (Fokus på nysgerrighed, overraskende visuelle billedsprog og øjenåbnere)
+
+Returnér et JSON-objekt jf. schema.
+`;
+    } else {
+      prompt = `
+Du er en prisvindende Meta Ads copywriter med speciale i stærke billedsprog og hverdagsanalogier.
+Opgave: Generér 5-6 stærke, visuelle og overraskende DANSKE ANALOGIER eller TALESPROG skræddersyet til følgende virksomhed/produkt.
+
+VIRKSOMHED / PRODUKT: "${companyName} ${productName}"
+BESKRIVELSE: "${productDescription}"
+MÅLGRUPPE / FRUSTRATIONER: "${targetAudience}"
+
+KATEGORI INSTRUKTION: ${categoryInstruction}
+FORMÅL: Præcis tilpasset ${targetType.toUpperCase()} (Hook eller Body).
+${hookConstraint}
+
+De 3 tilladte kategorier er UDELUKKENDE:
+1. "Skabe frygt" (Fokus på spild af penge, tabte muligheder, risiko og ineffektivitet)
+2. "Vis forbedring" (Fokus på transformation, lyntog, turbo, fantastisk fremdrift og overskud)
+3. "Skabe interesse" (Fokus på nysgerrighed, overraskende visuelle billedsprog og øjenåbnere)
+
+Generér NYE, unikke og fængende analogier på dansk, hvor henholdsvis "title" er en kort overskrift og "text" er den KOMPLETTE, FULLSTÆNDIGE analogisætning.
+Hver kategori i outputtet SKAL være enten "Skabe frygt", "Vis forbedring", eller "Skabe interesse".
+
+Returnér et JSON-objekt jf. schema.
+`;
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+      config: {
+        temperature: 0.95,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            analogies: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  text: { type: Type.STRING },
+                  category: { type: Type.STRING },
+                  description: { type: Type.STRING }
+                },
+                required: ["title", "text", "category"]
+              }
+            }
+          },
+          required: ["analogies"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ success: true, analogies: parsed.analogies || [] });
+
+  } catch (error: any) {
+    console.error("Fejl i /api/generate-analogy:", error);
+    res.status(500).json({ success: false, error: error.message || "Fejl under generering af analogier" });
+  }
+});
+
+// Vite & Static file handler
+async function startServer() {
+  app.use(express.static(path.join(process.cwd(), "public")));
+
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server is running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+startServer();
