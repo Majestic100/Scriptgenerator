@@ -215,12 +215,9 @@ export default function App() {
         {/* Call sheet-hoved */}
         <div className="pt-3 pb-4 border-b-2 border-ink">
           <p className="eyebrow text-ink/45 mb-2.5">Produktionsværktøj · Meta video-annoncer</p>
-          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-            <h1 className="font-display text-4xl sm:text-5xl uppercase leading-[0.95] text-ink">
-              Script Generator<span className="text-rec">.</span>
-            </h1>
-            <p className="eyebrow text-ink/40 pb-1.5">Hook · Body · CTA — optageklar på dansk</p>
-          </div>
+          <h1 className="font-display text-4xl sm:text-5xl uppercase leading-[0.95] text-ink">
+            Script Generator<span className="text-rec">.</span>
+          </h1>
         </div>
 
         {/* Script Configurator Form */}

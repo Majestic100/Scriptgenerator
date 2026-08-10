@@ -47,7 +47,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
             <span>🎥 Teleprompter Mode</span>
           </h3>
           <p className="text-xs text-slate-400">
-            {script.title} — {script.companyName}
+            {script.title} · {script.companyName}
           </p>
         </div>
 
@@ -146,7 +146,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {script.scenes.map((scene, idx) => (
             <div key={scene.id} className="p-4 rounded-xl space-y-2">
               <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-                Scene {idx + 1} [{scene.timecode}] — {scene.section}
+                Scene {idx + 1} [{scene.timecode}] · {scene.section}
               </div>
               <p className="font-semibold text-slate-100 leading-relaxed">
                 "{scene.audioDialogue}"

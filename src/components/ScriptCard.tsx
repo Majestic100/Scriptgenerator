@@ -419,7 +419,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           </span>
           {script.awarenessStage && (
             <span className="font-mono text-[11px] bg-white/10 text-amber-300 font-medium px-2 py-0.5 rounded flex items-center gap-1">
-              🧠 {script.awarenessStage}
+              {script.awarenessStage}
             </span>
           )}
           {script.trafficType && (
@@ -428,7 +428,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                 ? 'bg-rec/25 text-red-300 border-transparent'
                 : 'bg-white/10 text-sky-300 border-transparent'
             }`}>
-              {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting') ? '🔄 Retargeting' : '❄️ Kold Trafik'}
+              {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting') ? 'Retargeting' : 'Kold trafik'}
             </span>
           )}
         </div>

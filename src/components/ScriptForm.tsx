@@ -90,7 +90,7 @@ const HOOK_TYPE_OPTIONS = [
   { id: 'Identity', label: 'Identity', desc: '"du er ikke typen der..."', example: '"Hvis du er typen der tager dine mål seriøst..."' },
   { id: 'Authority', label: 'Authority', desc: '"vi ser det igen og igen..."', example: '"Eksperter råber op: De fleste gør denne fejl..."' },
   { id: 'Future pacing', label: 'Future pacing', desc: '"om 6 måneder står du samme sted..."', example: '"Forestil dig hvordan din hverdag ser ud om 30 dage..."' },
-  { id: 'Kontrast', label: 'Kontrast', desc: '"det er ikke X... det er Y"', example: '"Det er ikke dine evner — det er metoden..."' }
+  { id: 'Kontrast', label: 'Kontrast', desc: '"det er ikke X... det er Y"', example: '"Det er ikke dine evner, det er metoden..."' }
 ];
 
 const AWARENESS_STAGES = [
@@ -1014,7 +1014,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     >
                       {HOOK_TYPE_OPTIONS.map((ht) => (
                         <option key={ht.id} value={ht.id}>
-                          {ht.label} — ({ht.desc})
+                          {ht.label} ({ht.desc})
                         </option>
                       ))}
                     </select>
