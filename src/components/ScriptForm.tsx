@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ScriptRequest, ScriptType, AnalysisDocument } from '../types';
 import { AwarenessFunnelFigure } from './AwarenessFunnelFigure';
+import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
 
 interface ScriptFormProps {
@@ -277,6 +278,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const undoRef = useRef<(() => void) | null>(null);
 
+  // Forslag til stil og hook-vinkler
+  const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
+
   /** Skriver de fundne felter ind i formularen og lægger en fortryd-handling til rette. */
   const applyBriefFields = (fields: Record<string, any>) => {
     const snapshot = {
@@ -522,6 +526,37 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
   const currentCfg = scriptConfigs[activeTab] || defaultPresets[0];
   const selectedType = SCRIPT_TYPES.find((st) => st.type === currentCfg.scriptType);
+
+  /** Sætter en hel række hook-vinkler ind på det aktive script. */
+  const applyHookAngles = (ids: string[]) => {
+    const hooks = currentCfg.numHooks || 3;
+    const next = [...(currentCfg.preferredHookTypes || [])];
+    for (let i = 0; i < hooks; i++) {
+      if (ids[i]) next[i] = ids[i];
+      else if (!next[i]) next[i] = HOOK_TYPE_OPTIONS[i % HOOK_TYPE_OPTIONS.length].id;
+    }
+    updateCurrentScriptConfig('preferredHookTypes', next.slice(0, hooks));
+  };
+
+  const advisorPayload = {
+    analysisDocument: analysisDoc || undefined,
+    brief: {
+      companyName: companyName.trim(),
+      productName: productName.trim(),
+      productDescription: (currentCfg.productDescription ?? productDescription).trim(),
+      targetAudience: (currentCfg.targetAudience ?? targetAudience).trim(),
+      demographics: (currentCfg.demographics ?? demographics).trim(),
+      offerOrCta: (currentCfg.offerOrCta ?? offerOrCta).trim(),
+      competitors
+    },
+    awarenessStage: currentCfg.awarenessStage || 'Problem Aware',
+    trafficType: currentCfg.trafficType || 'cold',
+    bodyDuration: currentCfg.bodyDuration,
+    numHooks: currentCfg.numHooks || 3,
+    scriptFocus,
+    scriptTypes: SCRIPT_TYPES.map((st) => st.type),
+    hookAngles: HOOK_TYPE_OPTIONS.map((h) => ({ id: h.id, label: h.label, desc: h.desc }))
+  };
   const activeStage = AWARENESS_STAGES.find((s) => s.id === (currentCfg.awarenessStage || 'Problem Aware'));
   const activeTraffic = TRAFFIC_TYPES.find((t) => t.id === (currentCfg.trafficType || 'cold'));
 
@@ -949,9 +984,20 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
           {/* Script-stil */}
           <div>
-            <div className="flex items-baseline justify-between gap-3 mb-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2 mb-2">
               <span className="field-label mb-0">Stil og vinkel</span>
-              <span className="field-hint shrink-0">{SCRIPT_TYPES.length} at vælge mellem</span>
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span className="field-hint">{SCRIPT_TYPES.length} at vælge mellem</span>
+                <button
+                  type="button"
+                  onClick={() => setIsAdvisorOpen(true)}
+                  className="chip-btn"
+                  title="Lad AI'en foreslå stil og hook-vinkler ud fra analysen og kundeoplysningerne"
+                >
+                  <Wand2 className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  Foreslå ud fra analysen
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
               {SCRIPT_TYPES.map((st) => {
@@ -1171,6 +1217,16 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </button>
         </div>
       </div>
+
+      <AngleAdvisorModal
+        isOpen={isAdvisorOpen}
+        onClose={() => setIsAdvisorOpen(false)}
+        payload={advisorPayload}
+        angleLabel={(id) => HOOK_TYPE_OPTIONS.find((h) => h.id === id)?.label || id}
+        currentScriptType={currentCfg.scriptType}
+        onApplyScriptType={(type) => updateCurrentScriptConfig('scriptType', type)}
+        onApplyHookAngles={applyHookAngles}
+      />
     </form>
   );
 };
