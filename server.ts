@@ -1958,6 +1958,113 @@ app.delete("/api/customers/:id", (req, res) => {
   }
 });
 
+// POST /api/analyze-brief - læser en uploadet målgruppe-/virksomhedsanalyse (og evt.
+// hjemmesiden) og trækker de felter ud, formularen ellers skal udfyldes i hånden.
+// Felter der ikke står i materialet returneres tomme - der gættes ikke.
+app.post("/api/analyze-brief", async (req, res) => {
+  try {
+    const { analysisDocument, companyWebsite, scriptFocus } = req.body || {};
+
+    const documentText = analysisDocument ? await extractTextFromAnalysisDoc(analysisDocument) : "";
+    if (!documentText || documentText.trim().length < 40) {
+      return res.status(400).json({
+        success: false,
+        error: "Kunne ikke læse nok tekst ud af dokumentet. Er det en scannet PDF uden tekstlag?"
+      });
+    }
+
+    let websiteText = "";
+    if (companyWebsite && typeof companyWebsite === "string" && companyWebsite.trim()) {
+      websiteText = await scrapeWebsiteContent(companyWebsite.trim());
+    }
+
+    // Hold prompten inden for en fornuftig størrelse på meget lange analyser
+    const trimmedDoc = documentText.slice(0, 60000);
+    const trimmedSite = websiteText.slice(0, 8000);
+
+    const prompt = `
+Du er strategisk planner i et dansk annoncebureau.
+Nedenfor er en målgruppe- eller virksomhedsanalyse for en kunde${trimmedSite ? ", samt indhold fra kundens hjemmeside" : ""}.
+
+Opgave: Udfyld briefing-felterne til en Meta Ads script-generator ud fra materialet.
+
+ABSOLUTTE REGLER:
+- Brug KUN hvad der faktisk står i materialet. Find aldrig på produkter, tal, tilbud, rabatkoder, garantier eller konkurrenter.
+- Står et felt ikke i materialet, returnér en tom streng (eller en tom liste). Et tomt felt er korrekt; et gættet felt er en fejl.
+- Skriv på dansk i hele sætninger, kort og konkret. Ingen overskrifter, ingen punktopstilling, ingen markdown.
+- Gengiv tal, priser og procenter præcis som de står. Rund ikke af, og opfind ikke nye.
+${scriptFocus === "lead" ? "- Kunden sælger leads (booking, konsultation, e-bog), ikke et fysisk produkt. Beskriv ydelsen i produktfeltet." : ""}
+
+FELTER:
+- companyName: virksomhedens navn.
+- productName: navnet på det produkt eller den ydelse annoncerne skal handle om.
+- productDescription: hvad produktet er, og de unikke fordele. Maks 4 sætninger.
+- targetAudience: den ideelle kunde. Hvem er de, hvad frustrerer dem, hvad vil de opnå. Maks 4 sætninger.
+- demographics: geografi og demografi. Alder, køn, geografi, indkomst, interesser. Maks 3 sætninger.
+- offerOrCta: det konkrete tilbud eller den handling kunden skal foretage. Kun hvis det står i materialet.
+- competitors: op til 3 navngivne konkurrenter fra materialet.
+- toneOfVoice: den ønskede tone i talesproget, f.eks. "afslappet dansk talesprog, som en god ven der anbefaler". Kun hvis materialet siger noget om tone.
+- summary: én sætning på dansk om hvad analysen dækker, til visning i grænsefladen.
+- missingFields: navnene på de felter ovenfor du IKKE kunne udfylde, fordi materialet ikke nævner dem.
+
+--- ANALYSEDOKUMENT ---
+${trimmedDoc}
+--- SLUT PÅ ANALYSEDOKUMENT ---
+${trimmedSite ? `\n--- INDHOLD FRA HJEMMESIDEN ---\n${trimmedSite}\n--- SLUT PÅ HJEMMESIDE ---\n` : ""}
+`.trim();
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        companyName: { type: Type.STRING },
+        productName: { type: Type.STRING },
+        productDescription: { type: Type.STRING },
+        targetAudience: { type: Type.STRING },
+        demographics: { type: Type.STRING },
+        offerOrCta: { type: Type.STRING },
+        competitors: { type: Type.ARRAY, items: { type: Type.STRING } },
+        toneOfVoice: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        missingFields: { type: Type.ARRAY, items: { type: Type.STRING } }
+      }
+    };
+
+    const response = await generateContentJson({
+      prompt,
+      schema,
+      system: "Du udtrækker fakta fra et dokument. Du gætter aldrig og udfylder aldrig et felt, materialet ikke dækker.",
+      maxTokens: 4000
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    const str = (v: any) => (typeof v === "string" ? v.trim() : "");
+
+    res.json({
+      success: true,
+      fields: {
+        companyName: str(parsed.companyName),
+        productName: str(parsed.productName),
+        productDescription: str(parsed.productDescription),
+        targetAudience: str(parsed.targetAudience),
+        demographics: str(parsed.demographics),
+        offerOrCta: str(parsed.offerOrCta),
+        competitors: Array.isArray(parsed.competitors)
+          ? parsed.competitors.map(str).filter(Boolean).slice(0, 3)
+          : [],
+        toneOfVoice: str(parsed.toneOfVoice)
+      },
+      summary: str(parsed.summary),
+      missingFields: Array.isArray(parsed.missingFields) ? parsed.missingFields.map(str).filter(Boolean) : [],
+      usedWebsite: !!trimmedSite,
+      // Sendes med retur, så klienten kan gemme teksten på kunden uden at læse filen igen
+      extractedText: documentText
+    });
+  } catch (error: any) {
+    console.error("[/api/analyze-brief] Fejl:", error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || "Kunne ikke analysere dokumentet." });
+  }
+});
+
 // POST /api/generate-visuals - komplet shot list for alle hooks og scener i et script
 app.post("/api/generate-visuals", async (req, res) => {
   try {
