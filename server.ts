@@ -1994,6 +1994,156 @@ app.delete("/api/customers/:id", (req, res) => {
 // POST /api/analyze-brief - læser en uploadet målgruppe-/virksomhedsanalyse (og evt.
 // hjemmesiden) og trækker de felter ud, formularen ellers skal udfyldes i hånden.
 // Felter der ikke står i materialet returneres tomme - der gættes ikke.
+// POST /api/recommend-angles - anbefaler script-stil og hook-vinkler til den
+// konkrete kunde ud fra målgruppeanalysen og det udfyldte brief.
+// Modellen må kun vælge fra de lister klienten sender med.
+app.post("/api/recommend-angles", async (req, res) => {
+  try {
+    const {
+      analysisDocument,
+      brief = {},
+      awarenessStage,
+      trafficType,
+      bodyDuration,
+      numHooks,
+      scriptTypes,
+      hookAngles,
+      scriptFocus
+    } = req.body || {};
+
+    if (!Array.isArray(scriptTypes) || scriptTypes.length === 0) {
+      return res.status(400).json({ success: false, error: "Listen over script-stile mangler." });
+    }
+    if (!Array.isArray(hookAngles) || hookAngles.length === 0) {
+      return res.status(400).json({ success: false, error: "Listen over hook-vinkler mangler." });
+    }
+
+    const documentText = analysisDocument ? await extractTextFromAnalysisDoc(analysisDocument) : "";
+
+    const briefLines = [
+      brief.companyName ? `Virksomhed: ${brief.companyName}` : "",
+      brief.productName ? `Produkt eller ydelse: ${brief.productName}` : "",
+      brief.productDescription ? `Unikke fordele: ${brief.productDescription}` : "",
+      brief.targetAudience ? `Ideel kunde: ${brief.targetAudience}` : "",
+      brief.demographics ? `Geografi og demografi: ${brief.demographics}` : "",
+      brief.offerOrCta ? `Tilbud eller CTA: ${brief.offerOrCta}` : "",
+      Array.isArray(brief.competitors) && brief.competitors.length
+        ? `Konkurrenter: ${brief.competitors.join(", ")}`
+        : ""
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    if (!documentText && !briefLines) {
+      return res.status(400).json({
+        success: false,
+        error: "Der er intet at rådgive ud fra endnu. Upload en analyse eller udfyld kundeoplysningerne i trin 1."
+      });
+    }
+
+    const hooksWanted = Math.min(Math.max(Number(numHooks) || 3, 1), 5);
+    const angleList = hookAngles
+      .map((a: any) => `- ${a.id}: ${a.label}${a.desc ? ` (${a.desc})` : ""}`)
+      .join("\n");
+
+    const prompt = `
+Du er strategisk creative director i et dansk annoncebureau og har lavet Meta-annoncer i ti år.
+
+Opgave: Anbefal hvilken script-stil og hvilke hook-vinkler der vil virke bedst for netop denne kunde.
+
+${documentText ? `--- MÅLGRUPPEANALYSE ---\n${documentText.slice(0, 50000)}\n--- SLUT PÅ ANALYSE ---\n` : "Der er ingen målgruppeanalyse vedhæftet. Rådgiv ud fra briefet alene.\n"}
+${briefLines ? `--- BRIEF ---\n${briefLines}\n--- SLUT PÅ BRIEF ---\n` : ""}
+OPSÆTNING FOR DETTE SCRIPT:
+- Awareness-stadie: ${awarenessStage || "Problem Aware"}
+- Trafik: ${trafficType === "retargeting" ? "Retargeting, varm trafik" : "Kold trafik, prospecting"}
+- Varighed: ${bodyDuration || "30 sekunder"}
+- Antal hooks der skal skrives: ${hooksWanted}
+${scriptFocus === "lead" ? "- Målet er leads, ikke direkte salg.\n" : "- Målet er salg af produktet.\n"}
+
+DU MÅ KUN VÆLGE FRA DISSE LISTER:
+
+Script-stile:
+${scriptTypes.map((t: string) => `- ${t}`).join("\n")}
+
+Hook-vinkler:
+${angleList}
+
+SÅDAN SVARER DU:
+- Anbefal præcis 3 script-stile, rangeret med den bedste først.
+- Anbefal præcis ${hooksWanted} hook-vinkler, én pr. hook, rangeret. Vælg forskellige vinkler, medmindre der er en klar grund til at gentage.
+- Hver begrundelse er ÉN sætning på dansk, maks 25 ord, og peger på noget konkret fra analysen eller briefet. Skriv "fordi målgruppen ..." eller "fordi analysen nævner ...", ikke almene råd.
+- Er der ingen analyse, så sig det i begrundelsen frem for at lade som om der er dækning.
+- fit angiver hvor stærkt matchet er: "stærk", "god" eller "ok".
+- headline: én sætning på dansk om den røde tråd i anbefalingen, maks 25 ord.
+- Ingen markdown, ingen punktopstilling inde i felterne.
+`.trim();
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        headline: { type: Type.STRING },
+        scriptTypes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              type: { type: Type.STRING, enum: scriptTypes },
+              reason: { type: Type.STRING },
+              fit: { type: Type.STRING, enum: ["stærk", "god", "ok"] }
+            }
+          }
+        },
+        hookAngles: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING, enum: hookAngles.map((a: any) => a.id) },
+              reason: { type: Type.STRING }
+            }
+          }
+        }
+      }
+    };
+
+    const response = await generateContentJson({
+      prompt,
+      schema,
+      system:
+        "Du rådgiver om annoncevinkler. Du begrunder altid i det konkrete materiale du har fået, og du vælger kun fra de lister du får udleveret.",
+      maxTokens: 4000
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    const validTypes = new Set(scriptTypes);
+    const validAngles = new Set(hookAngles.map((a: any) => a.id));
+
+    res.json({
+      success: true,
+      headline: typeof parsed.headline === "string" ? parsed.headline.trim() : "",
+      basedOnAnalysis: !!documentText,
+      scriptTypes: (Array.isArray(parsed.scriptTypes) ? parsed.scriptTypes : [])
+        .filter((s: any) => s && validTypes.has(s.type))
+        .slice(0, 3)
+        .map((s: any) => ({
+          type: s.type,
+          reason: typeof s.reason === "string" ? s.reason.trim() : "",
+          fit: ["stærk", "god", "ok"].includes(s.fit) ? s.fit : "god"
+        })),
+      hookAngles: (Array.isArray(parsed.hookAngles) ? parsed.hookAngles : [])
+        .filter((h: any) => h && validAngles.has(h.id))
+        .slice(0, hooksWanted)
+        .map((h: any) => ({
+          id: h.id,
+          reason: typeof h.reason === "string" ? h.reason.trim() : ""
+        }))
+    });
+  } catch (error: any) {
+    console.error("[/api/recommend-angles] Fejl:", error?.message || error);
+    res.status(500).json({ success: false, error: error?.message || "Kunne ikke hente forslag." });
+  }
+});
+
 app.post("/api/analyze-brief", async (req, res) => {
   try {
     const { analysisDocument, companyWebsite, scriptFocus } = req.body || {};
