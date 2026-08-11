@@ -105,22 +105,22 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
   };
 
   const inputCls =
-    'w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-md px-3 py-2.5 text-lg text-slate-900 transition-all';
-  const labelCls = 'block text-base font-bold text-slate-700 mb-1.5';
+    'w-full bg-surface border border-line-strong focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-[var(--radius-control)] px-3 py-2.5 text-lg text-ink transition-all';
+  const labelCls = 'block text-base font-bold text-ink mb-1.5';
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg border border-slate-200 shadow-xl w-full max-w-3xl my-8">
+      <div className="bg-surface rounded-[var(--radius-control)] border border-line shadow-xl w-full max-w-3xl my-8">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-line flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Users className="w-5 h-5 text-rec" />
             <h2 className="text-2xl font-extrabold text-ink">Kunder</h2>
-            <span className="text-lg text-slate-500">Gem kundeinfo én gang, genbrug til alle scripts</span>
+            <span className="text-lg text-muted">Gem kundeinfo én gang, genbrug til alle scripts</span>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-md cursor-pointer" title="Luk">
-            <X className="w-5 h-5 text-slate-500" />
+          <button onClick={onClose} className="p-2 hover:bg-sunken rounded-[var(--radius-control)] cursor-pointer" title="Luk">
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
 
@@ -130,15 +130,15 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
             <>
               <button
                 onClick={startCreate}
-                className="w-full py-3 px-4 bg-rec hover:bg-[#c81e22] text-white rounded-md text-lg font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-3 px-4 bg-rec hover:bg-rec-hover text-white rounded-[var(--radius-control)] text-lg font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Plus className="w-5 h-5" />
                 <span>Opret ny kunde</span>
               </button>
 
               {customers.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 text-lg">
-                  <p className="font-semibold text-slate-600 mb-1">Ingen kunder endnu</p>
+                <div className="text-center py-10 text-muted text-lg">
+                  <p className="font-semibold text-muted mb-1">Ingen kunder endnu</p>
                   <p>Opret din første kunde, eller udfyld formularen og brug "Gem som kunde".</p>
                 </div>
               ) : (
@@ -146,27 +146,27 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                   {customers.map((c) => (
                     <div
                       key={c.id}
-                      className="border border-slate-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3 hover:border-slate-300 transition-colors"
+                      className="border border-line rounded-[var(--radius-control)] p-4 flex flex-wrap items-center justify-between gap-3 hover:border-line-strong transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-bold text-ink text-xl truncate">{c.name || c.companyName}</p>
                           {!showSharing ? null : c.shared ? (
-                            <span className="inline-flex items-center gap-1 text-sm font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-sm font-bold bg-sunken text-ink border border-line-strong px-2 py-0.5 rounded">
                               <Share2 className="w-3.5 h-3.5" /> Fælleskunde
                             </span>
                           ) : c.ownerLabel ? (
-                            <span className="text-sm font-semibold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
+                            <span className="text-sm font-semibold bg-sunken text-muted border border-line px-2 py-0.5 rounded">
                               {c.ownerLabel}
                             </span>
                           ) : null}
                         </div>
-                        <p className="text-lg text-slate-500 truncate">
+                        <p className="text-lg text-muted truncate">
                           {c.companyName}
                           {c.productName ? ` · ${c.productName}` : ''}
                         </p>
                         {c.analysisDocument?.extractedText && (
-                          <p className="text-base text-emerald-700 flex items-center gap-1 mt-1">
+                          <p className="text-base text-ink flex items-center gap-1 mt-1">
                             <FileText className="w-4 h-4" />
                             Målgruppeanalyse gemt ({c.analysisDocument.name})
                           </p>
@@ -175,24 +175,24 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => startEdit(c)}
-                          className="p-2.5 hover:bg-slate-100 border border-slate-200 rounded-md cursor-pointer"
+                          className="p-2.5 hover:bg-sunken border border-line rounded-[var(--radius-control)] cursor-pointer"
                           title="Redigér kunde"
                         >
-                          <Pencil className="w-4 h-4 text-slate-500" />
+                          <Pencil className="w-4 h-4 text-muted" />
                         </button>
                         <button
                           onClick={() => handleDelete(c.id)}
-                          className="p-2.5 hover:bg-red-50 border border-slate-200 rounded-md cursor-pointer"
+                          className="p-2.5 hover:bg-rec-soft border border-line rounded-[var(--radius-control)] cursor-pointer"
                           title="Slet kunde"
                         >
-                          <Trash2 className="w-4 h-4 text-red-500" />
+                          <Trash2 className="w-4 h-4 text-rec" />
                         </button>
                         <button
                           onClick={() => {
                             onSelectCustomer(c);
                             onClose();
                           }}
-                          className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-lg font-bold flex items-center gap-2 cursor-pointer"
+                          className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-[var(--radius-control)] text-lg font-bold flex items-center gap-2 cursor-pointer"
                           title="Udfyld formularen med denne kundes info"
                         >
                           <span>Brug kunde</span>
@@ -261,21 +261,21 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
               </div>
 
               {showSharing && (
-              <label className="flex items-start gap-3 p-3.5 border border-slate-300 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
+              <label className="flex items-start gap-3 p-3.5 border border-line-strong rounded-[var(--radius-control)] cursor-pointer hover:bg-sunken transition-colors">
                 <input
                   type="checkbox"
                   checked={form.shared}
                   onChange={(e) => setForm({ ...form, shared: e.target.checked })}
-                  className="mt-1 w-4 h-4 accent-[#e52328] cursor-pointer"
+                  className="mt-1 w-4 h-4 accent-rec cursor-pointer"
                 />
-                <span className="text-base text-slate-700">
-                  <span className="font-semibold text-slate-900 block">Fælleskunde</span>
+                <span className="text-base text-ink">
+                  <span className="font-semibold text-ink block">Fælleskunde</span>
                   Sæt flueben, hvis begge virksomheder arbejder på denne kunde. Uden flueben er kunden kun synlig for din egen virksomhed.
                 </span>
               </label>
               )}
 
-              <p className="text-base text-slate-500">
+              <p className="text-base text-muted">
                 Tip: Målgruppeanalysen (PDF/Word) gemmes automatisk på kunden, når du bruger "Gem som kunde" fra formularen efter at have uploadet den.
               </p>
 
@@ -283,7 +283,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                 <button
                   onClick={handleSave}
                   disabled={isSaving || (!form.companyName.trim() && !form.name.trim())}
-                  className="px-5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-lg font-bold cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-rec hover:bg-rec-hover text-white rounded-[var(--radius-control)] text-lg font-bold cursor-pointer disabled:opacity-50"
                 >
                   {isSaving ? 'Gemmer...' : editingId ? 'Gem ændringer' : 'Opret kunde'}
                 </button>
@@ -292,7 +292,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                     setIsCreating(false);
                     setEditingId(null);
                   }}
-                  className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-lg font-semibold cursor-pointer"
+                  className="px-5 py-2.5 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-lg font-semibold cursor-pointer"
                 >
                   Annullér
                 </button>

@@ -8,6 +8,7 @@ import { SaveToProjectModal } from './components/SaveToProjectModal';
 import { TeleprompterModal } from './components/TeleprompterModal';
 import { CustomersModal } from './components/CustomersModal';
 import { LoginScreen } from './components/LoginScreen';
+import { buttonStyles } from './components/ui';
 import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer, AppUserInfo } from './types';
 import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
@@ -307,7 +308,7 @@ export default function App() {
   };
 
   if (authState === 'loading') {
-    return <div className="min-h-[100dvh] bg-studio" />;
+    return <div className="min-h-[100dvh] bg-canvas" />;
   }
 
   if (authState === 'login') {
@@ -322,30 +323,32 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-studio text-ink flex flex-col font-sans selection:bg-rec selection:text-white">
+    <div className="min-h-[100dvh] bg-canvas text-ink flex flex-col font-sans selection:bg-rec selection:text-white">
       
       {/* Top Navbar Header */}
       <Navbar
         aiTrainingCount={aiTrainingItems.length}
         onOpenAiTraining={() => setIsAiTrainingOpen(true)}
-        projectsCount={projects.length}
+        projects={projects}
         onOpenProjects={() => setIsProjectsModalOpen(true)}
-        customersCount={customers.length}
+        customers={customers}
         onOpenCustomers={() => setIsCustomersModalOpen(true)}
+        onSelectCustomer={handleSelectCustomer}
         onLoadExample={handleLoadExample}
         onLogout={handleLogout}
         currentUser={currentUser}
       />
 
       {/* Hero / Main Area */}
-      <main className="flex-1 max-w-[1536px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 md:py-8 space-y-8">
-        
-        {/* Call sheet-hoved */}
-        <div className="pt-3 pb-4 border-b-2 border-ink">
-          <p className="eyebrow text-ink/45 mb-2.5">Produktionsværktøj · Meta video-annoncer</p>
-          <h1 className="font-display text-4xl sm:text-5xl uppercase leading-[0.95] text-ink">
-            Script Generator<span className="text-rec">.</span>
+      <main className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-8 space-y-5">
+
+        <div className="pb-1">
+          <h1 className="font-display text-[30px] sm:text-[34px] leading-tight text-ink">
+            Nye scripts til Meta-annoncer
           </h1>
+          <p className="text-[16.5px] text-muted mt-1">
+            Udfyld de tre trin herunder. AI'en skriver hooks, body og CTA på baggrund af dem.
+          </p>
         </div>
 
         {/* Script Configurator Form */}
@@ -359,11 +362,11 @@ export default function App() {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-900 text-lg animate-fadeIn">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="p-4 bg-rec-soft border border-rec/40 rounded-[var(--radius-card)] flex items-start gap-3 animate-fadeIn" role="alert">
+            <AlertCircle className="w-5 h-5 text-rec shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
             <div>
-              <span className="font-bold block text-red-900">Kunne ikke generere script</span>
-              <p className="text-base mt-0.5 text-red-700">{errorMessage}</p>
+              <span className="font-semibold block text-[16px] text-ink">Kunne ikke generere script</span>
+              <p className="field-hint mt-0.5">{errorMessage}</p>
             </div>
           </div>
         )}
@@ -372,56 +375,39 @@ export default function App() {
         {generatedScripts.length > 0 && (
           <div id="generated-results" className="space-y-6 pt-6 animate-fadeIn">
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-ink/10 rounded-lg p-4 shadow-sm">
-              <div className="flex-1 space-y-1">
-                <label className="eyebrow text-slate-500 flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-rec" />
-                  <span>Dokument Titel (Vises øverst på eksporteret PDF & Docs)</span>
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 bg-surface border border-line rounded-[var(--radius-card)] p-5 shadow-[0_1px_2px_rgb(22_24_29/0.04)]">
+              <div className="flex-1 min-w-0">
+                <label htmlFor="documentTitle" className="field-label">
+                  Dokumenttitel
                 </label>
                 <input
+                  id="documentTitle"
                   type="text"
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="f.eks. JP Køl og Klima - Script 2"
-                  className="w-full bg-white border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rec/20 focus:border-rec rounded-lg px-3.5 py-2 text-lg font-semibold text-slate-900 transition-all shadow-2xs"
+                  className="control font-semibold"
                 />
+                <p className="field-hint mt-1.5">Vises øverst på eksporteret PDF og Docs.</p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 self-start md:self-end">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-md text-base font-bold flex items-center gap-2 transition-all cursor-pointer"
-                  title="Download alle scripts som Google Docs (.docx) - 1 script pr. side"
+                  className={buttonStyles.ghost}
+                  title="Download alle scripts som Google Docs (.docx), 1 script pr. side"
                 >
-                  <FileText className="w-4 h-4 text-white" />
-                  <span>Download Docs (.docx)</span>
+                  <FileText className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  Docs
                 </button>
 
                 <button
                   onClick={() => downloadScriptsAsPdf(generatedScripts, documentTitle)}
-                  className="px-4 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 text-ink rounded-md text-base font-bold flex items-center gap-2 transition-all cursor-pointer"
-                  title="Download alle scripts som PDF (.pdf) - 1 script pr. side"
+                  className={buttonStyles.ghost}
+                  title="Download alle scripts som PDF, 1 script pr. side"
                 >
-                  <FileDown className="w-4 h-4 text-ink" />
-                  <span>Download PDF (.pdf)</span>
-                </button>
-
-                <button
-                  onClick={handleCopyAllScripts}
-                  className="px-3.5 py-2.5 bg-rec hover:bg-[#c81e22] text-white rounded-md text-base font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                  title="Kopiér alle scripts med perfekt Google Docs formatering (Arial 11pt)"
-                >
-                  {copiedAll ? (
-                    <>
-                      <Check className="w-4 h-4 text-white" />
-                      <span>Kopieret alle!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 text-white" />
-                      <span>Kopiér alle</span>
-                    </>
-                  )}
+                  <FileDown className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  PDF
                 </button>
 
                 <button
@@ -429,10 +415,28 @@ export default function App() {
                     const el = document.querySelector('form');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className="px-3 py-2.5 bg-white hover:bg-slate-100 border border-slate-300 rounded-md text-base font-semibold text-ink flex items-center gap-1.5 cursor-pointer"
+                  className={buttonStyles.ghost}
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-rec" />
-                  <span>Nye parametre</span>
+                  <RefreshCw className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  Nye parametre
+                </button>
+
+                <button
+                  onClick={handleCopyAllScripts}
+                  className={buttonStyles.secondary}
+                  title="Kopiér alle scripts med Google Docs-formatering"
+                >
+                  {copiedAll ? (
+                    <>
+                      <Check className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                      Kopieret
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
+                      Kopiér alle
+                    </>
+                  )}
                 </button>
               </div>
             </div>
