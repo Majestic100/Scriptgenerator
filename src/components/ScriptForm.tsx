@@ -9,7 +9,9 @@ import {
   Upload,
   FileCheck,
   Copy,
-  Sparkles
+  Sparkles,
+  Wand2,
+  Undo2
 } from 'lucide-react';
 import { ScriptRequest, ScriptType, AnalysisDocument } from '../types';
 import { AwarenessFunnelFigure } from './AwarenessFunnelFigure';
@@ -264,11 +266,136 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [scriptFocus, setScriptFocus] = useState<'product' | 'lead'>(initialData?.scriptFocus || SAMPLE_EXAMPLE_DATA.scriptFocus);
   const [language, setLanguage] = useState<'da' | 'en'>(initialData?.language || SAMPLE_EXAMPLE_DATA.language);
 
+  // Automatisk udfyldning ud fra den uploadede analyse
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisNotice, setAnalysisNotice] = useState<{
+    summary: string;
+    filled: string[];
+    missing: string[];
+    usedWebsite: boolean;
+  } | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const undoRef = useRef<(() => void) | null>(null);
+
+  /** Skriver de fundne felter ind i formularen og lægger en fortryd-handling til rette. */
+  const applyBriefFields = (fields: Record<string, any>) => {
+    const snapshot = {
+      companyName,
+      productName,
+      productDescription,
+      targetAudience,
+      demographics,
+      offerOrCta,
+      competitors,
+      toneOfVoice,
+      scriptConfigs
+    };
+
+    undoRef.current = () => {
+      setCompanyName(snapshot.companyName);
+      setProductName(snapshot.productName);
+      setProductDescription(snapshot.productDescription);
+      setTargetAudience(snapshot.targetAudience);
+      setDemographics(snapshot.demographics);
+      setOfferOrCta(snapshot.offerOrCta);
+      setCompetitors(snapshot.competitors);
+      setToneOfVoice(snapshot.toneOfVoice);
+      setScriptConfigs(snapshot.scriptConfigs);
+      setAnalysisNotice(null);
+      undoRef.current = null;
+    };
+
+    const filled: string[] = [];
+    const set = (label: string, value: string, setter: (v: string) => void) => {
+      if (value) {
+        setter(value);
+        filled.push(label);
+      }
+    };
+
+    set('Virksomhedens navn', fields.companyName, (v) => {
+      setCompanyName(v);
+      setDocumentTitle(`${v} - Script 2`);
+    });
+    set('Produktets navn', fields.productName, setProductName);
+    set('Produkt og unikke fordele', fields.productDescription, setProductDescription);
+    set('Den ideelle kunde', fields.targetAudience, setTargetAudience);
+    set('Geografi og demografi', fields.demographics, setDemographics);
+    set('Call to action', fields.offerOrCta, setOfferOrCta);
+    set('Talesprog', fields.toneOfVoice, setToneOfVoice);
+
+    if (Array.isArray(fields.competitors) && fields.competitors.length > 0) {
+      setCompetitors(fields.competitors.slice(0, 3));
+      filled.push('Konkurrenter');
+    }
+
+    // Ryd tidligere overstyringer pr. script, så de nye værdier slår igennem på alle scripts
+    const overridden = ['productDescription', 'targetAudience', 'demographics', 'offerOrCta'] as const;
+    setScriptConfigs((configs) =>
+      configs.map((cfg) => {
+        const next: any = { ...cfg };
+        overridden.forEach((key) => {
+          if (fields[key]) delete next[key];
+        });
+        return next;
+      })
+    );
+
+    return filled;
+  };
+
+  /** Sender dokumentet til serveren og udfylder formularen med det der står i det. */
+  const analyseDocument = async (doc: AnalysisDocument) => {
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setAnalysisNotice(null);
+
+    try {
+      const res = await fetch('/api/analyze-brief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysisDocument: doc,
+          companyWebsite: companyWebsite.trim(),
+          scriptFocus
+        })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setAnalysisError(data.error || 'Kunne ikke læse analysen.');
+        return;
+      }
+
+      // Gem den udtrukne tekst på dokumentet, så kunden kan gemmes uden at læse filen igen
+      if (data.extractedText) {
+        setAnalysisDoc((current) =>
+          current ? { ...current, extractedText: data.extractedText } : current
+        );
+      }
+
+      const filled = applyBriefFields(data.fields || {});
+      setAnalysisNotice({
+        summary: data.summary || '',
+        filled,
+        missing: data.missingFields || [],
+        usedWebsite: !!data.usedWebsite
+      });
+    } catch (err) {
+      console.error('Fejl ved analyse af dokument:', err);
+      setAnalysisError('Kunne ikke få fat i serveren. Prøv igen.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsReadingDoc(true);
+    setAnalysisError(null);
+    setAnalysisNotice(null);
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -279,14 +406,16 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       }
 
       const base64Data = result.includes(',') ? result.split(',')[1] : result;
-
-      setAnalysisDoc({
+      const doc: AnalysisDocument = {
         name: file.name,
         mimeType: file.type || 'application/octet-stream',
         base64: base64Data,
         size: file.size
-      });
+      };
+
+      setAnalysisDoc(doc);
       setIsReadingDoc(false);
+      analyseDocument(doc);
     };
 
     reader.onerror = (error) => {
@@ -535,7 +664,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         <div className="border-t border-line pt-6">
           <Field
             label="Målgruppe- eller virksomhedsanalyse"
-            hint="PDF, Word eller tekst. Bliver det direkte fundament for alle scripts."
+            hint="PDF, Word eller tekst. Felterne herunder udfyldes automatisk med det, der står i dokumentet."
           >
             {!analysisDoc ? (
               <button
@@ -556,27 +685,105 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 </span>
               </button>
             ) : (
-              <div className="flex items-center justify-between gap-3 bg-sunken border border-line-strong rounded-[var(--radius-control)] px-4 py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <FileCheck className="w-5 h-5 text-ink shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className="font-semibold text-[15.5px] text-ink truncate">{analysisDoc.name}</p>
-                    <p className="field-hint">
-                      {analysisDoc.size ? `${(analysisDoc.size / 1024).toFixed(0)} KB` : 'Dokument tilknyttet'} · bruges som grundlag
-                    </p>
+              <div className="border border-line-strong rounded-[var(--radius-control)] overflow-hidden">
+                <div className="flex items-center justify-between gap-3 bg-sunken px-4 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileCheck className="w-5 h-5 text-ink shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[15.5px] text-ink truncate">{analysisDoc.name}</p>
+                      <p className="field-hint">
+                        {analysisDoc.size ? `${(analysisDoc.size / 1024).toFixed(0)} KB` : 'Dokument tilknyttet'} · bruges som grundlag
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => analyseDocument(analysisDoc)}
+                      disabled={isAnalyzing}
+                      className="chip-btn"
+                      title="Læs dokumentet igen og udfyld felterne forfra"
+                    >
+                      <Wand2
+                        className={`w-3.5 h-3.5 text-muted ${isAnalyzing ? 'animate-pulse' : ''}`}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                      {isAnalyzing ? 'Læser...' : 'Udfyld felter'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAnalysisDoc(null);
+                        setAnalysisNotice(null);
+                        setAnalysisError(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="p-1.5 text-muted hover:text-rec rounded-[6px] transition-colors cursor-pointer"
+                      aria-label="Fjern analysedokument"
+                    >
+                      <X className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAnalysisDoc(null);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                  }}
-                  className="p-1.5 text-muted hover:text-rec rounded-[6px] transition-colors shrink-0 cursor-pointer"
-                  aria-label="Fjern analysedokument"
-                >
-                  <X className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                </button>
+
+                {/* Status på den automatiske udfyldning */}
+                {(isAnalyzing || analysisError || analysisNotice) && (
+                  <div className="border-t border-line px-4 py-3 bg-surface" aria-live="polite">
+                    {isAnalyzing && (
+                      <p className="flex items-center gap-2.5 text-[15px] text-ink">
+                        <span className="rec-dot rec-blink" aria-hidden="true" />
+                        Læser analysen og udfylder felterne...
+                      </p>
+                    )}
+
+                    {!isAnalyzing && analysisError && (
+                      <p className="text-[15px] text-ink">
+                        <span className="font-semibold">Kunne ikke udfylde felterne. </span>
+                        {analysisError}
+                      </p>
+                    )}
+
+                    {!isAnalyzing && analysisNotice && (
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-[15px] text-ink">
+                            <span className="font-semibold">
+                              {analysisNotice.filled.length > 0
+                                ? `${analysisNotice.filled.length} ${
+                                    analysisNotice.filled.length === 1 ? 'felt' : 'felter'
+                                  } udfyldt fra analysen.`
+                                : 'Analysen indeholdt ikke noget der kunne udfylde felterne.'}
+                            </span>{' '}
+                            {analysisNotice.summary}
+                          </p>
+                          {analysisNotice.filled.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => undoRef.current?.()}
+                              className="chip-btn shrink-0"
+                            >
+                              <Undo2 className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                              Fortryd
+                            </button>
+                          )}
+                        </div>
+
+                        {analysisNotice.filled.length > 0 && (
+                          <p className="field-hint">Udfyldt: {analysisNotice.filled.join(', ')}.</p>
+                        )}
+                        {analysisNotice.missing.length > 0 && (
+                          <p className="field-hint">
+                            Stod ikke i analysen, så udfyld selv: {analysisNotice.missing.join(', ')}.
+                          </p>
+                        )}
+                        {analysisNotice.usedWebsite && (
+                          <p className="field-hint">Hjemmesiden er læst med som supplement.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </Field>
@@ -896,9 +1103,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         description="Måden replikkerne skal tales på. Gennemsyrer alle hooks, body og CTA."
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label="Talesprog" hint="Vælg fra listen eller skriv din egen." htmlFor="tone">
+          <Field label="Talesprog" hint="Vælg fra listen eller skriv din egen." htmlFor="toneOfVoice">
             <input
-              id="tone"
+              id="toneOfVoice"
               list="tone-presets"
               value={toneOfVoice}
               onChange={(e) => setToneOfVoice(e.target.value)}
