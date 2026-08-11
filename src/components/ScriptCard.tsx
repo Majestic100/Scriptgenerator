@@ -430,30 +430,31 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   };
 
   return (
-    <div className="bg-white border border-ink/10 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all">
+    <div className="bg-surface border border-line rounded-[var(--radius-control)] overflow-hidden shadow-sm hover:shadow-md transition-all">
       
       {/* Top Action Bar */}
-      <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-lg font-semibold tracking-[0.1em] uppercase text-ink">
-            <span className="text-rec">●</span> Script {String(scriptIndex + 1).padStart(2, '0')}
+      <div className="px-5 py-4 bg-sunken border-b border-line flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 min-w-0">
+          <span className="rec-dot self-center shrink-0" aria-hidden="true" />
+          <span className="font-display text-[19px] text-ink">
+            Script {String(scriptIndex + 1).padStart(2, '0')}
           </span>
-          <span className="font-mono text-base bg-slate-200 text-slate-700 font-medium px-2 py-0.5 rounded">
-            {script.scriptType || 'UGC'}
-          </span>
+          <span className="text-[14.5px] text-muted">{script.scriptType || 'UGC'}</span>
           {script.awarenessStage && (
-            <span className="font-mono text-base bg-amber-100 text-amber-900 font-medium px-2 py-0.5 rounded flex items-center gap-1">
-              {script.awarenessStage}
-            </span>
+            <>
+              <span className="text-line-strong" aria-hidden="true">·</span>
+              <span className="text-[14.5px] text-muted">{script.awarenessStage}</span>
+            </>
           )}
           {script.trafficType && (
-            <span className={`text-sm font-semibold px-2 py-0.5 rounded flex items-center gap-1 border ${
-              script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting')
-                ? 'bg-red-50 text-rec border-red-200'
-                : 'bg-sky-50 text-sky-800 border-sky-200'
-            }`}>
-              {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting') ? 'Retargeting' : 'Kold trafik'}
-            </span>
+            <>
+              <span className="text-line-strong" aria-hidden="true">·</span>
+              <span className="text-[14.5px] text-muted">
+                {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting')
+                  ? 'Retargeting'
+                  : 'Kold trafik'}
+              </span>
+            </>
           )}
         </div>
 
@@ -462,10 +463,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           {onSaveToProject && (
             <button
               onClick={() => onSaveToProject(script)}
-              className="px-3 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-md text-base font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
               title="Gem dette script til et projekt"
             >
-              <FolderPlus className="w-3.5 h-3.5 text-rec" />
+              <FolderPlus className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
               <span>Gem til Projekt</span>
             </button>
           )}
@@ -474,10 +475,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           <button
             onClick={handleGenerateAllVisuals}
             disabled={isGeneratingVisuals || isRegeneratingScript}
-            className="px-3 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-md text-base font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
             title="Generér en komplet shot list: konkrete optage-idéer til alle hooks og scener"
           >
-            <Clapperboard className={`w-3.5 h-3.5 ${isGeneratingVisuals ? 'animate-pulse text-rec' : 'text-slate-500'}`} />
+            <Clapperboard className={`w-3.5 h-3.5 ${isGeneratingVisuals ? 'animate-pulse text-rec' : 'text-muted'}`} />
             <span>{isGeneratingVisuals ? 'Genererer visuals...' : 'Generér visuals'}</span>
           </button>
 
@@ -485,37 +486,37 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           <button
             onClick={handleRegenerateFullScript}
             disabled={isRegeneratingScript || regeneratingHookIndex !== null || isRegeneratingBody || isRegeneratingCta}
-            className="px-3 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-md text-base font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
             title="Lav et helt nyt forslag til netop dette script (nye hooks, ny body og ny CTA)"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingScript ? 'animate-spin text-rec' : 'text-slate-500'}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingScript ? 'animate-spin text-rec' : 'text-muted'}`} />
             <span>{isRegeneratingScript ? 'Laver nyt forslag...' : 'Nyt forslag'}</span>
           </button>
 
           {/* Single Script Download Docs Button */}
           <button
             onClick={() => downloadScriptsAsDocx([script], script.documentTitle)}
-            className="px-2.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-md text-base font-bold flex items-center gap-1 transition-all cursor-pointer"
+            className="px-2.5 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
             title="Download dette enkelt script som Google Docs (.docx)"
           >
-            <FileText className="w-3.5 h-3.5 text-slate-500" />
+            <FileText className="w-3.5 h-3.5 text-muted" />
             <span>Docs</span>
           </button>
 
           {/* Single Script Download PDF Button */}
           <button
             onClick={() => downloadScriptsAsPdf([script], script.documentTitle)}
-            className="px-2.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 rounded-md text-base font-bold flex items-center gap-1 transition-all cursor-pointer"
+            className="px-2.5 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
             title="Download dette enkelt script som PDF (.pdf)"
           >
-            <FileDown className="w-3.5 h-3.5 text-slate-500" />
+            <FileDown className="w-3.5 h-3.5 text-muted" />
             <span>PDF</span>
           </button>
 
           {/* Copy Script Button */}
           <button
             onClick={handleCopyText}
-            className="px-3.5 py-1.5 bg-[#E52328] hover:bg-[#c81e22] text-white rounded-md text-base font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            className="px-3.5 py-2 bg-ink hover:bg-black text-white rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
             title="Kopiér dette script"
           >
             {copiedText ? (
@@ -535,14 +536,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
 
       {/* EDIT MODE BANNER */}
       {isEditing && (
-        <div className="px-5 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-base text-amber-900 font-medium animate-fadeIn">
+        <div className="px-5 py-2.5 bg-rec-soft border-b border-rec/30 flex items-center justify-between text-base text-ink font-medium animate-fadeIn">
           <div className="flex items-center gap-2">
-            <Pencil className="w-4 h-4 text-amber-700 shrink-0" />
+            <Pencil className="w-4 h-4 text-rec shrink-0" />
             <span><strong>Redigeringstilstand aktiv:</strong> Du kan nu rette ord eller sætninger i alle felter herunder. Ændringerne opdateres automatisk.</span>
           </div>
           <button
             onClick={() => setIsEditing(false)}
-            className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-sm font-bold cursor-pointer transition-colors shrink-0"
+            className="px-2.5 py-1 bg-rec hover:bg-rec-hover text-white rounded text-sm font-bold cursor-pointer transition-colors shrink-0"
           >
             Færdig med redigering
           </button>
@@ -563,14 +564,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             const isHookVisEditing = isEditing || editingFieldKey === `hook-vis-${i}`;
 
             return (
-              <div key={hook.id || i} className="space-y-1.5 p-2 rounded-lg bg-slate-50/40 border border-slate-100">
+              <div key={hook.id || i} className="space-y-1.5 p-2 rounded-[var(--radius-control)] bg-sunken border border-line">
                 <div className="group flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                   
                   {isHookAudioEditing ? (
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between text-base font-bold text-black">
                         <span>Hook {globalHookNumber} {hook.angleType ? `(${hook.angleType})` : ''}:</span>
-                        <span className="text-sm text-amber-700 font-semibold">Gemmes automatisk</span>
+                        <span className="text-sm text-rec font-semibold">Gemmes automatisk</span>
                       </div>
                       <textarea
                         rows={2}
@@ -584,28 +585,28 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                             setEditingFieldKey(null);
                           }
                         }}
-                        className="w-full bg-amber-50/80 border border-amber-300 rounded-md p-2 text-base text-black font-['Arial',sans-serif] outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                        className="w-full bg-rec-soft border border-rec/40 rounded-[var(--radius-control)] p-2 text-base text-black font-['Arial',sans-serif] outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                         placeholder="Skriv hook-teksten her..."
                       />
                     </div>
                   ) : (
                     <p
                       onDoubleClick={() => setEditingFieldKey(`hook-${i}`)}
-                      className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-amber-50/60 hover:outline-dashed hover:outline-1 hover:outline-amber-300 p-1.5 -m-1.5 rounded-md transition-all group/hook"
+                      className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-rec-soft hover:outline-dashed hover:outline-1 hover:outline-rec/40 p-1.5 -m-1.5 rounded-[var(--radius-control)] transition-all group/hook"
                       title="Dobbeltklik direkte i teksten for at redigere"
                     >
                       <strong className="font-bold text-black">Hook {globalHookNumber} -</strong> {hook.audioDialogue}
                       {hook.psychology && (
-                        <span className="block mt-1.5 text-base text-violet-800 bg-violet-50 border border-violet-200 rounded px-2.5 py-1.5">
+                        <span className="block mt-1.5 text-base text-ink bg-sunken border border-line rounded px-2.5 py-1.5">
                           <strong className="font-semibold">Psykologi:</strong> {hook.psychology}
                         </span>
                       )}
                       {hook.angleType && (
-                        <span className="text-[9pt] text-slate-500 font-normal ml-2 italic">
+                        <span className="text-[9pt] text-muted font-normal ml-2 italic">
                           ({hook.angleType})
                         </span>
                       )}
-                      <span className="inline-flex items-center ml-2 text-slate-400 opacity-0 group-hover/hook:opacity-100 transition-opacity text-sm font-normal">
+                      <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/hook:opacity-100 transition-opacity text-sm font-normal">
                         <Pencil className="w-3 h-3 inline mr-0.5" /> Dobbeltklik for at rette
                       </span>
                     </p>
@@ -615,14 +616,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     {/* Gem Hook til AI Træning Button */}
                     <button
                       onClick={() => handleSaveElementToAiTraining('hook', hook.audioDialogue, `hook-${i}`, `Hook ${globalHookNumber} (${hook.angleType || 'Vinkel'})`)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-bold rounded transition-all cursor-pointer ${
-                        savedTrainingKeys[`hook-${i}`]
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300'
-                      }`}
+                      className="chip-btn"
+                      data-active={savedTrainingKeys[`hook-${i}`] ? 'true' : 'false'}
                       title="Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede hooks fremover"
                     >
-                      <Star className={`w-3.5 h-3.5 ${savedTrainingKeys[`hook-${i}`] ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}`} />
+                      <Star
+                        className={`w-3.5 h-3.5 ${savedTrainingKeys[`hook-${i}`] ? 'fill-rec text-rec' : 'text-muted'}`}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
                       <span>{savedTrainingKeys[`hook-${i}`] ? 'Stjernemarkeret' : 'Stjernemarkér'}</span>
                     </button>
 
@@ -630,48 +632,57 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     <button
                       onClick={() => handleFetchOrToggleVisualIdea(i)}
                       disabled={isVisualLoading || isRegeneratingScript}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                      className="chip-btn"
+                      data-active={isVisualOpen ? 'true' : 'false'}
                       title={`Se visuel idé til hvad der kan filmes til Hook ${globalHookNumber}`}
                     >
-                      <Video className={`w-3 h-3 ${isVisualLoading ? 'animate-spin text-amber-600' : 'text-amber-600'}`} />
+                      <Video
+                        className={`w-3.5 h-3.5 ${isVisualLoading ? 'animate-spin' : ''}`}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
                       <span>{isVisualLoading ? 'Henter idé...' : isVisualOpen ? 'Skjul optage-idé' : 'Hvad kan filmes?'}</span>
                     </button>
 
                     {/* Analogi / Talesprog Button for Hook */}
                     <button
                       onClick={() => handleOpenAnalogyModal('hook', i)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded transition-all cursor-pointer"
+                      className="chip-btn"
                       title="Søg eller vælg analogier til at flette ind i Hook"
                     >
-                      <Quote className="w-3 h-3 text-amber-700" />
-                      <span>+ Analogi</span>
+                      <Quote className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                      <span>Analogi</span>
                     </button>
 
                     {/* Regenerate Hook Button */}
                     <button
                       onClick={() => handleRegenerateHook(i)}
                       disabled={isThisHookLoading || isRegeneratingScript}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold text-slate-600 hover:text-[#E52328] bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                      className="chip-btn"
                       title={`Gen-generér Hook ${globalHookNumber}`}
                     >
-                      <RefreshCw className={`w-3 h-3 ${isThisHookLoading ? 'animate-spin text-[#E52328]' : 'text-slate-500'}`} />
-                      <span>{isThisHookLoading ? 'Regenererer...' : 'Regenerér hook'}</span>
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 text-muted ${isThisHookLoading ? 'animate-spin' : ''}`}
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                      <span>{isThisHookLoading ? 'Regenererer...' : 'Nyt forslag'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* VISUAL FILMING IDEA BOX */}
                 {(isVisualOpen || isHookVisEditing) && (
-                  <div className="p-2.5 bg-amber-50/80 border border-amber-200 rounded-md text-base space-y-1">
+                  <div className="p-2.5 bg-rec-soft border border-rec/30 rounded-[var(--radius-control)] text-base space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-amber-900 flex items-center gap-1 text-sm">
+                      <span className="font-bold text-ink flex items-center gap-1 text-sm">
                         🎥 Optage-idé til Hook {globalHookNumber}:
                       </span>
                       {!isEditing && (
                         <button
                           onClick={() => handleRegenerateVisualIdea(i)}
                           disabled={isVisualLoading}
-                          className="text-sm text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer disabled:opacity-50"
+                          className="text-sm text-rec hover:text-ink underline font-semibold cursor-pointer disabled:opacity-50"
                         >
                           Nyt optage-forslag
                         </button>
@@ -691,12 +702,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                           }
                         }}
                         placeholder="Skriv instruks eller hvad der kan filmes..."
-                        className="w-full bg-white border border-amber-300 rounded p-1.5 text-sm text-slate-800 outline-none focus:border-[#E52328]"
+                        className="w-full bg-surface border border-rec/40 rounded p-1.5 text-sm text-ink outline-none focus:border-rec"
                       />
                     ) : (
                       <p
                         onDoubleClick={() => setEditingFieldKey(`hook-vis-${i}`)}
-                        className="text-slate-800 text-sm leading-snug italic m-0 cursor-pointer hover:bg-amber-100/60 p-1 -m-1 rounded transition-colors"
+                        className="text-ink text-sm leading-snug italic m-0 cursor-pointer hover:bg-rec-soft p-1 -m-1 rounded transition-colors"
                         title="Dobbeltklik for at redigere optage-idéen"
                       >
                         {hook.visualDirection || 'Kameraet panorerer tæt over produktet, mens personen ser overrasket på skærmen.'}
@@ -710,13 +721,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
         </div>
 
         {/* BODY */}
-        <div className="space-y-1 p-2 rounded-lg bg-slate-50/40 border border-slate-100 mb-3">
+        <div className="space-y-1 p-2 rounded-[var(--radius-control)] bg-sunken border border-line mb-3">
           <div className="group flex items-start justify-between gap-3">
             {isEditing || editingFieldKey === 'body' ? (
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between text-base font-bold text-black">
                   <span>Body (Manuskriftets hoveddel):</span>
-                  <span className="text-sm text-amber-700 font-semibold">Gemmes automatisk</span>
+                  <span className="text-sm text-rec font-semibold">Gemmes automatisk</span>
                 </div>
                 <textarea
                   rows={4}
@@ -730,18 +741,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                       setEditingFieldKey(null);
                     }
                   }}
-                  className="w-full bg-amber-50/80 border border-amber-300 rounded-md p-2 text-base text-black font-['Arial',sans-serif] outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                  className="w-full bg-rec-soft border border-rec/40 rounded-[var(--radius-control)] p-2 text-base text-black font-['Arial',sans-serif] outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                   placeholder="Skriv manuskriptets brødtekst / body her..."
                 />
               </div>
             ) : (
               <p
                 onDoubleClick={() => setEditingFieldKey('body')}
-                className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-amber-50/60 hover:outline-dashed hover:outline-1 hover:outline-amber-300 p-1.5 -m-1.5 rounded-md transition-all group/body"
+                className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-rec-soft hover:outline-dashed hover:outline-1 hover:outline-rec/40 p-1.5 -m-1.5 rounded-[var(--radius-control)] transition-all group/body"
                 title="Dobbeltklik direkte i teksten for at redigere"
               >
                 <strong className="font-bold text-black">Body -</strong> {bodyText}
-                <span className="inline-flex items-center ml-2 text-slate-400 opacity-0 group-hover/body:opacity-100 transition-opacity text-sm font-normal">
+                <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/body:opacity-100 transition-opacity text-sm font-normal">
                   <Pencil className="w-3 h-3 inline mr-0.5" /> Dobbeltklik for at rette
                 </span>
               </p>
@@ -750,47 +761,52 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0 mt-1">
               <button
                 onClick={() => handleSaveElementToAiTraining('body', bodyText, 'body', `Body - ${script.title || 'Manuskript'}`)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-bold rounded transition-all cursor-pointer ${
-                  savedTrainingKeys['body']
-                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                    : 'bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300'
-                }`}
+                className="chip-btn"
+                data-active={savedTrainingKeys['body'] ? 'true' : 'false'}
                 title="Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede bodies fremover"
               >
-                <Star className={`w-3.5 h-3.5 ${savedTrainingKeys['body'] ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}`} />
-                <span>{savedTrainingKeys['body'] ? 'Stjernemarkeret' : 'Stjernemarkér body'}</span>
+                <Star
+                  className={`w-3.5 h-3.5 ${savedTrainingKeys['body'] ? 'fill-rec text-rec' : 'text-muted'}`}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>{savedTrainingKeys['body'] ? 'Stjernemarkeret' : 'Stjernemarkér'}</span>
               </button>
 
               <button
                 onClick={() => handleOpenAnalogyModal('body')}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded transition-all cursor-pointer"
+                className="chip-btn"
                 title="Tilføj en stærk analogi til Body"
               >
-                <Quote className="w-3 h-3 text-amber-700" />
-                <span>+ Analogi</span>
+                <Quote className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                <span>Analogi</span>
               </button>
 
               <button
                 onClick={handleRegenerateBody}
                 disabled={isRegeneratingBody || isRegeneratingScript}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold text-slate-600 hover:text-[#E52328] bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded transition-all cursor-pointer disabled:opacity-50"
+                className="chip-btn"
                 title="Gen-generér Body"
               >
-                <RefreshCw className={`w-3 h-3 ${isRegeneratingBody ? 'animate-spin text-[#E52328]' : 'text-slate-500'}`} />
-                <span>{isRegeneratingBody ? 'Regenererer...' : 'Regenerér body'}</span>
+                <RefreshCw
+                  className={`w-3.5 h-3.5 text-muted ${isRegeneratingBody ? 'animate-spin' : ''}`}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>{isRegeneratingBody ? 'Regenererer...' : 'Nyt forslag'}</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* CTA */}
-        <div className="space-y-1 p-2 rounded-lg bg-slate-50/40 border border-slate-100">
+        <div className="space-y-1 p-2 rounded-[var(--radius-control)] bg-sunken border border-line">
           <div className="group flex items-start justify-between gap-3">
             {isEditing || editingFieldKey === 'cta' ? (
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between text-base font-bold text-black">
                   <span>CTA (Call to Action / Tilbud):</span>
-                  <span className="text-sm text-amber-700 font-semibold">Gemmes automatisk</span>
+                  <span className="text-sm text-rec font-semibold">Gemmes automatisk</span>
                 </div>
                 <textarea
                   rows={2}
@@ -804,18 +820,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                       setEditingFieldKey(null);
                     }
                   }}
-                  className="w-full bg-amber-50/80 border border-amber-300 rounded-md p-2 text-base text-black font-[#Arial',sans-serif] outline-none focus:border-[#E52328] focus:ring-1 focus:ring-[#E52328]"
+                  className="w-full bg-rec-soft border border-rec/40 rounded-[var(--radius-control)] p-2 text-base text-black font-[#Arial',sans-serif] outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                   placeholder="Skriv Call to Action her..."
                 />
               </div>
             ) : (
               <p
                 onDoubleClick={() => setEditingFieldKey('cta')}
-                className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-amber-50/60 hover:outline-dashed hover:outline-1 hover:outline-amber-300 p-1.5 -m-1.5 rounded-md transition-all group/cta"
+                className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-rec-soft hover:outline-dashed hover:outline-1 hover:outline-rec/40 p-1.5 -m-1.5 rounded-[var(--radius-control)] transition-all group/cta"
                 title="Dobbeltklik direkte i teksten for at redigere"
               >
                 <strong className="font-bold text-black">CTA -</strong> {script.callToAction}
-                <span className="inline-flex items-center ml-2 text-slate-400 opacity-0 group-hover/cta:opacity-100 transition-opacity text-sm font-normal">
+                <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/cta:opacity-100 transition-opacity text-sm font-normal">
                   <Pencil className="w-3 h-3 inline mr-0.5" /> Dobbeltklik for at rette
                 </span>
               </p>
@@ -824,25 +840,30 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0 mt-1">
               <button
                 onClick={() => handleSaveElementToAiTraining('cta', script.callToAction, 'cta', `CTA - ${script.title || 'Tilbud'}`)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-bold rounded transition-all cursor-pointer ${
-                  savedTrainingKeys['cta']
-                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                    : 'bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300'
-                }`}
+                className="chip-btn"
+                data-active={savedTrainingKeys['cta'] ? 'true' : 'false'}
                 title="Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede CTA'er fremover"
               >
-                <Star className={`w-3.5 h-3.5 ${savedTrainingKeys['cta'] ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}`} />
-                <span>{savedTrainingKeys['cta'] ? 'Stjernemarkeret' : 'Stjernemarkér CTA'}</span>
+                <Star
+                  className={`w-3.5 h-3.5 ${savedTrainingKeys['cta'] ? 'fill-rec text-rec' : 'text-muted'}`}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>{savedTrainingKeys['cta'] ? 'Stjernemarkeret' : 'Stjernemarkér'}</span>
               </button>
 
               <button
                 onClick={handleRegenerateCta}
                 disabled={isRegeneratingCta || isRegeneratingScript}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-sm font-bold text-slate-600 hover:text-[#E52328] bg-slate-100 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                className="chip-btn"
                 title="Gen-generér CTA"
               >
-                <RefreshCw className={`w-3 h-3 ${isRegeneratingCta ? 'animate-spin text-[#E52328]' : 'text-slate-500'}`} />
-                <span>{isRegeneratingCta ? 'Regenererer...' : 'Regenerér CTA'}</span>
+                <RefreshCw
+                  className={`w-3.5 h-3.5 text-muted ${isRegeneratingCta ? 'animate-spin' : ''}`}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+                <span>{isRegeneratingCta ? 'Regenererer...' : 'Nyt forslag'}</span>
               </button>
             </div>
           </div>

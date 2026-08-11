@@ -1,134 +1,219 @@
 import React from 'react';
-import { Brain, Zap, Folder, Users, LogOut } from 'lucide-react';
+import { Brain, Zap, Folder, Users, LogOut, ArrowUpRight, FileText } from 'lucide-react';
+import {
+  MotionNavigationMenu,
+  MotionNavigationMenuContent,
+  MotionNavigationMenuItem,
+  MotionNavigationMenuLink,
+  MotionNavigationMenuList,
+  MotionNavigationMenuTrigger
+} from './ui/motion-navigation-menu';
+import { Customer, Project } from '../types';
 
 interface NavbarProps {
   aiTrainingCount?: number;
   onOpenAiTraining?: () => void;
-  projectsCount?: number;
+  projects?: Project[];
   onOpenProjects?: () => void;
-  customersCount?: number;
+  customers?: Customer[];
   onOpenCustomers?: () => void;
+  onSelectCustomer?: (customer: Customer) => void;
   onLoadExample: (presetKey: string) => void;
   onLogout?: () => void;
   currentUser?: { name: string; companyLabel: string } | null;
 }
 
-export const JalalVisualsLogo: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = () => {
-  return null;
-};
+export const JalalVisualsLogo: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = () => null;
+
+const EXAMPLES = [
+  { key: 'ecommerce', title: 'Naturhud', desc: 'Skincare i UGC-stil med før og efter.' },
+  { key: 'saas', title: 'TaskFlow', desc: 'SaaS holdt op mod konkurrenterne.' },
+  { key: 'fitness', title: 'FitPulse', desc: 'Træning bygget på problem, agitate, solution.' }
+];
+
+const countBadge =
+  'font-mono text-[12.5px] font-medium text-muted bg-sunken border border-line rounded px-1.5 min-w-[22px] text-center tabular-nums';
+
+/** Panelrække med titel og undertekst. */
+const PanelRow: React.FC<{ title: string; desc: string; onClick: () => void }> = ({
+  title,
+  desc,
+  onClick
+}) => (
+  <MotionNavigationMenuLink onClick={onClick}>
+    <span className="flex items-center justify-between gap-3 text-[15px] font-semibold text-ink">
+      {title}
+      <ArrowUpRight
+        className="w-3.5 h-3.5 text-muted opacity-0 group-hover/link:opacity-100 transition-opacity"
+        strokeWidth={2}
+        aria-hidden="true"
+      />
+    </span>
+    <span className="text-[13.5px] text-muted leading-snug line-clamp-1">{desc}</span>
+  </MotionNavigationMenuLink>
+);
+
+/** Sidste række i et panel: åbner det fulde kartotek. */
+const PanelFooter: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => (
+  <div className="mt-1 pt-1 border-t border-line">
+    <MotionNavigationMenuLink onClick={onClick} className="flex-row items-center gap-2">
+      <span className="text-[14.5px] font-semibold text-ink">{label}</span>
+    </MotionNavigationMenuLink>
+  </div>
+);
 
 export const Navbar: React.FC<NavbarProps> = ({
   aiTrainingCount = 0,
   onOpenAiTraining,
-  projectsCount = 0,
+  projects = [],
   onOpenProjects,
-  customersCount = 0,
+  customers = [],
   onOpenCustomers,
+  onSelectCustomer,
   onLoadExample,
-  onLogout,
-  currentUser,
+  onLogout
 }) => {
-  return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 text-ink px-4 sm:px-6 lg:px-10 py-3 shadow-xs">
-      <div className="max-w-[1536px] mx-auto flex items-center justify-between gap-3">
+  const recentCustomers = customers.slice(0, 5);
+  const recentProjects = projects.slice(0, 5);
 
-        {/* Brand */}
+  return (
+    <header className="sticky top-0 z-40 bg-surface border-b border-line px-4 sm:px-6 lg:px-10">
+      <div className="max-w-[1400px] mx-auto h-[68px] flex items-center justify-between gap-4">
+
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="rec-dot shrink-0" aria-hidden="true" />
-          <span className="font-display text-lg sm:text-xl uppercase tracking-wide text-ink whitespace-nowrap">
-            Script Generator
-          </span>
+          <span className="font-display text-[19px] text-ink whitespace-nowrap">Script Generator</span>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Preset dropdown */}
-          <div className="relative group hidden md:block">
-            <button className="flex items-center gap-1.5 px-3.5 py-2 text-base font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-md transition-colors cursor-pointer">
-              <Zap className="w-4 h-4 text-slate-400" />
-              <span>Eksempler</span>
-            </button>
-            <div className="absolute right-0 mt-1.5 w-60 bg-white border border-slate-200 rounded-lg shadow-lg py-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50">
-              <div className="px-3 py-1 eyebrow text-slate-400">
-                Skabeloner
-              </div>
-              <button
-                onClick={() => onLoadExample('ecommerce')}
-                className="w-full text-left px-3 py-2 text-base text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-              >
-                <span className="font-medium">Naturhud (Skincare)</span>
-                <span className="font-mono text-sm bg-red-50 text-rec px-1.5 py-0.5 rounded font-semibold">UGC</span>
-              </button>
-              <button
-                onClick={() => onLoadExample('saas')}
-                className="w-full text-left px-3 py-2 text-base text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-              >
-                <span className="font-medium">TaskFlow (SaaS)</span>
-                <span className="font-mono text-sm bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-semibold">VS</span>
-              </button>
-              <button
-                onClick={() => onLoadExample('fitness')}
-                className="w-full text-left px-3 py-2 text-base text-slate-700 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
-              >
-                <span className="font-medium">FitPulse (Træning)</span>
-                <span className="font-mono text-sm bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-semibold">PAS</span>
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <MotionNavigationMenu className="hidden md:flex">
+            <MotionNavigationMenuList>
 
-          {/* Customers Button */}
-          {onOpenCustomers && (
-            <button
-              onClick={onOpenCustomers}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-md text-base font-bold bg-white hover:bg-slate-50 text-ink border border-slate-300 transition-all cursor-pointer"
-              title="Åbn kundekartotek"
-            >
-              <Users className="w-4 h-4 text-slate-500" />
-              <span className="hidden sm:inline">Kunder</span>
-              <span className="bg-slate-100 text-slate-700 font-mono text-sm font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                {customersCount}
-              </span>
-            </button>
-          )}
+              {/* Kunder */}
+              <MotionNavigationMenuItem value="kunder">
+                <MotionNavigationMenuTrigger>
+                  <Users className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  Kunder
+                  <span className={countBadge}>{customers.length}</span>
+                </MotionNavigationMenuTrigger>
+                <MotionNavigationMenuContent className="w-[340px]">
+                  {recentCustomers.length === 0 ? (
+                    <p className="px-2.5 py-3 text-[14.5px] text-muted">
+                      Ingen kunder gemt endnu. Udfyld trin 1 og tryk "Gem som kunde".
+                    </p>
+                  ) : (
+                    recentCustomers.map((c) => (
+                      <PanelRow
+                        key={c.id}
+                        title={c.name || c.companyName}
+                        desc={c.productName || c.companyName || 'Gemt kundeinfo'}
+                        onClick={() => onSelectCustomer?.(c)}
+                      />
+                    ))
+                  )}
+                  <PanelFooter label="Åbn kundekartotek" onClick={() => onOpenCustomers?.()} />
+                </MotionNavigationMenuContent>
+              </MotionNavigationMenuItem>
 
-          {/* Projects Button */}
-          {onOpenProjects && (
-            <button
-              onClick={onOpenProjects}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-md text-base font-bold bg-white hover:bg-slate-50 text-ink border border-slate-300 transition-all cursor-pointer"
-              title="Åbn projekter"
-            >
-              <Folder className="w-4 h-4 text-slate-500" />
-              <span className="hidden sm:inline">Projekter</span>
-              <span className="bg-slate-100 text-slate-700 font-mono text-sm font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                {projectsCount}
-              </span>
-            </button>
-          )}
+              {/* Projekter */}
+              <MotionNavigationMenuItem value="projekter">
+                <MotionNavigationMenuTrigger>
+                  <Folder className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  Projekter
+                  <span className={countBadge}>{projects.length}</span>
+                </MotionNavigationMenuTrigger>
+                <MotionNavigationMenuContent className="w-[340px]">
+                  {recentProjects.length === 0 ? (
+                    <p className="px-2.5 py-3 text-[14.5px] text-muted">
+                      Ingen projekter endnu. Gem et script for at oprette det første.
+                    </p>
+                  ) : (
+                    recentProjects.map((p) => (
+                      <PanelRow
+                        key={p.id}
+                        title={p.name}
+                        desc={`${p.scripts?.length || 0} ${
+                          (p.scripts?.length || 0) === 1 ? 'script' : 'scripts'
+                        }${p.description ? ` · ${p.description}` : ''}`}
+                        onClick={() => onOpenProjects?.()}
+                      />
+                    ))
+                  )}
+                  <PanelFooter label="Åbn alle projekter" onClick={() => onOpenProjects?.()} />
+                </MotionNavigationMenuContent>
+              </MotionNavigationMenuItem>
 
-          {/* AI Training Button */}
+              {/* Eksempler */}
+              <MotionNavigationMenuItem value="eksempler">
+                <MotionNavigationMenuTrigger>
+                  <Zap className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  Eksempler
+                </MotionNavigationMenuTrigger>
+                <MotionNavigationMenuContent className="w-[320px]">
+                  {EXAMPLES.map((preset) => (
+                    <PanelRow
+                      key={preset.key}
+                      title={preset.title}
+                      desc={preset.desc}
+                      onClick={() => onLoadExample(preset.key)}
+                    />
+                  ))}
+                  <p className="px-2.5 pt-2 pb-1 text-[13.5px] text-muted border-t border-line mt-1">
+                    <FileText className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" strokeWidth={1.75} aria-hidden="true" />
+                    Udfylder hele formularen med testdata.
+                  </p>
+                </MotionNavigationMenuContent>
+              </MotionNavigationMenuItem>
+
+            </MotionNavigationMenuList>
+          </MotionNavigationMenu>
+
           {onOpenAiTraining && (
             <button
+              type="button"
               onClick={onOpenAiTraining}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-base font-bold bg-rec hover:bg-[#c81e22] text-white transition-all relative cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius-control)] text-[15px] font-semibold text-ink bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
               title="AI Træning: dine stjernemarkerede guldstandarder"
             >
-              <Brain className="w-4 h-4 text-white" />
+              <Brain className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
               <span className="hidden sm:inline">AI Træning</span>
-              <span className="bg-white/25 text-white font-mono text-sm font-semibold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                {aiTrainingCount}
-              </span>
+              <span className={countBadge}>{aiTrainingCount}</span>
             </button>
           )}
 
-          {/* Log ud */}
+          {/* Kompakt fallback under md, hvor menuen er skjult */}
+          <div className="flex md:hidden items-center gap-2">
+            {onOpenCustomers && (
+              <button
+                type="button"
+                onClick={onOpenCustomers}
+                className="p-2.5 rounded-[var(--radius-control)] bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
+                aria-label="Kunder"
+              >
+                <Users className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            )}
+            {onOpenProjects && (
+              <button
+                type="button"
+                onClick={onOpenProjects}
+                className="p-2.5 rounded-[var(--radius-control)] bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
+                aria-label="Projekter"
+              >
+                <Folder className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
           {onLogout && (
             <button
+              type="button"
               onClick={onLogout}
-              className="p-2.5 rounded-md bg-white hover:bg-slate-50 border border-slate-300 transition-all cursor-pointer"
+              className="p-2.5 rounded-[var(--radius-control)] bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
               title="Log ud"
+              aria-label="Log ud"
             >
-              <LogOut className="w-4 h-4 text-slate-500" />
+              <LogOut className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
         </div>

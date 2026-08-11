@@ -1,48 +1,162 @@
 @import "tailwindcss";
 
 /*
-  Designsystem: "Produktionspapirer"
-  Blæk på papir, kold beton-grå studio-baggrund og én REC-rød accent.
-  Display: Archivo Black · Brødtekst: Instrument Sans · Timecode/labels: IBM Plex Mono
+  Designsystem: Script Generator
+  Rolig, professionel arbejdsflade. Neutral grå-skala som fundament,
+  én rød accent der KUN bruges til: primær handling, valgt tilstand og brandprikken.
+  Type: Geist (tekst + overskrifter) · Geist Mono (labels, tal, timecode)
 */
 
 @theme {
-  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --color-ink: #191c24;
-  --color-studio: #eceef0;
-  --color-rec: #e52328;
+  /* Tekst */
+  --color-ink: #16181d;        /* primær tekst */
+  --color-muted: #5c626e;      /* sekundær tekst, altid AA mod hvid og canvas */
+
+  /* Flader */
+  --color-canvas: #f4f5f7;     /* sidebaggrund */
+  --color-surface: #ffffff;    /* kort */
+  --color-sunken: #f7f8f9;     /* let nedsænket felt */
+  --color-line: #e2e5ea;       /* hårfin streg */
+  --color-line-strong: #cbd0d8;
+
+  /* Accent (rationeret) */
+  --color-rec: #d81f24;
+  --color-rec-hover: #b8181d;
+  --color-rec-soft: #fdf2f2;
+
+  /* Ét hjørneradius-system */
+  --radius-card: 12px;
+  --radius-control: 8px;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--color-studio);
+  background-color: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Overskrifter i plakat-grotesk */
+/* Overskrifter: samme familie, strammere tracking, høj vægt */
 .font-display {
-  font-family: "Archivo Black", var(--font-sans);
-  font-weight: 400;
-  letter-spacing: 0.005em;
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: -0.022em;
 }
 
-/* Call sheet-labels: mono, uppercase, spatieret */
+/* Sektionslabel: mono, versaler, spatieret. Bruges sparsomt. */
 .eyebrow {
   font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-/* REC-indikator */
+/* Feltlabel over input */
+.field-label {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: 6px;
+}
+
+.field-hint {
+  font-size: 13.5px;
+  color: var(--color-muted);
+  line-height: 1.45;
+}
+
+/* Ensartede formularkontroller */
+.control {
+  width: 100%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-control);
+  padding: 9px 12px;
+  font-size: 16px;
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.control::placeholder {
+  color: #868d99;
+}
+
+.control:hover:not(:disabled) {
+  border-color: #adb4bf;
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 3px rgb(22 24 29 / 0.09);
+}
+
+.control:disabled {
+  background-color: var(--color-sunken);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+select.control {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235c626e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 34px;
+}
+
+/* Lille handlingsknap ved hooks, body og CTA */
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-ink);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip-btn:hover:not(:disabled) {
+  background-color: var(--color-sunken);
+  border-color: #adb4bf;
+}
+
+.chip-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chip-btn[data-active="true"] {
+  color: var(--color-rec);
+  background-color: var(--color-rec-soft);
+  border-color: var(--color-rec);
+}
+
+/* Brandprik */
 .rec-dot {
   display: inline-block;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 9999px;
   background-color: var(--color-rec);
 }
@@ -60,7 +174,7 @@ body {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -69,10 +183,27 @@ body {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.35s ease-out both;
+  animation: fadeIn 0.28s ease-out both;
+}
+
+/* Slider: neutral, så rød forbliver forbeholdt handling og valg */
+input[type="range"] {
+  accent-color: var(--color-ink);
+}
+
+/* Segmenteret kontrol: sporet skal være mørkere end den valgte pille */
+.segment-track {
+  display: grid;
+  gap: 4px;
+  background-color: #e6e9ee;
+  border-radius: var(--radius-control);
+  padding: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   .rec-blink,
   .animate-fadeIn {
     animation: none;

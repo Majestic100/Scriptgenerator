@@ -42,7 +42,7 @@ const STAGES_DATA: StageInfo[] = [
     short: 'Problem Aware',
     title: '2. Problem Aware (Problembevidst)',
     badge: 'Middel Kold',
-    badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+    badgeColor: 'bg-rec-soft text-rec border-rec/30',
     level: 2,
     desc: 'Mærker problemet og frustreres i hverdagen.',
     focus: 'Spejl smerten stærkt, skab empati og introducer løsningskategorien.',
@@ -84,7 +84,7 @@ const STAGES_DATA: StageInfo[] = [
     short: 'Most Aware',
     title: '5. Most Aware (Købsklar)',
     badge: 'Hot',
-    badgeColor: 'bg-red-100 text-red-800 border-red-200',
+    badgeColor: 'bg-rec-soft text-red-800 border-rec/30',
     level: 5,
     desc: 'Klar til køb, mangler kun et uimodståeligt tilbud.',
     focus: 'Fokusér stærkt på tilbuddet, rabat/bonus, garanti, urgency og CTA.',
@@ -102,30 +102,30 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
   const activeStage = STAGES_DATA.find((s) => s.id === currentStage) || STAGES_DATA[1];
 
   return (
-    <div className="bg-slate-50/90 text-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs relative overflow-hidden my-3">
+    <div className="bg-sunken text-ink p-4 sm:p-5 rounded-2xl border border-line shadow-none relative overflow-hidden my-3">
       {/* Background ambient lighting */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-red-100/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-rec-soft/40 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-100/40 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-line">
         <div className="flex items-center gap-2">
-          <BrainIcon className="w-4 h-4 text-[#E52328]" />
-          <span className="text-base font-black uppercase tracking-wider text-slate-800">
+          <BrainIcon className="w-4 h-4 text-rec" />
+          <span className="text-base font-black uppercase tracking-wider text-ink">
             AWARENESS FUNNEL (DE 5 BEVIDSTHEDSSTADIER)
           </span>
         </div>
 
         {/* Current Active Stage Indicator Badge */}
-        <div className="flex items-center gap-2 bg-white border border-red-200 shadow-2xs rounded-full px-3 py-1">
+        <div className="flex items-center gap-2 bg-surface border border-rec/30 shadow-none rounded-full px-3 py-1">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#E52328]"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rec"></span>
           </span>
-          <span className="text-base font-bold text-slate-800">
-            Aktiv: <span className="text-[#E52328] font-extrabold">{activeStage.short}</span>
+          <span className="text-base font-bold text-ink">
+            Aktiv: <span className="text-rec font-extrabold">{activeStage.short}</span>
           </span>
-          <span className="text-sm text-slate-400 font-medium">({activeStage.level}/5)</span>
+          <span className="text-sm text-muted font-medium">({activeStage.level}/5)</span>
         </div>
       </div>
 
@@ -253,33 +253,33 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
         </div>
 
         {/* Info Card on Right (5 columns) */}
-        <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-surface border border-line rounded-[var(--radius-card)] p-5 space-y-4 shadow-none flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-[#E52328] text-white text-base font-black flex items-center justify-center shadow-2xs">
+                <span className="w-6 h-6 rounded-full bg-rec text-white text-base font-black flex items-center justify-center shadow-none">
                   {activeStage.level}
                 </span>
-                <span className="font-extrabold text-slate-900 text-lg sm:text-lg">
+                <span className="font-extrabold text-ink text-lg sm:text-lg">
                   {activeStage.title}
                 </span>
               </div>
-              <span className={`text-base font-extrabold px-2.5 py-1 rounded-md border ${activeStage.badgeColor}`}>
+              <span className={`text-base font-extrabold px-2.5 py-1 rounded-[var(--radius-control)] border ${activeStage.badgeColor}`}>
                 {activeStage.badge}
               </span>
             </div>
 
-            <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-medium">
+            <p className="text-muted text-base sm:text-lg leading-relaxed font-medium">
               {activeStage.desc}
             </p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-base space-y-1.5">
-            <span className="text-[#E52328] font-black block text-sm uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-sunken border border-line p-3.5 rounded-[var(--radius-card)] text-base space-y-1.5">
+            <span className="text-rec font-black block text-sm uppercase tracking-wider flex items-center gap-1.5">
               <TargetIcon className="w-3.5 h-3.5" />
               Strategisk Fokus:
             </span>
-            <p className="text-slate-800 italic leading-snug font-medium">
+            <p className="text-ink italic leading-snug font-medium">
               "{activeStage.focus}"
             </p>
           </div>
