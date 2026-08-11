@@ -6,7 +6,6 @@ import { createServer as createViteServer } from "vite";
 import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
 import * as pdfParseModule from "pdf-parse";
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 import mammoth from "mammoth";
 import { SCRIPT_TYPE_GUIDELINES } from "./src/data/scriptTypeGuidelines";
 
@@ -134,6 +133,30 @@ app.use("/api", (req, res, next) => {
 });
 
 // Helper function to extract text from uploaded analysis document (PDF, Word, Text)
+// pdf-parse v2 eksporterer klassen PDFParse. Ældre versioner eksporterede en
+// kaldbar funktion, så begge former understøttes her.
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const mod = pdfParseModule as any;
+
+  if (typeof mod.PDFParse === "function") {
+    const parser = new mod.PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const result = await parser.getText();
+      return (result?.text || "").trim();
+    } finally {
+      await parser.destroy?.();
+    }
+  }
+
+  const legacyParse = typeof mod.default === "function" ? mod.default : typeof mod === "function" ? mod : null;
+  if (legacyParse) {
+    const parsed = await legacyParse(buffer);
+    return (parsed?.text || "").trim();
+  }
+
+  throw new Error("pdf-parse eksporterer hverken PDFParse eller en kaldbar funktion.");
+}
+
 async function extractTextFromAnalysisDoc(doc: { name?: string; mimeType?: string; base64?: string; extractedText?: string }): Promise<string> {
   if (!doc) return "";
   if (doc.extractedText && doc.extractedText.trim().length > 0) {
@@ -141,33 +164,43 @@ async function extractTextFromAnalysisDoc(doc: { name?: string; mimeType?: strin
   }
   if (!doc.base64) return "";
 
-  try {
-    const buffer = Buffer.from(doc.base64, 'base64');
-    const mime = (doc.mimeType || '').toLowerCase();
-    const fileName = (doc.name || '').toLowerCase();
+  const buffer = Buffer.from(doc.base64, 'base64');
+  const mime = (doc.mimeType || '').toLowerCase();
+  const fileName = (doc.name || '').toLowerCase();
+  const isPdf = mime.includes('pdf') || fileName.endsWith('.pdf');
+  const isWord = mime.includes('word') || mime.includes('officedocument') || fileName.endsWith('.docx') || fileName.endsWith('.doc');
 
-    // Plain text or markdown
-    if (mime.includes('text') || fileName.endsWith('.txt') || fileName.endsWith('.md') || fileName.endsWith('.json')) {
-      return buffer.toString('utf-8');
+  // Ren tekst og markdown
+  if (mime.includes('text') || fileName.endsWith('.txt') || fileName.endsWith('.md') || fileName.endsWith('.json')) {
+    return buffer.toString('utf-8').trim();
+  }
+
+  // PDF og Word håndteres for sig, så en parser-fejl ikke ender i utf-8-fallbacket
+  // og bliver til ulæselig binær tekst.
+  if (isPdf) {
+    try {
+      const text = await extractPdfText(buffer);
+      if (text.length > 0) return text;
+      // Tom tekst betyder som regel en scannet PDF uden tekstlag
+      return "";
+    } catch (err: any) {
+      console.error("[extractTextFromAnalysisDoc] PDF kunne ikke læses:", err?.message || err);
+      return "";
     }
+  }
 
-    // PDF
-    if (mime.includes('pdf') || fileName.endsWith('.pdf')) {
-      const parsed = await pdfParse(buffer);
-      if (parsed && parsed.text && parsed.text.trim().length > 0) {
-        return parsed.text.trim();
-      }
-    }
-
-    // DOCX / Word
-    if (mime.includes('word') || mime.includes('officedocument') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+  if (isWord) {
+    try {
       const result = await mammoth.extractRawText({ buffer });
-      if (result && result.value && result.value.trim().length > 0) {
-        return result.value.trim();
-      }
+      return (result?.value || "").trim();
+    } catch (err: any) {
+      console.error("[extractTextFromAnalysisDoc] Word-dokument kunne ikke læses:", err?.message || err);
+      return "";
     }
+  }
 
-    // Fallback utf-8
+  // Ukendt filtype: prøv som tekst
+  try {
     return buffer.toString('utf-8').replace(/[^\x20-\x7E\x0A\x0D\xC0-\xFF]/g, ' ').trim();
   } catch (err: any) {
     console.warn("[extractTextFromAnalysisDoc] Fejl ved udtræk af tekst fra dokument:", err?.message || err);
@@ -1965,11 +1998,19 @@ app.post("/api/analyze-brief", async (req, res) => {
   try {
     const { analysisDocument, companyWebsite, scriptFocus } = req.body || {};
 
-    const documentText = analysisDocument ? await extractTextFromAnalysisDoc(analysisDocument) : "";
+    if (!analysisDocument) {
+      return res.status(400).json({ success: false, error: "Der er ikke tilknyttet et dokument." });
+    }
+
+    const documentText = await extractTextFromAnalysisDoc(analysisDocument);
     if (!documentText || documentText.trim().length < 40) {
+      const name = (analysisDocument.name || "").toLowerCase();
+      const isPdf = (analysisDocument.mimeType || "").toLowerCase().includes("pdf") || name.endsWith(".pdf");
       return res.status(400).json({
         success: false,
-        error: "Kunne ikke læse nok tekst ud af dokumentet. Er det en scannet PDF uden tekstlag?"
+        error: isPdf
+          ? "Der er ingen tekst i PDF'en. Den er sandsynligvis scannet eller består af billeder. Prøv at gemme den som Word eller kopiér teksten ind i en tekstfil."
+          : "Kunne ikke læse nok tekst ud af dokumentet. Prøv at gemme det som PDF, Word eller ren tekst."
       });
     }
 
