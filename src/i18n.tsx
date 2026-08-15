@@ -321,6 +321,28 @@ const da = {
     regenCtaTitle: 'Gen-generér CTA'
   },
 
+  strategyP: {
+    title: 'Strategi',
+    subtitle: 'Klassificeret før scriptet blev skrevet (playbook)',
+    awareness: 'Awareness-stadie',
+    stageMismatch: (stage: string) => `Analysen peger snarere på "${stage}" — dit valg er fastholdt.`,
+    sophistication: 'Market sophistication',
+    level: (n: number) => `Niveau ${n} af 5`,
+    massDesire: 'Dominerende drivkraft (mass desire)',
+    beliefShift: 'Overbevisning der flyttes',
+    beliefFrom: 'Fra:',
+    beliefTo: 'Til:',
+    angle: 'Primær vinkel',
+    process: 'Schwartz-proces',
+    mechanism: 'Mekanisme',
+    proof: 'Bevistype',
+    cta: 'CTA',
+    evidence: 'Belæg for klassificeringen',
+    confidence: 'Sikkerhed',
+    confidenceLabels: { high: 'Høj', medium: 'Middel', low: 'Lav' } as Record<string, string>,
+    excluded: 'Udeladte påstande (intet belæg i materialet)'
+  },
+
   advisor: {
     title: 'Forslag til stil og vinkler',
     ariaLabel: 'Forslag til stil og vinkler',
@@ -861,6 +883,28 @@ const en: typeof da = {
     ctaPlaceholder: 'Write the Call to Action here...',
     ctaFallbackTitle: 'Offer',
     regenCtaTitle: 'Regenerate CTA'
+  },
+
+  strategyP: {
+    title: 'Strategy',
+    subtitle: 'Classified before the script was written (playbook)',
+    awareness: 'Awareness stage',
+    stageMismatch: (stage: string) => `The analysis rather suggests "${stage}" — your choice was kept.`,
+    sophistication: 'Market sophistication',
+    level: (n: number) => `Level ${n} of 5`,
+    massDesire: 'Dominant mass desire',
+    beliefShift: 'Belief being moved',
+    beliefFrom: 'From:',
+    beliefTo: 'To:',
+    angle: 'Primary angle',
+    process: 'Schwartz process',
+    mechanism: 'Mechanism',
+    proof: 'Proof type',
+    cta: 'CTA',
+    evidence: 'Evidence for the classification',
+    confidence: 'Confidence',
+    confidenceLabels: { high: 'High', medium: 'Medium', low: 'Low' } as Record<string, string>,
+    excluded: 'Excluded claims (no supporting facts supplied)'
   },
 
   advisor: {
