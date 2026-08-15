@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { 
+import {
   Star,
   Clapperboard,
-  Copy, 
-  Check, 
-  FolderPlus, 
-  Pencil, 
-  RefreshCw, 
-  Video, 
+  Copy,
+  Check,
+  FolderPlus,
+  Pencil,
+  RefreshCw,
+  Video,
   Quote,
   Brain,
   FileText,
-  FileDown
+  FileDown,
+  Compass,
+  ChevronDown,
+  AlertTriangle
 } from 'lucide-react';
 import { GeneratedScript } from '../types';
 import { formatScriptToHtml, formatScriptToPlainText, copyFormattedToClipboard, weaveBodyWithAnalogy } from '../utils/formatUtils';
@@ -39,6 +42,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   const { t } = useLang();
   const [copiedText, setCopiedText] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isStrategyOpen, setIsStrategyOpen] = useState(true);
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
 
   // Regeneration states
@@ -549,6 +553,113 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           >
             {t.card.doneEditing}
           </button>
+        </div>
+      )}
+
+      {/* STRATEGIBLOK: klassificeret før scriptet blev skrevet */}
+      {script.strategy && (
+        <div className="border-b border-line">
+          <button
+            type="button"
+            onClick={() => setIsStrategyOpen(!isStrategyOpen)}
+            aria-expanded={isStrategyOpen}
+            className="w-full flex items-center justify-between gap-3 px-5 py-3 bg-surface hover:bg-sunken transition-colors cursor-pointer text-left"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              <Compass className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />
+              <span className="font-semibold text-[15.5px] text-ink">{t.strategyP.title}</span>
+              <span className="text-[14px] text-muted truncate hidden sm:inline">
+                {script.strategy.massDesire} · {script.strategy.primaryAngle}
+              </span>
+              {script.strategy.stageMatch === 'evidence-suggests-other' && (
+                <AlertTriangle className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />
+              )}
+            </span>
+            <ChevronDown
+              className={`w-4 h-4 text-muted shrink-0 transition-transform ${isStrategyOpen ? 'rotate-180' : ''}`}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </button>
+
+          {isStrategyOpen && (
+            <div className="px-5 pb-5 pt-1 bg-surface space-y-4 animate-fadeIn">
+              <p className="field-hint">{t.strategyP.subtitle}</p>
+
+              {script.strategy.stageMatch === 'evidence-suggests-other' && script.strategy.suggestedStage && (
+                <p className="flex items-start gap-2 text-[15px] text-ink bg-rec-soft border border-rec/30 rounded-[var(--radius-control)] px-3.5 py-2.5">
+                  <AlertTriangle className="w-4 h-4 text-rec shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
+                  {t.strategyP.stageMismatch(script.strategy.suggestedStage)}
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-[15px]">
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.awareness}</span>
+                  <p className="text-ink">{script.strategy.awarenessState}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.sophistication}</span>
+                  <p className="text-ink">{t.strategyP.level(script.strategy.marketSophistication)}{script.strategy.sophisticationNote ? ` · ${script.strategy.sophisticationNote}` : ''}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.massDesire}</span>
+                  <p className="text-ink">{script.strategy.massDesire}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.angle}</span>
+                  <p className="text-ink">{script.strategy.primaryAngle}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.process}</span>
+                  <p className="text-ink">{script.strategy.schwartzProcess}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.mechanism}</span>
+                  <p className="text-ink">{script.strategy.mechanism}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.proof}</span>
+                  <p className="text-ink">{script.strategy.proofType}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.cta}</span>
+                  <p className="text-ink">{script.strategy.cta}</p>
+                </div>
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.confidence}</span>
+                  <p className="text-ink">{t.strategyP.confidenceLabels[script.strategy.confidence] || script.strategy.confidence}</p>
+                </div>
+              </div>
+
+              <div className="border-t border-line pt-3">
+                <span className="field-label mb-0.5">{t.strategyP.beliefShift}</span>
+                <p className="text-[15px] text-ink">
+                  <span className="font-semibold">{t.strategyP.beliefFrom}</span> "{script.strategy.currentBelief}"
+                  <span className="mx-2 text-line-strong" aria-hidden="true">→</span>
+                  <span className="font-semibold">{t.strategyP.beliefTo}</span> "{script.strategy.requiredBeliefShift}"
+                </p>
+              </div>
+
+              {script.strategy.classificationEvidence && (
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.evidence}</span>
+                  <p className="text-[15px] text-muted leading-relaxed">{script.strategy.classificationEvidence}</p>
+                </div>
+              )}
+
+              {Array.isArray(script.strategy.unsupportedClaimsExcluded) && script.strategy.unsupportedClaimsExcluded.length > 0 && (
+                <div>
+                  <span className="field-label mb-0.5">{t.strategyP.excluded}</span>
+                  <ul className="text-[15px] text-muted list-disc pl-5 space-y-0.5">
+                    {script.strategy.unsupportedClaimsExcluded.map((claim, ci) => (
+                      <li key={ci}>{claim}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

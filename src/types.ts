@@ -94,6 +94,27 @@ export interface ScriptScene {
   soundEffects?: string;
 }
 
+/** Strategiblok fra klassificerings-skridtet (playbooken): AI'en klassificerer strategien, før scriptet skrives. */
+export interface ScriptStrategy {
+  scriptNumber: number;
+  awarenessState: string;
+  stageMatch: 'confirmed' | 'evidence-suggests-other';
+  suggestedStage: string;
+  classificationEvidence: string;
+  confidence: 'high' | 'medium' | 'low';
+  marketSophistication: number;
+  sophisticationNote: string;
+  massDesire: string;
+  currentBelief: string;
+  requiredBeliefShift: string;
+  primaryAngle: string;
+  schwartzProcess: string;
+  mechanism: string;
+  proofType: string;
+  cta: string;
+  unsupportedClaimsExcluded: string[];
+}
+
 export interface GeneratedScript {
   id: string;
   documentTitle?: string;
@@ -107,6 +128,7 @@ export interface GeneratedScript {
   competitorDifferentiation: string; // How this script positions against competitors
   awarenessStage?: string;
   trafficType?: string;
+  strategy?: ScriptStrategy;
   hooks: HookItem[];
   scenes: ScriptScene[];
   callToAction: string;

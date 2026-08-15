@@ -357,6 +357,208 @@ async function generateContentJson(options: {
   return { text };
 }
 
+// --- Awareness-playbook (playbook/) ---
+// Kanonisk vidensgrundlag: klassificér strategien på engelsk FØR scriptet skrives på markedssproget.
+const PLAYBOOK_DIR = path.join(process.cwd(), "playbook");
+
+function readPlaybookFile(rel: string): string {
+  try {
+    return fs.readFileSync(path.join(PLAYBOOK_DIR, rel), "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+const AWARENESS_STAGE_FILES: Record<string, string> = {
+  "unaware": "stages/unaware.md",
+  "completely unaware": "stages/unaware.md",
+  "problem aware": "stages/problem-aware.md",
+  "solution aware": "stages/solution-aware.md",
+  "product aware": "stages/product-aware.md",
+  "most aware": "stages/most-aware.md",
+};
+
+/** Playbook-uddrag til genererings-prompten: kun de stadier, de aktuelle scripts rammer. */
+function buildPlaybookGenerationSection(options: {
+  stages: string[];
+  language: string;
+  scriptFocus: string;
+}): string {
+  const parts: string[] = [];
+
+  const uniqueFiles = Array.from(new Set(
+    options.stages
+      .map((s) => AWARENESS_STAGE_FILES[(s || "Problem Aware").trim().toLowerCase()])
+      .filter(Boolean)
+  ));
+  for (const file of uniqueFiles) {
+    const content = readPlaybookFile(file);
+    if (content) parts.push(content);
+  }
+
+  const focusFile = options.scriptFocus === "lead" ? "leadgen.md" : "ecommerce.md";
+  const focusContent = readPlaybookFile(focusFile);
+  if (focusContent) parts.push(focusContent);
+
+  if (options.language !== "en") {
+    const marketContent = readPlaybookFile(`markets/${options.language}.md`);
+    if (marketContent) parts.push(marketContent);
+  }
+
+  if (parts.length === 0) return "";
+  return `\n\n📘 AWARENESS-PLAYBOOK (BINDENDE VIDENSGRUNDLAG FOR DE VALGTE STADIER):\n"""\n${parts.join("\n\n---\n\n")}\n"""\n`;
+}
+
+/**
+ * Skridt 1 af 2: klassificér strategien for hvert script FØR der skrives copy.
+ * Kører på engelsk (kanonisk terminologi) jf. playbookens driftsspecifikation.
+ * Fejler kaldet, returneres null og genereringen fortsætter uden strategiblok.
+ */
+async function classifyScriptStrategies(input: {
+  companyName: string;
+  productName?: string;
+  productDescription?: string;
+  targetAudience?: string;
+  demographics?: string;
+  offerOrCta?: string;
+  competitors: string[];
+  scriptFocus: string;
+  language: string;
+  analysisDocText?: string;
+  websiteAnalysisText?: string;
+  toneOfVoice?: string;
+  scriptConfigs: any[];
+}): Promise<any[] | null> {
+  const core = readPlaybookFile("core.md");
+  if (!core) return null;
+
+  const configLines = input.scriptConfigs.map((cfg: any, i: number) => {
+    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic "${cfg.trafficType || "cold"}"${cfg.retargetingNotes ? ` (retargeting notes: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
+  }).join("\n");
+
+  const prompt = `You are classifying advertising strategy BEFORE any copy is written, following the playbook below. Do not write any script copy in this step.
+
+PLAYBOOK (classification apparatus):
+"""
+${core}
+"""
+
+BUSINESS FACTS (everything below is supplied fact; anything not listed is unknown — do not invent):
+- Business model: ${input.scriptFocus === "lead" ? "lead generation" : "e-commerce / direct product sales"}
+- Company: "${input.companyName}"
+${input.productName ? `- Product/offer: "${input.productName}"` : ""}
+${input.productDescription ? `- Product description / USP: "${input.productDescription}"` : ""}
+${input.targetAudience ? `- Ideal customer: "${input.targetAudience}"` : ""}
+${input.demographics ? `- Geography/demographics: "${input.demographics}"` : ""}
+${input.offerOrCta ? `- Offer / CTA: "${input.offerOrCta}"` : ""}
+- Competitors: ${input.competitors.length > 0 ? input.competitors.join(", ") : "none supplied"}
+${input.toneOfVoice ? `- Tone of voice: "${input.toneOfVoice}"` : ""}
+- Output market language: ${input.language === "en" ? "English" : "Danish"}
+${input.websiteAnalysisText ? `\nWEBSITE CONTENT (supplied fact):\n"""\n${input.websiteAnalysisText}\n"""` : ""}
+${input.analysisDocText ? `\nAUDIENCE/COMPANY ANALYSIS DOCUMENT (voice-of-customer source — quote its exact wording as evidence):\n"""\n${input.analysisDocText}\n"""` : ""}
+
+SCRIPTS TO CLASSIFY (one strategy object per script, in order):
+${configLines}
+
+RULES FOR THIS STEP:
+- The operator's chosen awareness stage is BINDING for the script: set awarenessState to exactly that stage. If the evidence points to a different stage, keep the operator's stage, set stageMatch to "evidence-suggests-other" and name the better-supported stage in suggestedStage with your reasoning in classificationEvidence. Otherwise set stageMatch to "confirmed" and suggestedStage to "".
+- Follow the mandatory reasoning sequence and the classification guardrails from the playbook.
+- classificationEvidence must cite concrete supplied material (analysis wording, website content, product facts) — never invented insight.
+- unsupportedClaimsExcluded: list claims the script must NOT make because no supplied fact supports them (e.g. discounts, review counts, guarantees, urgency not present in the facts). Empty array if none.
+- Use canonical English terminology throughout this step.`;
+
+  const strategySchema = {
+    type: Type.OBJECT,
+    properties: {
+      strategies: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            scriptNumber: { type: Type.INTEGER },
+            awarenessState: { type: Type.STRING },
+            stageMatch: { type: Type.STRING, enum: ["confirmed", "evidence-suggests-other"] },
+            suggestedStage: { type: Type.STRING },
+            classificationEvidence: { type: Type.STRING },
+            confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
+            marketSophistication: { type: Type.INTEGER },
+            sophisticationNote: { type: Type.STRING },
+            massDesire: { type: Type.STRING },
+            currentBelief: { type: Type.STRING },
+            requiredBeliefShift: { type: Type.STRING },
+            primaryAngle: { type: Type.STRING },
+            schwartzProcess: { type: Type.STRING },
+            mechanism: { type: Type.STRING },
+            proofType: { type: Type.STRING },
+            cta: { type: Type.STRING },
+            unsupportedClaimsExcluded: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: [
+            "scriptNumber", "awarenessState", "stageMatch", "suggestedStage", "classificationEvidence",
+            "confidence", "marketSophistication", "sophisticationNote", "massDesire", "currentBelief",
+            "requiredBeliefShift", "primaryAngle", "schwartzProcess", "mechanism", "proofType", "cta",
+            "unsupportedClaimsExcluded"
+          ]
+        }
+      }
+    },
+    required: ["strategies"]
+  };
+
+  try {
+    const response = await generateContentJson({
+      prompt,
+      system: "You are a direct-response advertising strategist working from Eugene Schwartz's Breakthrough Advertising framework. You classify strategy before any copy is written. You never fabricate customer insight, proof or urgency.",
+      schema: strategySchema,
+      maxTokens: 6000
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    if (Array.isArray(parsed.strategies) && parsed.strategies.length > 0) {
+      return parsed.strategies;
+    }
+    return null;
+  } catch (err) {
+    console.error("Strategiklassificering fejlede — fortsætter uden strategiblok:", err);
+    return null;
+  }
+}
+
+/** Strategiblokken som bindende instruks i genererings-prompten. */
+function buildStrategyInstruction(strategies: any[] | null): string {
+  if (!strategies || strategies.length === 0) return "";
+  const blocks = strategies.map((s: any, i: number) => {
+    const lines = [
+      `SCRIPT #${s.scriptNumber || i + 1} STRATEGY (BINDING — the script must execute exactly this):`,
+      `- Awareness state: ${s.awarenessState}${s.stageMatch === "evidence-suggests-other" && s.suggestedStage ? ` (note: evidence suggests "${s.suggestedStage}" — the operator's choice stands, but keep assumptions within it)` : ""}`,
+      `- Market sophistication: level ${s.marketSophistication}${s.sophisticationNote ? ` (${s.sophisticationNote})` : ""}`,
+      `- Dominant mass desire: ${s.massDesire}`,
+      `- Belief shift: from "${s.currentBelief}" to "${s.requiredBeliefShift}"`,
+      `- Primary angle: ${s.primaryAngle}`,
+      `- Schwartz process: ${s.schwartzProcess}`,
+      `- Mechanism: ${s.mechanism}`,
+      `- Proof type (only proof supported by supplied facts): ${s.proofType}`,
+      `- CTA (smallest natural next action): ${s.cta}`
+    ];
+    if (Array.isArray(s.unsupportedClaimsExcluded) && s.unsupportedClaimsExcluded.length > 0) {
+      lines.push(`- FORBIDDEN CLAIMS (no supplied fact supports these — the script must NOT state them): ${s.unsupportedClaimsExcluded.join("; ")}`);
+    }
+    return lines.join("\n");
+  });
+  return `\n\n🧭 STRATEGIBLOKKE FRA KLASSIFICERINGEN (SKRIDT 1 — BINDENDE FOR HVERT SCRIPT):
+Hvert script SKAL flytte præcis ÉN blokerende overbevisning (belief shift), bruge den angivne vinkel, mekanisme og bevistype, og holde sig inden for stadiets tilladte antagelser. Skriv replikkerne på markedssproget fra bunden i naturligt kundesprog — oversæt ALDRIG engelsk copy ordret.
+
+${blocks.join("\n\n")}\n`;
+}
+
+/** Kort strategikontekst til regenererings-kaldene, så nye forslag bliver i samme strategi. */
+function buildStrategyContextForRegeneration(script: any): string {
+  const s = script?.strategy;
+  if (!s) return "";
+  return `\nSTRATEGI FOR DETTE SCRIPT (BINDENDE — det nye forslag skal blive inden for samme strategi):
+- Awareness: ${s.awarenessState} | Mass desire: ${s.massDesire} | Belief shift: "${s.currentBelief}" → "${s.requiredBeliefShift}"
+- Vinkel: ${s.primaryAngle} | Mekanisme: ${s.mechanism} | Bevistype: ${s.proofType} | CTA: ${s.cta}${Array.isArray(s.unsupportedClaimsExcluded) && s.unsupportedClaimsExcluded.length > 0 ? `\n- FORBUDTE PÅSTANDE (må ikke bruges): ${s.unsupportedClaimsExcluded.join("; ")}` : ""}\n`;
+}
+
 // Helper function to scrape and analyze website content
 async function scrapeWebsiteContent(urlStr: string): Promise<string> {
   if (!urlStr || typeof urlStr !== "string") return "";
@@ -595,6 +797,36 @@ CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til DIREKTE 
       ? `\nPSYKOLOGI BAG HOOKS: For hver hook SKAL du udfylde feltet "psychology" med 1-2 korte danske sætninger, der forklarer den psykologiske mekanisme bag hooket (f.eks. loss aversion, curiosity gap, social proof) og hvorfor den stopper scrollen for netop denne målgruppe.\n`
       : "";
 
+    // Skridt 1 af 2: klassificér strategien pr. script FØR der skrives copy (playbookens kernekrav).
+    const effectiveConfigs = Array.isArray(scriptConfigs) && scriptConfigs.length > 0
+      ? scriptConfigs.slice(0, numScripts)
+      : Array.from({ length: numScripts }, () => ({
+          scriptType, bodyDuration, numHooks: numHooksPerScript, awarenessStage: "Problem Aware", trafficType: "cold"
+        }));
+
+    const strategies = await classifyScriptStrategies({
+      companyName,
+      productName,
+      productDescription,
+      targetAudience,
+      demographics,
+      offerOrCta,
+      competitors: filteredCompetitors,
+      scriptFocus,
+      language,
+      analysisDocText,
+      websiteAnalysisText,
+      toneOfVoice,
+      scriptConfigs: effectiveConfigs
+    });
+
+    const strategyInstruction = buildStrategyInstruction(strategies);
+    const playbookSection = buildPlaybookGenerationSection({
+      stages: effectiveConfigs.map((c: any) => c.awarenessStage || "Problem Aware"),
+      language,
+      scriptFocus
+    });
+
     const prompt = `
 Du er en verdensklasse Direct Response Meta Ads (Facebook & Instagram Video Ads) copywriter og video instruktør.
 Din opgave er at generere præcis ${numScripts} højkonverterende video-script-koncepter til en Meta annoncekampagne.
@@ -616,7 +848,7 @@ ${analysisDocText ? `\n\n🔍 VIRKSOMHEDS- OG MÅLGRUPPEANALYSE DOKUMENT ("${ana
 
 INDIVIDUELLE SCRIPT SPECIFIKATIONER (Skal overholdes præcist for hvert enkelt script):
 ${perScriptSpecs}
-
+${strategyInstruction}${playbookSection}
 REGLER FOR AWARENESS STADIE & TRAFIK-TYPE:
 - Hvis et script er angivet til et bestemt AWARENESS STADIE (f.eks. Unaware, Problem Aware, Solution Aware, Product Aware, Most Aware), SKAL hele vinklen, hooken og manuskriptet tilpasses dette stadium:
   * Unaware (Ubevidst): Åbn med nysgerrighed eller en uventet opdagelse/smerte. Målgruppen ved endnu ikke de har et behov.
@@ -788,6 +1020,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
         competitors: filteredCompetitors,
         scriptType: effectiveScriptType,
         bodyDuration: effectiveBodyDuration,
+        strategy: strategies?.[idx] || undefined,
         createdAt: new Date().toISOString(),
         hooks: (script.hooks || []).map((h: any, hIdx: number) => ({
           ...h,
@@ -835,6 +1068,7 @@ app.post("/api/regenerate-element", async (req, res) => {
     }
 
     const promptLanguage = language === "en" ? "English" : "Danish";
+    const strategyContext = buildStrategyContextForRegeneration(script);
 
     if (elementType === "hook") {
       const existingHook = script.hooks && script.hooks[hookIndex] ? script.hooks[hookIndex] : null;
@@ -846,7 +1080,7 @@ app.post("/api/regenerate-element", async (req, res) => {
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, frisk, højkonverterende video-hook til en Meta video-annonce på ${promptLanguage}.
-
+${strategyContext}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -923,7 +1157,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, stærk og overbevisende Call To Action (CTA) replik til en Meta video-annonce på ${promptLanguage}.
-
+${strategyContext}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -972,7 +1206,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér NYE, friske body-scener / manuskript for denne Meta video-annonce på ${promptLanguage}.
-
+${strategyContext}
 ${scriptTypeGuide}
 VIRKSOMHED & PRODUKT DETALJER:
 - Virksomhedsnavn: "${companyName || script.companyName || ''}"
@@ -1106,7 +1340,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér et HELT NYT komplet Meta Ads video-script (hooks, body scener og CTA) for ${companyName || script.companyName || 'Virksomheden'}.
-
+${strategyContext}
 ${scriptTypeGuide}
 VIRKSOMHED & PRODUKT DETALJER:
 - Virksomhedsnavn: "${companyName || script.companyName || ''}"
