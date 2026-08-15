@@ -90,6 +90,11 @@ const da = {
     reading: 'Læser...',
     refillTitle: 'Læs dokumentet igen og udfyld felterne forfra',
     removeDoc: 'Fjern analysedokument',
+    dropHere: 'Slip filen her',
+    dropOrClick: 'Træk filen herind, eller klik for at vælge. PDF, Word, tekst eller Markdown.',
+    dropToReplace: 'Slip for at bytte dokumentet ud',
+    unsupportedFile: (name: string) =>
+      `"${name}" kan vi ikke læse. Brug PDF, Word, tekst eller Markdown.`,
     analyzing: 'Læser analysen og udfylder felterne...',
     couldNotFill: 'Kunne ikke udfylde felterne.',
     fieldsFilled: (n: number) => `${n} ${n === 1 ? 'felt' : 'felter'} udfyldt fra analysen.`,
@@ -676,6 +681,11 @@ const en: typeof da = {
     reading: 'Reading...',
     refillTitle: 'Read the document again and fill in the fields from scratch',
     removeDoc: 'Remove analysis document',
+    dropHere: 'Drop the file here',
+    dropOrClick: 'Drag the file in, or click to pick one. PDF, Word, text or Markdown.',
+    dropToReplace: 'Drop to swap the document',
+    unsupportedFile: (name: string) =>
+      `We cannot read "${name}". Use PDF, Word, text or Markdown.`,
     analyzing: 'Reading the analysis and filling in the fields...',
     couldNotFill: 'Could not fill in the fields.',
     fieldsFilled: (n: number) => `${n} ${n === 1 ? 'field' : 'fields'} filled in from the analysis.`,
