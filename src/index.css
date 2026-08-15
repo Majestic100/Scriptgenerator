@@ -152,6 +152,20 @@ select.control {
   border-color: var(--color-rec);
 }
 
+/* Nøgletal i strategiblokken: label og værdi i én rolig pille */
+.strategy-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 11px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  background-color: var(--color-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 /* Brandprik */
 .rec-dot {
   display: inline-block;
