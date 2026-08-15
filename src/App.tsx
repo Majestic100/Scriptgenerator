@@ -10,7 +10,7 @@ import { CustomersModal } from './components/CustomersModal';
 import { LoginScreen } from './components/LoginScreen';
 import { buttonStyles } from './components/ui';
 import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer, AppUserInfo } from './types';
-import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown, Video } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from './utils/exportUtils';
 import { useLang } from './i18n';
@@ -40,6 +40,12 @@ export default function App() {
     setFormVersion((v) => v + 1);
   };
   const [copiedAll, setCopiedAll] = useState(false);
+  /**
+   * Scripterne genereres uden visuals, så teksten kan læses højt som den står.
+   * Påmindelsen om, at film-idéerne hentes pr. hook, vises først når man har
+   * eksporteret eller kopieret, altså når man har fundet det script, man vil bruge.
+   */
+  const [showVisualsHint, setShowVisualsHint] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
   const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
@@ -316,6 +322,7 @@ export default function App() {
     const plainTextContent = formatAllScriptsToPlainText(generatedScripts);
     await copyFormattedToClipboard(htmlContent, plainTextContent);
     setCopiedAll(true);
+    setShowVisualsHint(true);
     setTimeout(() => setCopiedAll(false), 2500);
   };
 
@@ -407,7 +414,10 @@ export default function App() {
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
-                  onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
+                  onClick={() => {
+                    downloadScriptsAsDocx(generatedScripts, documentTitle);
+                    setShowVisualsHint(true);
+                  }}
                   className={buttonStyles.ghost}
                   title={t.app.docsBtnTitle}
                 >
@@ -416,7 +426,10 @@ export default function App() {
                 </button>
 
                 <button
-                  onClick={() => downloadScriptsAsPdf(generatedScripts, documentTitle)}
+                  onClick={() => {
+                    downloadScriptsAsPdf(generatedScripts, documentTitle);
+                    setShowVisualsHint(true);
+                  }}
                   className={buttonStyles.ghost}
                   title={t.app.pdfBtnTitle}
                 >
@@ -456,6 +469,24 @@ export default function App() {
               </div>
 
               <p className="field-hint mt-2">{t.app.docTitleHint}</p>
+
+              {showVisualsHint && (
+                <div className="mt-4 flex items-start justify-between gap-3 rounded-[10px] border border-line bg-sunken px-4 py-3">
+                  <div className="flex items-start gap-2.5">
+                    <Video className="w-4 h-4 mt-1 text-muted shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                    <p className="text-[15px] text-ink m-0">
+                      <span className="font-semibold">{t.app.visualsHintTitle}</span> {t.app.visualsHintBody}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowVisualsHint(false)}
+                    className="chip-btn shrink-0"
+                  >
+                    {t.app.visualsHintDismiss}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Render Each Script Card */}

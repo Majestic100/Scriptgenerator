@@ -198,7 +198,12 @@ export interface Project {
   scripts: GeneratedScript[];
 }
 
-export type AiTrainingType = 'hook' | 'body' | 'cta';
+/**
+ * 'script' er et helt manuskript lagt ind som ét eksempel. Det behøver ikke være
+ * delt op i hook, body og CTA: nogle gange er det netop sammenhængen mellem dem,
+ * der er værd at efterligne.
+ */
+export type AiTrainingType = 'hook' | 'body' | 'cta' | 'script';
 
 export interface AiTrainingItem {
   id: string;
