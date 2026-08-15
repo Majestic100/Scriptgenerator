@@ -11,6 +11,7 @@ import {
   Copy,
   Sparkles,
   Wand2,
+  Eraser,
   Undo2,
   AlertTriangle
 } from 'lucide-react';
@@ -233,6 +234,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   // Forslag til stil og hook-vinkler
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
 
+  /** Sat efter "Ryd alle felter", så indholdet kan hentes tilbage med ét klik. */
+  const [clearedSnapshot, setClearedSnapshot] = useState<null | (() => void)>(null);
+
   /** Skriver de fundne felter ind i formularen og lægger en fortryd-handling til rette. */
   const applyBriefFields = (fields: Record<string, any>) => {
     const snapshot = {
@@ -387,6 +391,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
   const handleFillExampleData = () => {
     setAnalysisNotice(null);
+    setClearedSnapshot(null);
     setCompanyName(SAMPLE_EXAMPLE_DATA.companyName);
     setDocumentTitle(`${SAMPLE_EXAMPLE_DATA.companyName} - Script 2`);
     setCompanyWebsite(SAMPLE_EXAMPLE_DATA.companyWebsite);
@@ -399,6 +404,76 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     setOfferOrCta(SAMPLE_EXAMPLE_DATA.offerOrCta);
     setScriptFocus(SAMPLE_EXAMPLE_DATA.scriptFocus);
     setScriptConfigs(SAMPLE_EXAMPLE_DATA.scriptConfigs);
+  };
+
+  /**
+   * Tømmer hele formularen, inklusive det uploadede analysedokument, og lægger
+   * en fortryd-handling til rette. Opsætningen pr. script går tilbage til
+   * standarden (type, varighed, hooks), så der stadig er noget at generere ud fra.
+   */
+  const handleClearAll = () => {
+    const snapshot = {
+      companyName,
+      documentTitle,
+      companyWebsite,
+      analysisDoc,
+      toneOfVoice,
+      productName,
+      competitorInput,
+      competitors,
+      numScripts,
+      activeTab,
+      scriptConfigs,
+      productDescription,
+      targetAudience,
+      demographics,
+      offerOrCta,
+      scriptFocus,
+      analysisNotice
+    };
+
+    setCompanyName('');
+    setDocumentTitle('');
+    setCompanyWebsite('');
+    setAnalysisDoc(null);
+    setToneOfVoice('');
+    setProductName('');
+    setCompetitorInput('');
+    setCompetitors([]);
+    setNumScripts(2);
+    setActiveTab(0);
+    setScriptConfigs(BLANK_SCRIPT_CONFIGS);
+    setProductDescription('');
+    setTargetAudience('');
+    setDemographics('');
+    setOfferOrCta('');
+    setScriptFocus('product');
+    setAnalysisNotice(null);
+    setAnalysisError(null);
+    undoRef.current = null;
+    // Uden dette kan den samme fil ikke uploades igen bagefter.
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    setClearedSnapshot(() => () => {
+      setCompanyName(snapshot.companyName);
+      setDocumentTitle(snapshot.documentTitle);
+      setCompanyWebsite(snapshot.companyWebsite);
+      setAnalysisDoc(snapshot.analysisDoc);
+      setToneOfVoice(snapshot.toneOfVoice);
+      setProductName(snapshot.productName);
+      setCompetitorInput(snapshot.competitorInput);
+      setCompetitors(snapshot.competitors);
+      setNumScripts(snapshot.numScripts);
+      setActiveTab(snapshot.activeTab);
+      setScriptConfigs(snapshot.scriptConfigs);
+      setProductDescription(snapshot.productDescription);
+      setTargetAudience(snapshot.targetAudience);
+      setDemographics(snapshot.demographics);
+      setOfferOrCta(snapshot.offerOrCta);
+      setScriptFocus(snapshot.scriptFocus);
+      setAnalysisNotice(snapshot.analysisNotice);
+      setClearedSnapshot(null);
+    });
   };
 
   const handleAddCompetitor = () => {
@@ -541,6 +616,24 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const activeStage = t.awareness[activeStageId];
   const activeTraffic = t.traffic[activeTemp];
 
+  /**
+   * Er der overhovedet noget i formularen. Bruges til at trække fortryd-strippen
+   * tilbage, så snart man begynder forfra: ellers ville et klik på "Fortryd"
+   * kaste det nye indhold væk til fordel for det gamle.
+   */
+  const hasContent = Boolean(
+    companyName.trim() ||
+      companyWebsite.trim() ||
+      productName.trim() ||
+      productDescription.trim() ||
+      targetAudience.trim() ||
+      demographics.trim() ||
+      offerOrCta.trim() ||
+      toneOfVoice.trim() ||
+      competitors.length ||
+      analysisDoc
+  );
+
   const segmentCls = (active: boolean) =>
     `px-3.5 py-2 rounded-[6px] text-[15px] font-semibold transition-colors cursor-pointer ${
       active ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(22_24_29/0.1)]' : 'text-muted hover:text-ink'
@@ -548,6 +641,20 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pb-28">
+
+      {clearedSnapshot && !hasContent && (
+        <div className="rounded-[10px] border border-line bg-surface-2 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[15px] text-ink">
+              <span className="font-semibold">{t.form.clearedTitle}.</span> {t.form.clearedBody}
+            </p>
+            <button type="button" onClick={() => clearedSnapshot()} className="chip-btn shrink-0">
+              <Undo2 className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+              {t.form.undo}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ------------------------------------------------ 1. Kunde & produkt */}
       <Section
@@ -560,6 +667,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <button type="button" onClick={handleFillExampleData} className={buttonStyles.ghost}>
               <Sparkles className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
               {t.form.exampleData}
+            </button>
+            <button type="button" onClick={handleClearAll} className={buttonStyles.ghost}>
+              <Eraser className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+              {t.form.clearAll}
             </button>
             <div className="segment-track grid-cols-2">
               <button

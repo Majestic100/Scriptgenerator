@@ -29,6 +29,16 @@ export default function App() {
   const [selectedScriptForSave, setSelectedScriptForSave] = useState<GeneratedScript | null>(null);
   const [teleprompterScript, setTeleprompterScript] = useState<GeneratedScript | null>(null);
   const [formData, setFormData] = useState<Partial<ScriptRequest>>({});
+  /**
+   * Tælles op hver gang formularen fyldes udefra, og bruges som key på ScriptForm.
+   * Nøglen kan ikke være selve indholdet: har man ryddet alle felter og vælger den
+   * samme kunde igen, er indholdet uændret, og formularen ville aldrig blive fyldt.
+   */
+  const [formVersion, setFormVersion] = useState(0);
+  const loadForm = (data: Partial<ScriptRequest>) => {
+    setFormData(data);
+    setFormVersion((v) => v + 1);
+  };
   const [copiedAll, setCopiedAll] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
@@ -124,7 +134,7 @@ export default function App() {
 
   // Vælg kunde: udfylder formularen med al gemt kundeinfo inkl. analyse
   const handleSelectCustomer = (customer: Customer) => {
-    setFormData({
+    loadForm({
       documentTitle: `${customer.companyName || customer.name} - Scripts`,
       companyName: customer.companyName || customer.name,
       companyWebsite: customer.companyWebsite || '',
@@ -251,7 +261,7 @@ export default function App() {
   // Preset example loader
   const handleLoadExample = (key: string) => {
     if (key === 'ecommerce') {
-      setFormData({
+      loadForm({
         companyName: 'Naturhud Skincare',
         competitors: ['ClinicalGlow', 'DermaCare', 'PureBio'],
         numScripts: 2,
@@ -264,7 +274,7 @@ export default function App() {
         language: 'da'
       });
     } else if (key === 'saas') {
-      setFormData({
+      loadForm({
         companyName: 'TaskFlow App',
         competitors: ['Monday.com', 'Asana', 'ClickUp'],
         numScripts: 2,
@@ -277,7 +287,7 @@ export default function App() {
         language: 'da'
       });
     } else if (key === 'fitness') {
-      setFormData({
+      loadForm({
         companyName: 'FitPulse Studio',
         competitors: ['FitnessWorld', 'PureGym'],
         numScripts: 2,
@@ -355,7 +365,7 @@ export default function App() {
 
         {/* Script Configurator Form */}
         <ScriptForm
-          key={JSON.stringify(formData)} // re-render when preset loaded
+          key={formVersion} // nulstil formularen når en kunde eller et eksempel indlæses
           initialData={formData}
           onSubmit={handleGenerateScripts}
           isLoading={isLoading}
