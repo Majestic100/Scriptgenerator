@@ -159,9 +159,6 @@ const da = {
       'Direkte og kontant, ingen omsvøb',
       'Humoristisk og selvironisk'
     ],
-    psychologyLabel: 'Psykologi bag hooks',
-    psychologyTitle: 'Forklar mekanismen bag hvert hook',
-    psychologyHint: "AI'en tilføjer 1-2 sætninger pr. hook om psykologien, f.eks. loss aversion eller curiosity gap.",
 
     generating: (n: number) => `Genererer ${n} scripts`,
     generate: (n: number) => `Generér ${n} ${n === 1 ? 'script' : 'scripts'}`,
@@ -716,9 +713,6 @@ const en: typeof da = {
       'Direct and no-nonsense',
       'Humorous and self-deprecating'
     ],
-    psychologyLabel: 'Psychology behind hooks',
-    psychologyTitle: 'Explain the mechanism behind each hook',
-    psychologyHint: 'The AI adds 1-2 sentences per hook about the psychology, e.g. loss aversion or curiosity gap.',
 
     generating: (n: number) => `Generating ${n} scripts`,
     generate: (n: number) => `Generate ${n} ${n === 1 ? 'script' : 'scripts'}`,
