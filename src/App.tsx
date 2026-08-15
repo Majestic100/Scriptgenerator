@@ -377,23 +377,25 @@ export default function App() {
         {generatedScripts.length > 0 && (
           <div id="generated-results" className="space-y-6 pt-6 animate-fadeIn">
             
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 bg-surface border border-line rounded-[var(--radius-card)] p-5 shadow-[0_1px_2px_rgb(22_24_29/0.04)]">
-              <div className="flex-1 min-w-0">
-                <label htmlFor="documentTitle" className="field-label">
-                  {t.app.docTitle}
-                </label>
-                <input
-                  id="documentTitle"
-                  type="text"
-                  value={documentTitle}
-                  onChange={(e) => setDocumentTitle(e.target.value)}
-                  placeholder={t.app.docTitlePlaceholder}
-                  className="control font-semibold"
-                />
-                <p className="field-hint mt-1.5">{t.app.docTitleHint}</p>
-              </div>
+            <div className="bg-surface border border-line rounded-[var(--radius-card)] p-5 shadow-[0_1px_2px_rgb(22_24_29/0.04)]">
+              {/* Titel og handlinger på samme linje. Hjælpeteksten ligger under hele
+                  rækken, så knapperne flugter med selve feltet og ikke med teksten. */}
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+                <div className="w-full min-w-0 max-w-md">
+                  <label htmlFor="documentTitle" className="field-label">
+                    {t.app.docTitle}
+                  </label>
+                  <input
+                    id="documentTitle"
+                    type="text"
+                    value={documentTitle}
+                    onChange={(e) => setDocumentTitle(e.target.value)}
+                    placeholder={t.app.docTitlePlaceholder}
+                    className="control font-semibold"
+                  />
+                </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
                   className={buttonStyles.ghost}
@@ -440,7 +442,10 @@ export default function App() {
                     </>
                   )}
                 </button>
+                </div>
               </div>
+
+              <p className="field-hint mt-2">{t.app.docTitleHint}</p>
             </div>
 
             {/* Render Each Script Card */}
