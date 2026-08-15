@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
+import { useLang } from '../i18n';
 
 interface LoginScreenProps {
   onSuccess: () => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
+  const { t } = useLang();
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,10 +27,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       if (data.success) {
         onSuccess();
       } else {
-        setError(data.error || 'Forkert adgangskode.');
+        setError(data.error || t.login.wrongPassword);
       }
     } catch {
-      setError('Kunne ikke logge ind. Prøv igen.');
+      setError(t.login.loginFailed);
     } finally {
       setBusy(false);
     }
@@ -44,19 +46,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
           <div className="flex items-center gap-2.5">
             <span className="rec-dot" aria-hidden="true" />
-            <span className="font-display text-[19px] text-ink">Script Generator</span>
+            <span className="font-display text-[19px] text-ink">{t.nav.appName}</span>
           </div>
 
           <div>
-            <h1 className="font-display text-[24px] leading-tight text-ink">Log ind</h1>
+            <h1 className="font-display text-[24px] leading-tight text-ink">{t.login.title}</h1>
             <p className="field-hint mt-1">
-              Kun for teamet. Har du ikke en kode, så spørg den ansvarlige.
+              {t.login.hint}
             </p>
           </div>
 
           <div>
             <label htmlFor="password" className="field-label">
-              Adgangskode
+              {t.login.password}
             </label>
             <input
               id="password"
@@ -83,7 +85,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             className="w-full py-3 px-4 bg-rec hover:bg-rec-hover text-white rounded-[var(--radius-control)] text-[16px] font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
           >
             <Lock className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
-            <span>{busy ? 'Logger ind...' : 'Log ind'}</span>
+            <span>{busy ? t.login.loggingIn : t.login.loginBtn}</span>
           </button>
 
         </form>

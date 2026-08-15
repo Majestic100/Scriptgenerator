@@ -1,97 +1,69 @@
 import React from 'react';
 import { Brain as BrainIcon, Target as TargetIcon, Sparkles as SparklesIcon } from 'lucide-react';
+import { useLang } from '../i18n';
 
 export interface AwarenessFunnelFigureProps {
   currentStage: string;
   onSelectStage: (stageId: string) => void;
 }
 
-interface StageInfo {
+interface StageGeometry {
   id: string;
   short: string;
-  title: string;
-  badge: string;
   badgeColor: string;
   level: number;
-  desc: string;
-  focus: string;
   // SVG coordinates for trapezoid in 540x470 viewBox
   points: string;
   centerY: number;
   dotX: number;
-  widthLabel: string;
 }
 
-const STAGES_DATA: StageInfo[] = [
+/** Geometri og farver pr. stadie. Tekster slås op i oversættelserne. */
+const STAGES_DATA: StageGeometry[] = [
   {
     id: 'Unaware',
     short: 'Unaware',
-    title: '1. Unaware (Ubevidst)',
-    badge: 'Koldest',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
     level: 1,
-    desc: 'Kender hverken til problemet eller løsningen.',
-    focus: 'Væk nysgerrighed, stop scrollen og afslør en uopdaget ulempe/smerte.',
     points: '20,15 440,15 405,95 55,95',
     centerY: 55,
-    dotX: 432,
-    widthLabel: 'Bredest rækkevidde'
+    dotX: 432
   },
   {
     id: 'Problem Aware',
     short: 'Problem Aware',
-    title: '2. Problem Aware (Problembevidst)',
-    badge: 'Middel Kold',
     badgeColor: 'bg-rec-soft text-rec border-rec/30',
     level: 2,
-    desc: 'Mærker problemet og frustreres i hverdagen.',
-    focus: 'Spejl smerten stærkt, skab empati og introducer løsningskategorien.',
     points: '60,105 400,105 370,185 90,185',
     centerY: 145,
-    dotX: 392,
-    widthLabel: 'Høj smerte'
+    dotX: 392
   },
   {
     id: 'Solution Aware',
     short: 'Solution Aware',
-    title: '3. Solution Aware (Løsningsbevidst)',
-    badge: 'Middel Varm',
     badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     level: 3,
-    desc: 'Kender til løsninger, men søger den bedste mulighed.',
-    focus: 'Fremhæv mekanismen og hvorfor dit produkt virker bedre end alternativer.',
     points: '95,195 365,195 340,275 120,275',
     centerY: 235,
-    dotX: 358,
-    widthLabel: 'Søger løsning'
+    dotX: 358
   },
   {
     id: 'Product Aware',
     short: 'Product Aware',
-    title: '4. Product Aware (Produktbevidst)',
-    badge: 'Varm',
     badgeColor: 'bg-orange-100 text-orange-800 border-orange-200',
     level: 4,
-    desc: 'Kender dit produkt, men har tvivl eller indvendinger.',
-    focus: 'Fjern købsmodstand, vis social proof, kunders anmeldelser & demo.',
     points: '125,285 335,285 310,365 150,365',
     centerY: 325,
-    dotX: 325,
-    widthLabel: 'Overvejer dig'
+    dotX: 325
   },
   {
     id: 'Most Aware',
     short: 'Most Aware',
-    title: '5. Most Aware (Købsklar)',
-    badge: 'Hot',
     badgeColor: 'bg-rec-soft text-red-800 border-rec/30',
     level: 5,
-    desc: 'Klar til køb, mangler kun et uimodståeligt tilbud.',
-    focus: 'Fokusér stærkt på tilbuddet, rabat/bonus, garanti, urgency og CTA.',
     points: '155,375 305,375 285,455 175,455',
     centerY: 415,
-    dotX: 298,
-    widthLabel: 'Købsklar'
+    dotX: 298
   }
 ];
 
@@ -99,7 +71,9 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
   currentStage,
   onSelectStage,
 }) => {
+  const { t } = useLang();
   const activeStage = STAGES_DATA.find((s) => s.id === currentStage) || STAGES_DATA[1];
+  const activeText = t.awareness[activeStage.id];
 
   return (
     <div className="bg-sunken text-ink p-4 sm:p-5 rounded-2xl border border-line shadow-none relative overflow-hidden my-3">
@@ -112,7 +86,7 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
         <div className="flex items-center gap-2">
           <BrainIcon className="w-4 h-4 text-rec" />
           <span className="text-base font-black uppercase tracking-wider text-ink">
-            AWARENESS FUNNEL (DE 5 BEVIDSTHEDSSTADIER)
+            {t.funnel.header}
           </span>
         </div>
 
@@ -123,7 +97,7 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rec"></span>
           </span>
           <span className="text-base font-bold text-ink">
-            Aktiv: <span className="text-rec font-extrabold">{activeStage.short}</span>
+            {t.funnel.active} <span className="text-rec font-extrabold">{activeStage.short}</span>
           </span>
           <span className="text-sm text-muted font-medium">({activeStage.level}/5)</span>
         </div>
@@ -261,26 +235,26 @@ export const AwarenessFunnelFigure: React.FC<AwarenessFunnelFigureProps> = ({
                   {activeStage.level}
                 </span>
                 <span className="font-extrabold text-ink text-lg sm:text-lg">
-                  {activeStage.title}
+                  {activeText?.title}
                 </span>
               </div>
               <span className={`text-base font-extrabold px-2.5 py-1 rounded-[var(--radius-control)] border ${activeStage.badgeColor}`}>
-                {activeStage.badge}
+                {activeText?.badge}
               </span>
             </div>
 
             <p className="text-muted text-base sm:text-lg leading-relaxed font-medium">
-              {activeStage.desc}
+              {activeText?.desc}
             </p>
           </div>
 
           <div className="bg-sunken border border-line p-3.5 rounded-[var(--radius-card)] text-base space-y-1.5">
             <span className="text-rec font-black block text-sm uppercase tracking-wider flex items-center gap-1.5">
               <TargetIcon className="w-3.5 h-3.5" />
-              Strategisk Fokus:
+              {t.funnel.strategicFocus}
             </span>
             <p className="text-ink italic leading-snug font-medium">
-              "{activeStage.focus}"
+              "{activeText?.focus}"
             </p>
           </div>
         </div>

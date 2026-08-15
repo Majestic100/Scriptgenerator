@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Check, RefreshCw, FileText, PenLine } from 'lucide-react';
 import { buttonStyles } from './ui';
+import { useLang } from '../i18n';
 
 export interface AngleRecommendation {
   headline: string;
@@ -21,12 +22,6 @@ interface AngleAdvisorModalProps {
   onApplyHookAngles: (ids: string[]) => void;
 }
 
-const FIT_LABEL: Record<string, string> = {
-  stærk: 'Stærkt match',
-  god: 'Godt match',
-  ok: 'Kan bruges'
-};
-
 export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
   isOpen,
   onClose,
@@ -36,6 +31,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
   onApplyScriptType,
   onApplyHookAngles
 }) => {
+  const { t } = useLang();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AngleRecommendation | null>(null);
@@ -53,14 +49,14 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
       });
       const json = await res.json();
       if (!json.success) {
-        setError(json.error || 'Kunne ikke hente forslag.');
+        setError(json.error || t.advisor.couldNotFetch);
         setData(null);
         return;
       }
       setData(json);
     } catch (err) {
       console.error('Fejl ved hentning af forslag:', err);
-      setError('Kunne ikke få fat i serveren. Prøv igen.');
+      setError(t.advisor.serverUnreachable);
       setData(null);
     } finally {
       setIsLoading(false);
@@ -100,7 +96,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Forslag til stil og vinkler"
+      aria-label={t.advisor.ariaLabel}
     >
       <div
         className="bg-surface border border-line rounded-[var(--radius-card)] shadow-[0_16px_48px_rgb(22_24_29/0.18)] w-full max-w-2xl my-8"
@@ -109,16 +105,16 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
 
         <header className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-line">
           <div className="min-w-0">
-            <h2 className="font-display text-[21px] leading-tight text-ink">Forslag til stil og vinkler</h2>
+            <h2 className="font-display text-[21px] leading-tight text-ink">{t.advisor.title}</h2>
             <p className="field-hint mt-0.5">
-              Bygget på {data?.basedOnAnalysis ? 'den vedhæftede analyse og kundeoplysningerne' : 'kundeoplysningerne i trin 1'}.
+              {data?.basedOnAnalysis ? t.advisor.basedOnAnalysis : t.advisor.basedOnStep1}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-2 -mr-1 text-muted hover:text-ink rounded-[6px] hover:bg-sunken transition-colors cursor-pointer shrink-0"
-            aria-label="Luk"
+            aria-label={t.advisor.close}
           >
             <X className="w-5 h-5" strokeWidth={1.75} aria-hidden="true" />
           </button>
@@ -130,7 +126,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
             <div className="space-y-3" aria-live="polite">
               <p className="flex items-center gap-2.5 text-[15.5px] text-ink">
                 <span className="rec-dot rec-blink" aria-hidden="true" />
-                Læser analysen og vurderer vinkler...
+                {t.advisor.loading}
               </p>
               {[0, 1, 2].map((i) => (
                 <div key={i} className="h-[76px] rounded-[var(--radius-control)] bg-sunken border border-line" />
@@ -143,7 +139,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
               <p className="text-[15.5px] text-ink">{error}</p>
               <button type="button" onClick={fetchRecommendation} className={buttonStyles.ghost}>
                 <RefreshCw className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                Prøv igen
+                {t.advisor.tryAgain}
               </button>
             </div>
           )}
@@ -157,13 +153,13 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
               {!data.basedOnAnalysis && (
                 <p className="field-hint flex items-start gap-2">
                   <FileText className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
-                  Der er ingen analyse vedhæftet. Upload en i trin 1, så bliver forslagene langt mere præcise.
+                  {t.advisor.noAnalysis}
                 </p>
               )}
 
               {/* Script-stil */}
               <section>
-                <h3 className="field-label">Script-stil</h3>
+                <h3 className="field-label">{t.advisor.scriptStyle}</h3>
                 <div className="space-y-2">
                   {data.scriptTypes.map((s, i) => {
                     const isCurrent = s.type === currentScriptType;
@@ -179,7 +175,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
                             <span className="font-mono text-[13px] text-muted tabular-nums">{i + 1}</span>
                             <span className="font-semibold text-[16px] text-ink">{s.type}</span>
                             <span className="font-mono text-[11.5px] uppercase tracking-wider text-muted">
-                              {FIT_LABEL[s.fit] || s.fit}
+                              {t.advisor.fitLabels[s.fit] || s.fit}
                             </span>
                           </div>
                           <p className="field-hint mt-1">{s.reason}</p>
@@ -194,10 +190,10 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
                           {isCurrent ? (
                             <>
                               <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
-                              Valgt
+                              {t.advisor.chosen}
                             </>
                           ) : (
-                            'Vælg'
+                            t.advisor.choose
                           )}
                         </button>
                       </div>
@@ -210,7 +206,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
               {data.hookAngles.length > 0 && (
                 <section>
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="field-label">Hook-vinkler</h3>
+                    <h3 className="field-label">{t.advisor.hookAngles}</h3>
                     <button
                       type="button"
                       onClick={() => {
@@ -223,12 +219,12 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
                       {appliedAngles ? (
                         <>
                           <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
-                          Sat ind
+                          {t.advisor.inserted}
                         </>
                       ) : (
                         <>
                           <PenLine className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                          Brug alle vinkler
+                          {t.advisor.useAllAngles}
                         </>
                       )}
                     </button>
@@ -237,7 +233,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
                     {data.hookAngles.map((h, i) => (
                       <li key={`${h.id}-${i}`} className="p-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[13px] text-muted tabular-nums">Hook {i + 1}</span>
+                          <span className="font-mono text-[13px] text-muted tabular-nums">{t.advisor.hookN(i + 1)}</span>
                           <span className="font-semibold text-[15.5px] text-ink">{angleLabel(h.id)}</span>
                         </div>
                         <p className="field-hint mt-1">{h.reason}</p>
@@ -262,12 +258,12 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
               strokeWidth={1.75}
               aria-hidden="true"
             />
-            Nyt forslag
+            {t.advisor.newSuggestion}
           </button>
 
           <div className="flex items-center gap-2">
             <button type="button" onClick={onClose} className={buttonStyles.ghost}>
-              Luk
+              {t.advisor.close}
             </button>
             <button
               type="button"
@@ -275,7 +271,7 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
               disabled={isLoading || !data || data.scriptTypes.length === 0}
               className={buttonStyles.primary}
             >
-              Brug forslaget
+              {t.advisor.useSuggestion}
             </button>
           </div>
         </footer>

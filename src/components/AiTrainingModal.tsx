@@ -15,6 +15,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { AiTrainingItem, AiTrainingType } from '../types';
+import { useLang, dateLocale } from '../i18n';
 
 interface AiTrainingModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
   onAdd,
   onDelete
 }) => {
+  const { t, lang } = useLang();
   const handleAdd = onAddItem || onAdd;
   const handleDelete = onDeleteItem || onDelete;
 
@@ -110,21 +112,21 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
         return (
           <span className="inline-flex items-center gap-1 text-sm font-extrabold uppercase px-2 py-0.5 rounded bg-rec-soft text-rec border border-rec/30">
             <Zap className="w-3 h-3 text-rec" />
-            Hook / Krog
+            {t.aiT.badgeHook}
           </span>
         );
       case 'body':
         return (
           <span className="inline-flex items-center gap-1 text-sm font-extrabold uppercase px-2 py-0.5 rounded bg-ink text-white border border-slate-800">
             <FileText className="w-3 h-3 text-slate-300" />
-            Body / Manuskript
+            {t.aiT.badgeBody}
           </span>
         );
       case 'cta':
         return (
           <span className="inline-flex items-center gap-1 text-sm font-extrabold uppercase px-2 py-0.5 rounded bg-rec-soft text-ink border border-rec/40">
             <Target className="w-3 h-3 text-rec" />
-            Call To Action
+            {t.aiT.badgeCta}
           </span>
         );
     }
@@ -142,13 +144,13 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                AI Træning & Guldstandarder
+                {t.aiT.title}
                 <span className="text-base font-semibold bg-surface/10 text-slate-200 px-2 py-0.5 rounded-full border border-white/20">
-                  {items.length} eksempler
+                  {t.aiT.examplesCount(items.length)}
                 </span>
               </h2>
               <p className="text-base text-muted">
-                Lær AI'en din stil ved at gemme de bedste hooks, manuskripter og CTA'er
+                {t.aiT.subtitle}
               </p>
             </div>
           </div>
@@ -165,9 +167,9 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
         <div className="bg-rec-soft border-b border-rec/30 p-4 shrink-0 flex items-start gap-3">
           <Info className="w-5 h-5 text-rec shrink-0 mt-0.5" />
           <div className="text-base text-ink space-y-1">
-            <p className="font-bold">Hvordan trænes AI'en?</p>
+            <p className="font-bold">{t.aiT.howTitle}</p>
             <p className="leading-relaxed text-ink">
-              Alle eksempler du gemmer her fungerer som <span className="font-semibold underline decoration-amber-400">Few-Shot Prompt Træning</span>. Når du genererer eller omstrukturerer nye manuskripter, foder motoren automatisk dine gemte eksempler ind som idealer for tone, struktur og vinkler.
+              {t.aiT.howBody1}<span className="font-semibold underline decoration-amber-400">{t.aiT.fewShot}</span>{t.aiT.howBody2}
             </p>
           </div>
         </div>
@@ -187,7 +189,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     : 'bg-surface hover:bg-sunken text-ink border-line'
                 }`}
               >
-                Alle ({items.length})
+                {t.aiT.filterAll(items.length)}
               </button>
 
               <button
@@ -198,7 +200,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     : 'bg-surface hover:bg-sunken text-ink border-line'
                 }`}
               >
-                ⚡ Hooks ({hookCount})
+                {t.aiT.filterHooks(hookCount)}
               </button>
 
               <button
@@ -209,7 +211,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     : 'bg-surface hover:bg-sunken text-ink border-line'
                 }`}
               >
-                📄 Bodies ({bodyCount})
+                {t.aiT.filterBodies(bodyCount)}
               </button>
 
               <button
@@ -220,7 +222,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     : 'bg-surface hover:bg-sunken text-ink border-line'
                 }`}
               >
-                🎯 CTA'er ({ctaCount})
+                {t.aiT.filterCtas(ctaCount)}
               </button>
             </div>
 
@@ -230,7 +232,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
               className="px-3.5 py-1.5 bg-rec hover:bg-red-700 text-white rounded-[var(--radius-control)] text-base font-extrabold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Tilføj eksempler</span>
+              <span>{t.aiT.addExamples}</span>
             </button>
           </div>
 
@@ -239,7 +241,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
             <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Søg i træningseksempler..."
+              placeholder={t.aiT.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-surface border border-line rounded-[var(--radius-card)] text-base outline-none focus:border-rec focus:ring-1 focus:ring-red-200 shadow-xs"
@@ -252,7 +254,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
               <div className="flex items-center justify-between border-b border-line pb-2">
                 <span className="text-base font-bold text-ink flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-rec" />
-                  Tilføj nyt guldstandard eksempel manuelt
+                  {t.aiT.addManualTitle}
                 </span>
                 <button
                   type="button"
@@ -265,23 +267,23 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-ink mb-1">Type:</label>
+                  <label className="block text-sm font-bold text-ink mb-1">{t.aiT.typeLabel}</label>
                   <select
                     value={newType}
                     onChange={(e) => setNewType(e.target.value as AiTrainingType)}
                     className="w-full bg-sunken border border-line rounded-[var(--radius-control)] px-2.5 py-1.5 text-base font-semibold outline-none focus:border-rec"
                   >
-                    <option value="hook">⚡ Hook / Krog</option>
-                    <option value="body">📄 Body / Manuskript</option>
-                    <option value="cta">🎯 Call To Action (CTA)</option>
+                    <option value="hook">{t.aiT.typeHook}</option>
+                    <option value="body">{t.aiT.typeBody}</option>
+                    <option value="cta">{t.aiT.typeCta}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-ink mb-1">Overskrift / Vinkel (Valgfri):</label>
+                  <label className="block text-sm font-bold text-ink mb-1">{t.aiT.titleLabel}</label>
                   <input
                     type="text"
-                    placeholder="f.eks. Pattern Interrupt hook"
+                    placeholder={t.aiT.titlePlaceholder}
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     className="w-full bg-sunken border border-line rounded-[var(--radius-control)] px-2.5 py-1.5 text-base outline-none focus:border-rec"
@@ -289,10 +291,10 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-ink mb-1">Produkt / Brand (Valgfri):</label>
+                  <label className="block text-sm font-bold text-ink mb-1">{t.aiT.brandLabel}</label>
                   <input
                     type="text"
-                    placeholder="f.eks. GlowSkin C-vitamin"
+                    placeholder={t.aiT.brandPlaceholder}
                     value={newBrandContext}
                     onChange={(e) => setNewBrandContext(e.target.value)}
                     className="w-full bg-sunken border border-line rounded-[var(--radius-control)] px-2.5 py-1.5 text-base outline-none focus:border-rec"
@@ -302,16 +304,16 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
 
               <div>
                 <label className="block text-sm font-bold text-ink mb-1">
-                  Tekstindhold der skal træne AI'en:*
+                  {t.aiT.textLabel}
                 </label>
                 <textarea
                   rows={3}
                   placeholder={
                     newType === 'hook'
-                      ? 'f.eks. Stop lige med at spilde penge på C-vitamin serummer, der lader din hud tør og klistret tilbage!'
+                      ? t.aiT.textPlaceholderHook
                       : newType === 'body'
-                      ? 'f.eks. De fleste traditionelle C-vitamin serummer klistrer eller udtørrer huden. Mød HydraBoost C-Serum fra GlowSkin Scandinavia med 100% koldpresset hyaluronsyre.'
-                      : 'f.eks. Prøv den 100% risikofrit i dag. Klik på linket nedenfor og spar 20% med koden GLOW20!'
+                      ? t.aiT.textPlaceholderBody
+                      : t.aiT.textPlaceholderCta
                   }
                   value={newText}
                   onChange={(e) => setNewText(e.target.value)}
@@ -326,7 +328,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                   onClick={() => setIsAddingNew(false)}
                   className="px-3 py-1.5 bg-sunken hover:bg-line text-ink rounded-[var(--radius-control)] text-base font-bold cursor-pointer"
                 >
-                  Annuller
+                  {t.aiT.cancel}
                 </button>
                 <button
                   type="submit"
@@ -334,7 +336,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                   className="px-4 py-1.5 bg-rec hover:bg-red-700 text-white rounded-[var(--radius-control)] text-base font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <Brain className="w-3.5 h-3.5" />
-                  <span>{isSubmitting ? 'Gemmer...' : 'Gem til AI træning'}</span>
+                  <span>{isSubmitting ? t.aiT.saving : t.aiT.saveBtn}</span>
                 </button>
               </div>
             </form>
@@ -345,11 +347,11 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
             <div className="text-center py-12 bg-surface rounded-2xl border border-dashed border-line-strong p-6 space-y-3">
               <Brain className="w-10 h-10 text-slate-300 mx-auto" />
               <div>
-                <p className="text-lg font-bold text-ink">Ingen træningseksempler fundet</p>
+                <p className="text-lg font-bold text-ink">{t.aiT.emptyTitle}</p>
                 <p className="text-base text-muted mt-1 max-w-md mx-auto">
                   {items.length === 0
-                    ? 'Gem hooks, manuskripter eller CTA\'er fra dine genererede scripts ved at klikke på "🎓 Gem til AI træning" knappen på kortene.'
-                    : 'Ingen eksempler matchede din søgning eller dit filter.'}
+                    ? t.aiT.emptyNone
+                    : t.aiT.emptyFiltered}
                 </p>
               </div>
               {items.length === 0 && (
@@ -358,7 +360,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                   className="mt-2 px-4 py-2 bg-rec text-white rounded-[var(--radius-card)] text-base font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Tilføj første træningseksempel</span>
+                  <span>{t.aiT.addFirst}</span>
                 </button>
               )}
             </div>
@@ -387,7 +389,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     </div>
 
                     <span className="text-sm text-muted font-mono shrink-0">
-                      {new Date(item.createdAt).toLocaleDateString('da-DK', {
+                      {new Date(item.createdAt).toLocaleDateString(dateLocale(lang), {
                         day: 'numeric',
                         month: 'short'
                       })}
@@ -404,28 +406,28 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     <button
                       onClick={() => handleCopy(item.id, item.text)}
                       className="px-2.5 py-1 bg-sunken hover:bg-line text-muted rounded-[var(--radius-control)] text-base font-medium flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Kopier teksten"
+                      title={t.aiT.copyTitle}
                     >
                       {copiedId === item.id ? (
                         <Check className="w-3.5 h-3.5 text-ink" />
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
-                      <span>{copiedId === item.id ? 'Kopieret' : 'Kopier'}</span>
+                      <span>{copiedId === item.id ? t.aiT.copied : t.aiT.copy}</span>
                     </button>
 
                     <button
                       disabled={deletingId === item.id}
                       onClick={() => handleDeleteItemClick(item.id)}
                       className="px-2.5 py-1 bg-rec-soft hover:bg-rec-soft text-rec rounded-[var(--radius-control)] text-base font-medium flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
-                      title="Slet fra AI træning"
+                      title={t.aiT.deleteTitle}
                     >
                       {deletingId === item.id ? (
                         <Loader2 className="w-3.5 h-3.5 text-rec animate-spin" />
                       ) : (
                         <Trash2 className="w-3.5 h-3.5 text-rec" />
                       )}
-                      <span>{deletingId === item.id ? 'Sletter...' : 'Slet'}</span>
+                      <span>{deletingId === item.id ? t.aiT.deleting : t.aiT.delete}</span>
                     </button>
                   </div>
                 </div>
@@ -438,13 +440,13 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
         {/* FOOTER */}
         <div className="px-6 py-3.5 bg-sunken border-t border-line flex justify-between items-center shrink-0">
           <div className="text-base text-muted font-medium hidden sm:block">
-            Disse eksempler inkluderes i hver prompt til Claude.
+            {t.aiT.footerNote}
           </div>
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-surface hover:bg-line border border-line-strong rounded-[var(--radius-control)] text-base font-bold text-ink cursor-pointer"
           >
-            Luk
+            {t.aiT.close}
           </button>
         </div>
 

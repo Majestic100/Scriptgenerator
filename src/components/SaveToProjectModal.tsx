@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, FolderPlus, Folder, Plus, Check, Loader2, Sparkles } from 'lucide-react';
 import { GeneratedScript, Project } from '../types';
+import { useLang } from '../i18n';
 
 interface SaveToProjectModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
   projects,
   onRefreshProjects,
 }) => {
+  const { t } = useLang();
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
@@ -46,11 +48,11 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
           onClose();
         }, 1200);
       } else {
-        setErrorMsg(data.error || 'Fejl ved gemning af script til projekt.');
+        setErrorMsg(data.error || t.saveM.errSave);
         setLoadingProjectId(null);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Netværksfejl ved gemning af script.');
+      setErrorMsg(err.message || t.saveM.errNetwork);
       setLoadingProjectId(null);
     }
   };
@@ -78,10 +80,10 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
         setNewProjectDesc('');
         setIsCreatingNew(false);
       } else {
-        setErrorMsg(createData.error || 'Fejl ved oprettelse af projekt.');
+        setErrorMsg(createData.error || t.saveM.errCreate);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Kunne ikke oprette projekt.');
+      setErrorMsg(err.message || t.saveM.errCreateGeneric);
     } finally {
       setIsCreatingProject(false);
     }
@@ -98,7 +100,7 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
               <FolderPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-ink">Gem til Projekt</h3>
+              <h3 className="font-bold text-lg text-ink">{t.saveM.title}</h3>
               <p className="text-base text-muted line-clamp-1">
                 "{script.title || script.companyName}"
               </p>
@@ -125,14 +127,14 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
             <>
               <div className="flex items-center justify-between">
                 <span className="text-base font-semibold text-muted uppercase tracking-wider">
-                  Vælg et eksisterende projekt
+                  {t.saveM.chooseExisting}
                 </span>
                 <button
                   onClick={() => setIsCreatingNew(true)}
                   className="text-base text-rec font-bold hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Nyt Projekt</span>
+                  <span>{t.saveM.newProject}</span>
                 </button>
               </div>
 
@@ -140,14 +142,14 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                 <div className="text-center py-8 px-4 bg-sunken rounded-[var(--radius-card)] border border-dashed border-line-strong space-y-3">
                   <Folder className="w-8 h-8 text-muted mx-auto" />
                   <p className="text-base text-muted">
-                    Du har ingen oprettede projekter endnu. Opret dit første projekt herunder!
+                    {t.saveM.emptyText}
                   </p>
                   <button
                     onClick={() => setIsCreatingNew(true)}
                     className="px-4 py-2 bg-rec text-white rounded-[var(--radius-control)] text-base font-bold hover:bg-rec-hover transition-all flex items-center gap-1.5 mx-auto cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Opret Nyt Projekt</span>
+                    <span>{t.saveM.createNewBtn}</span>
                   </button>
                 </div>
               ) : (
@@ -179,7 +181,7 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                               </h4>
                               {isAlreadyIn && (
                                 <span className="text-sm bg-rec-soft text-rec font-semibold px-1.5 py-0.2 rounded border border-rec/30">
-                                  Indeholder script
+                                  {t.saveM.containsScript}
                                 </span>
                               )}
                             </div>
@@ -189,7 +191,7 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                               </p>
                             )}
                             <span className="text-sm text-muted block mt-0.5">
-                              {proj.scripts?.length || 0} scripts gemt
+                              {t.saveM.scriptsSaved(proj.scripts?.length || 0)}
                             </span>
                           </div>
                         </div>
@@ -200,11 +202,11 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                           ) : isSuccess ? (
                             <div className="flex items-center gap-1 text-base font-bold text-ink">
                               <Check className="w-4 h-4" />
-                              <span>Gemt!</span>
+                              <span>{t.saveM.saved}</span>
                             </div>
                           ) : (
                             <span className="text-base font-bold text-rec hover:underline">
-                              {isAlreadyIn ? 'Opdatér' : 'Gem hér'}
+                              {isAlreadyIn ? t.saveM.update : t.saveM.saveHere}
                             </span>
                           )}
                         </div>
@@ -218,40 +220,40 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
             <form onSubmit={handleCreateAndSave} className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-base font-bold text-ink uppercase tracking-wider">
-                  Opret nyt projekt & gem script
+                  {t.saveM.createHeader}
                 </h4>
                 <button
                   type="button"
                   onClick={() => setIsCreatingNew(false)}
                   className="text-base text-muted hover:text-ink font-semibold"
                 >
-                  Annuller
+                  {t.saveM.cancel}
                 </button>
               </div>
 
               <div className="space-y-1">
                 <label className="text-base font-semibold text-ink">
-                  Projektnavn *
+                  {t.saveM.nameLabel}
                 </label>
                 <input
                   type="text"
                   required
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="f.eks. Sommer Kampagne 2026, Q3 Meta Ads, Bodyscrub Launch"
+                  placeholder={t.saveM.namePlaceholder}
                   className="w-full bg-surface border border-line rounded-[var(--radius-control)] p-2.5 text-base text-ink placeholder-slate-400 outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-base font-semibold text-ink">
-                  Beskrivelse (valgfri)
+                  {t.saveM.descLabel}
                 </label>
                 <textarea
                   rows={2}
                   value={newProjectDesc}
                   onChange={(e) => setNewProjectDesc(e.target.value)}
-                  placeholder="f.eks. Vinkel-test af C-vitamin serum til kvinder 25-45 år"
+                  placeholder={t.saveM.descPlaceholder}
                   className="w-full bg-surface border border-line rounded-[var(--radius-control)] p-2.5 text-base text-ink placeholder-slate-400 outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                 />
               </div>
@@ -264,12 +266,12 @@ export const SaveToProjectModal: React.FC<SaveToProjectModalProps> = ({
                 {isCreatingProject ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Opretter og gemmer...</span>
+                    <span>{t.saveM.creatingSaving}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Opret Projekt & Gem Script</span>
+                    <span>{t.saveM.createAndSave}</span>
                   </>
                 )}
               </button>

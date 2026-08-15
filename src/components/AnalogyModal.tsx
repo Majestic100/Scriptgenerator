@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { PRESET_ANALOGIES, AnalogyItem, AnalogyCategory } from '../data/analogies';
 import { weaveBodyWithAnalogy } from '../utils/formatUtils';
+import { useLang } from '../i18n';
 
 export interface AnalogyTargetContext {
   type: 'hook' | 'body';
@@ -123,6 +124,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
   productDescription = '',
   companyName = ''
 }) => {
+  const { t } = useLang();
   const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
 
   const handleApply = (text: string, action: 'hook' | 'body' | 'both' | 'new_hook') => {
     onApplyAnalogy(text, action, currentHookIdx);
-    setAppliedNotice(`Tilføjet til scriptet!`);
+    setAppliedNotice(t.analogy.added);
     setTimeout(() => {
       setAppliedNotice(null);
       onClose();
@@ -275,9 +277,9 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-bold flex items-center gap-2">
-                Analogier & Billedsprog
+                {t.analogy.title}
                 <span className="text-base font-normal text-slate-300">
-                  ({currentType === 'hook' ? `Hook ${currentHookIdx + 1}` : 'Body'})
+                  ({currentType === 'hook' ? t.analogy.hookCtx(currentHookIdx + 1) : t.analogy.bodyCtx})
                 </span>
               </h2>
             </div>
@@ -316,7 +318,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                         : 'bg-sunken hover:bg-sunken text-ink border-line'
                     }`}
                   >
-                    {cat}
+                    {t.analogy.categoryLabels[cat] || cat}
                   </button>
                 ))}
               </div>
@@ -326,10 +328,10 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                 onClick={handleGenerateAiAnalogies}
                 disabled={isGeneratingAi}
                 className="px-3.5 py-1.5 bg-amber-500 hover:bg-rec text-ink rounded-[var(--radius-control)] text-base font-extrabold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                title="Bed AI om at udtænke 5 nye unikke analogier"
+                title={t.analogy.fetchNewTitle}
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingAi ? 'animate-spin' : ''}`} />
-                <span>{isGeneratingAi ? 'Genererer...' : '🔄 Hent 5 nye eksempler'}</span>
+                <span>{isGeneratingAi ? t.analogy.generating : t.analogy.fetchNew}</span>
               </button>
             </div>
 
@@ -338,7 +340,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
               <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Søg i 30+ stærke ordsprog og analogier..."
+                placeholder={t.analogy.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 bg-sunken border border-line rounded-[var(--radius-control)] text-base outline-none focus:border-rec focus:bg-surface"
@@ -350,7 +352,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
           {currentText && (
             <div className="bg-rec-soft border border-rec/30 p-3 rounded-[var(--radius-card)] text-base space-y-1">
               <span className="font-bold text-ink uppercase tracking-wider block text-sm">
-                🎯 Måltekst ({currentType === 'hook' ? `Hook ${currentHookIdx + 1}` : 'Body'}):
+                {t.analogy.targetText(currentType === 'hook' ? t.analogy.hookCtx(currentHookIdx + 1) : t.analogy.bodyCtx)}
               </span>
               <p className="text-ink font-medium italic">"{currentText}"</p>
             </div>
@@ -361,17 +363,17 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
             {isGeneratingAi ? (
               <div className="text-center py-10 bg-surface rounded-[var(--radius-card)] border border-line p-6 space-y-2">
                 <RefreshCw className="w-6 h-6 text-amber-500 animate-spin mx-auto" />
-                <p className="text-base font-semibold text-muted">AI skræddersyr 5 nye analogier til din tekst...</p>
+                <p className="text-base font-semibold text-muted">{t.analogy.aiTailoring}</p>
               </div>
             ) : filteredAnalogies.length === 0 ? (
               <div className="text-center py-8 bg-surface rounded-[var(--radius-card)] border border-dashed border-line-strong p-4">
-                <p className="text-base font-medium text-muted mb-2">Ingen analogier fundet for søgningen</p>
+                <p className="text-base font-medium text-muted mb-2">{t.analogy.noneFound}</p>
                 <button
                   onClick={handleGenerateAiAnalogies}
                   className="px-3 py-1.5 bg-rec text-white rounded-[var(--radius-control)] text-base font-bold inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Generér nye med AI</span>
+                  <span>{t.analogy.genWithAi}</span>
                 </button>
               </div>
             ) : (
@@ -395,20 +397,20 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                         {/* Top info */}
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-extrabold uppercase px-2 py-0.5 rounded bg-sunken text-muted border border-line">
-                            {item.category}
+                            {t.analogy.categoryLabels[item.category] || item.category}
                           </span>
 
                           <div className="flex items-center gap-1.5">
                             {isCustomAdapted && (
                               <span className="px-2 py-0.5 bg-sunken text-emerald-900 border border-line-strong rounded-full text-sm font-bold flex items-center gap-1">
                                 <Sparkles className="w-3 h-3 text-ink" />
-                                AI-Tilpasset
+                                {t.analogy.aiAdapted}
                               </span>
                             )}
                             {isAdded && (
                               <span className="px-2.5 py-0.5 bg-[#FEF08A] text-ink border border-amber-400 rounded-full text-sm font-black flex items-center gap-1 shadow-xs">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-rec" />
-                                🟡 TILFØJET I SCRIPTET
+                                {t.analogy.addedBadge}
                               </span>
                             )}
                           </div>
@@ -416,17 +418,17 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
 
                         {/* 1. ANALOGI ALENE */}
                         <div className="text-base font-semibold text-ink bg-sunken border border-line p-2.5 rounded-[var(--radius-control)]">
-                          <span className="font-extrabold text-ink mr-1.5">Analogi:</span>
+                          <span className="font-extrabold text-ink mr-1.5">{t.analogy.analogyLabel}</span>
                           <span className="text-ink">{item.title || item.text}</span>
                         </div>
 
                         {/* 2. SCRIPT + ANALOGI (HIGHLIGHTED) */}
                         <div className="text-base font-semibold text-ink bg-rec-soft border border-rec/30 p-2.5 rounded-[var(--radius-control)] relative">
-                          <span className="font-extrabold text-ink mr-1.5 block sm:inline">Script + analogi:</span>
+                          <span className="font-extrabold text-ink mr-1.5 block sm:inline">{t.analogy.scriptPlusAnalogy}</span>
                           {isIntegratingThis ? (
                             <div className="py-2 flex items-center gap-2 text-rec italic">
                               <RefreshCw className="w-4 h-4 animate-spin text-rec" />
-                              <span>AI omskriver teksten så analogien passer sømløst i midten...</span>
+                              <span>{t.analogy.aiRewriting}</span>
                             </div>
                           ) : (
                             renderHighlightedScriptWithAnalogy(wovenPreview, item.title, item.text)
@@ -439,14 +441,14 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                         <button
                           onClick={() => handleCopy(item.id, wovenPreview)}
                           className="px-2.5 py-1 bg-sunken hover:bg-line text-muted rounded text-base font-medium flex items-center gap-1 cursor-pointer"
-                          title="Kopier den indflettede sætning til udklipsholderen"
+                          title={t.analogy.copyTitle}
                         >
                           {copiedId === item.id ? (
                             <Check className="w-3.5 h-3.5 text-ink" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
-                          <span>{copiedId === item.id ? 'Kopieret' : 'Kopier'}</span>
+                          <span>{copiedId === item.id ? t.analogy.copied : t.analogy.copy}</span>
                         </button>
 
                         <div className="flex items-center gap-1.5">
@@ -455,10 +457,10 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                               onClick={() => handleIntegrateWithAi(item.id, item.text)}
                               disabled={isIntegratingThis || !currentText.trim()}
                               className="px-2.5 py-1.5 bg-rec-soft hover:bg-amber-200 text-ink border border-rec/40 rounded-[var(--radius-control)] text-base font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                              title="Lad AI omskrive hele teksten så analogien passer 100% naturligt i midten"
+                              title={t.analogy.aiAdaptTitle}
                             >
                               <Sparkles className={`w-3.5 h-3.5 text-rec ${isIntegratingThis ? 'animate-spin' : ''}`} />
-                              <span>{isIntegratingThis ? 'Tilpasser...' : '✨ AI Tilpas Tekst'}</span>
+                              <span>{isIntegratingThis ? t.analogy.adapting : t.analogy.aiAdaptBtn}</span>
                             </button>
                           )}
 
@@ -468,7 +470,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                               className="px-3.5 py-1.5 bg-rec hover:bg-red-700 text-white rounded-[var(--radius-control)] text-base font-extrabold flex items-center gap-1.5 cursor-pointer shadow-xs"
                             >
                               <Zap className="w-3.5 h-3.5" />
-                              <span>Indsæt i Hook {currentHookIdx + 1}</span>
+                              <span>{t.analogy.insertInHook(currentHookIdx + 1)}</span>
                             </button>
                           ) : (
                             <button
@@ -476,7 +478,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
                               className="px-3.5 py-1.5 bg-ink hover:bg-ink text-white rounded-[var(--radius-control)] text-base font-extrabold flex items-center gap-1.5 cursor-pointer shadow-xs"
                             >
                               <FileText className="w-3.5 h-3.5" />
-                              <span>Indsæt i Body</span>
+                              <span>{t.analogy.insertInBody}</span>
                             </button>
                           )}
                         </div>
@@ -492,7 +494,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
           <form onSubmit={handleAddCustom} className="pt-2 flex items-center gap-2">
             <input
               type="text"
-              placeholder="Tilføj dit eget ordsprog eller analogi..."
+              placeholder={t.analogy.customPlaceholder}
               value={customAnalogy}
               onChange={(e) => setCustomAnalogy(e.target.value)}
               className="flex-1 bg-surface border border-line rounded-[var(--radius-control)] px-3 py-1.5 text-base outline-none focus:border-slate-400"
@@ -503,7 +505,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
               className="px-3 py-1.5 bg-ink hover:bg-ink text-white rounded-[var(--radius-control)] text-base font-bold flex items-center gap-1 cursor-pointer disabled:opacity-40"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Tilføj</span>
+              <span>{t.analogy.add}</span>
             </button>
           </form>
 
@@ -515,7 +517,7 @@ export const AnalogyModal: React.FC<AnalogyModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 bg-surface hover:bg-line border border-line-strong rounded-[var(--radius-control)] text-base font-bold text-ink cursor-pointer"
           >
-            Luk
+            {t.analogy.close}
           </button>
         </div>
 

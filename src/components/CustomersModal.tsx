@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Users, Plus, Pencil, Trash2, FileText, ArrowRight, Share2 } from 'lucide-react';
 import { Customer } from '../types';
+import { useLang } from '../i18n';
 
 interface CustomersModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
   onSelectCustomer,
   showSharing = false
 }) => {
+  const { t } = useLang();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -95,7 +97,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Slet denne kunde? Det kan ikke fortrydes.')) return;
+    if (!confirm(t.customersM.confirmDelete)) return;
     try {
       await fetch(`/api/customers/${id}`, { method: 'DELETE' });
       onRefreshCustomers();
@@ -116,10 +118,10 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
         <div className="px-6 py-4 border-b border-line flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Users className="w-5 h-5 text-rec" />
-            <h2 className="text-2xl font-extrabold text-ink">Kunder</h2>
-            <span className="text-lg text-muted">Gem kundeinfo én gang, genbrug til alle scripts</span>
+            <h2 className="text-2xl font-extrabold text-ink">{t.customersM.title}</h2>
+            <span className="text-lg text-muted">{t.customersM.subtitle}</span>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-sunken rounded-[var(--radius-control)] cursor-pointer" title="Luk">
+          <button onClick={onClose} className="p-2 hover:bg-sunken rounded-[var(--radius-control)] cursor-pointer" title={t.customersM.close}>
             <X className="w-5 h-5 text-muted" />
           </button>
         </div>
@@ -133,13 +135,13 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                 className="w-full py-3 px-4 bg-rec hover:bg-rec-hover text-white rounded-[var(--radius-control)] text-lg font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Plus className="w-5 h-5" />
-                <span>Opret ny kunde</span>
+                <span>{t.customersM.createNew}</span>
               </button>
 
               {customers.length === 0 ? (
                 <div className="text-center py-10 text-muted text-lg">
-                  <p className="font-semibold text-muted mb-1">Ingen kunder endnu</p>
-                  <p>Opret din første kunde, eller udfyld formularen og brug "Gem som kunde".</p>
+                  <p className="font-semibold text-muted mb-1">{t.customersM.emptyTitle}</p>
+                  <p>{t.customersM.emptyDesc}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -153,7 +155,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                           <p className="font-bold text-ink text-xl truncate">{c.name || c.companyName}</p>
                           {!showSharing ? null : c.shared ? (
                             <span className="inline-flex items-center gap-1 text-sm font-bold bg-sunken text-ink border border-line-strong px-2 py-0.5 rounded">
-                              <Share2 className="w-3.5 h-3.5" /> Fælleskunde
+                              <Share2 className="w-3.5 h-3.5" /> {t.customersM.sharedCustomer}
                             </span>
                           ) : c.ownerLabel ? (
                             <span className="text-sm font-semibold bg-sunken text-muted border border-line px-2 py-0.5 rounded">
@@ -168,7 +170,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                         {c.analysisDocument?.extractedText && (
                           <p className="text-base text-ink flex items-center gap-1 mt-1">
                             <FileText className="w-4 h-4" />
-                            Målgruppeanalyse gemt ({c.analysisDocument.name})
+                            {t.customersM.analysisSaved(c.analysisDocument.name)}
                           </p>
                         )}
                       </div>
@@ -176,14 +178,14 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                         <button
                           onClick={() => startEdit(c)}
                           className="p-2.5 hover:bg-sunken border border-line rounded-[var(--radius-control)] cursor-pointer"
-                          title="Redigér kunde"
+                          title={t.customersM.editTitle}
                         >
                           <Pencil className="w-4 h-4 text-muted" />
                         </button>
                         <button
                           onClick={() => handleDelete(c.id)}
                           className="p-2.5 hover:bg-rec-soft border border-line rounded-[var(--radius-control)] cursor-pointer"
-                          title="Slet kunde"
+                          title={t.customersM.deleteTitle}
                         >
                           <Trash2 className="w-4 h-4 text-rec" />
                         </button>
@@ -193,9 +195,9 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                             onClose();
                           }}
                           className="px-4 py-2.5 bg-ink hover:bg-black text-white rounded-[var(--radius-control)] text-lg font-bold flex items-center gap-2 cursor-pointer"
-                          title="Udfyld formularen med denne kundes info"
+                          title={t.customersM.useCustomerTitle}
                         >
-                          <span>Brug kunde</span>
+                          <span>{t.customersM.useCustomer}</span>
                           <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -210,53 +212,53 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Kundenavn (label i listen)</label>
-                  <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="f.eks. JP Køl og Klima" />
+                  <label className={labelCls}>{t.customersM.nameLabel}</label>
+                  <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t.customersM.namePlaceholder} />
                 </div>
                 <div>
-                  <label className={labelCls}>Virksomhedsnavn *</label>
-                  <input className={inputCls} value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} placeholder="Virksomhedens officielle navn" />
+                  <label className={labelCls}>{t.customersM.companyLabel}</label>
+                  <input className={inputCls} value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} placeholder={t.customersM.companyPlaceholder} />
                 </div>
                 <div>
-                  <label className={labelCls}>Hjemmeside</label>
+                  <label className={labelCls}>{t.customersM.websiteLabel}</label>
                   <input className={inputCls} value={form.companyWebsite} onChange={(e) => setForm({ ...form, companyWebsite: e.target.value })} placeholder="https://..." />
                 </div>
                 <div>
-                  <label className={labelCls}>Produktnavn</label>
+                  <label className={labelCls}>{t.customersM.productLabel}</label>
                   <input className={inputCls} value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} />
                 </div>
               </div>
 
               <div>
-                <label className={labelCls}>Produktbeskrivelse / USP</label>
+                <label className={labelCls}>{t.customersM.uspLabel}</label>
                 <textarea className={inputCls} rows={2} value={form.productDescription} onChange={(e) => setForm({ ...form, productDescription: e.target.value })} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Målgruppe</label>
+                  <label className={labelCls}>{t.customersM.audienceLabel}</label>
                   <textarea className={inputCls} rows={2} value={form.targetAudience} onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} />
                 </div>
                 <div>
-                  <label className={labelCls}>Geografi / demografi</label>
+                  <label className={labelCls}>{t.customersM.demographicsLabel}</label>
                   <textarea className={inputCls} rows={2} value={form.demographics} onChange={(e) => setForm({ ...form, demographics: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelCls}>Tilbud / CTA</label>
+                  <label className={labelCls}>{t.customersM.offerLabel}</label>
                   <input className={inputCls} value={form.offerOrCta} onChange={(e) => setForm({ ...form, offerOrCta: e.target.value })} />
                 </div>
                 <div>
-                  <label className={labelCls}>Konkurrenter (adskil med komma, maks 3)</label>
+                  <label className={labelCls}>{t.customersM.competitorsLabel}</label>
                   <input className={inputCls} value={form.competitorsText} onChange={(e) => setForm({ ...form, competitorsText: e.target.value })} />
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Tone of voice / talesprog</label>
-                <input className={inputCls} value={form.toneOfVoice} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })} placeholder="f.eks. Afslappet dansk talesprog, som en god ven der anbefaler" />
+                <label className={labelCls}>{t.customersM.toneLabel}</label>
+                <input className={inputCls} value={form.toneOfVoice} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })} placeholder={t.customersM.tonePlaceholder} />
               </div>
               <div>
-                <label className={labelCls}>Interne noter</label>
+                <label className={labelCls}>{t.customersM.notesLabel}</label>
                 <textarea className={inputCls} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
@@ -269,14 +271,14 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                   className="mt-1 w-4 h-4 accent-rec cursor-pointer"
                 />
                 <span className="text-base text-ink">
-                  <span className="font-semibold text-ink block">Fælleskunde</span>
-                  Sæt flueben, hvis begge virksomheder arbejder på denne kunde. Uden flueben er kunden kun synlig for din egen virksomhed.
+                  <span className="font-semibold text-ink block">{t.customersM.sharedTitle}</span>
+                  {t.customersM.sharedDesc}
                 </span>
               </label>
               )}
 
               <p className="text-base text-muted">
-                Tip: Målgruppeanalysen (PDF/Word) gemmes automatisk på kunden, når du bruger "Gem som kunde" fra formularen efter at have uploadet den.
+                {t.customersM.tip}
               </p>
 
               <div className="flex items-center gap-3 pt-2">
@@ -285,7 +287,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                   disabled={isSaving || (!form.companyName.trim() && !form.name.trim())}
                   className="px-5 py-2.5 bg-rec hover:bg-rec-hover text-white rounded-[var(--radius-control)] text-lg font-bold cursor-pointer disabled:opacity-50"
                 >
-                  {isSaving ? 'Gemmer...' : editingId ? 'Gem ændringer' : 'Opret kunde'}
+                  {isSaving ? t.customersM.saving : editingId ? t.customersM.saveChanges : t.customersM.create}
                 </button>
                 <button
                   onClick={() => {
@@ -294,7 +296,7 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                   }}
                   className="px-5 py-2.5 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-lg font-semibold cursor-pointer"
                 >
-                  Annullér
+                  {t.customersM.cancel}
                 </button>
               </div>
             </div>
