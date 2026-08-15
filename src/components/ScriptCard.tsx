@@ -16,7 +16,7 @@ import {
   ChevronDown,
   AlertTriangle
 } from 'lucide-react';
-import { GeneratedScript } from '../types';
+import { GeneratedScript, normalizeTrafficTemperature } from '../types';
 import { formatScriptToHtml, formatScriptToPlainText, copyFormattedToClipboard, weaveBodyWithAnalogy } from '../utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from '../utils/exportUtils';
 import { AnalogyModal, AnalogyTargetContext } from './AnalogyModal';
@@ -457,9 +457,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             <>
               <span className="text-line-strong" aria-hidden="true">·</span>
               <span className="text-[14.5px] text-muted">
-                {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting')
-                  ? t.card.retargeting
-                  : t.card.coldTraffic}
+                {t.traffic[normalizeTrafficTemperature(script.trafficType)].title}
               </span>
             </>
           )}

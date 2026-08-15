@@ -14,7 +14,7 @@ import {
   Undo2,
   AlertTriangle
 } from 'lucide-react';
-import { ScriptRequest, ScriptType, AnalysisDocument } from '../types';
+import { ScriptRequest, ScriptType, AnalysisDocument, normalizeTrafficTemperature } from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
 import { FlagDK, FlagGB } from './ui/flags';
@@ -76,7 +76,7 @@ const HOOK_TYPE_IDS = [
 
 const AWARENESS_STAGE_IDS = ['Unaware', 'Problem Aware', 'Solution Aware', 'Product Aware', 'Most Aware'];
 
-const TRAFFIC_TYPE_IDS = ['cold', 'retargeting'] as const;
+const TRAFFIC_TYPE_IDS = ['cold', 'warm', 'hot'] as const;
 
 const SAMPLE_EXAMPLE_DATA = {
   companyName: 'GlowSkin Scandinavia',
@@ -104,7 +104,7 @@ const SAMPLE_EXAMPLE_DATA = {
       bodyDuration: '30 sekunder',
       numHooks: 3,
       awarenessStage: 'Product Aware',
-      trafficType: 'retargeting' as const,
+      trafficType: 'warm' as const,
       retargetingNotes: "Glemte varer i kurven, fremhæv koden 'KOMTILBAGE15' for 15% ekstra rabat og nævn at vi har over 4.800 5-stjernede anmeldelser.",
       preferredHookTypes: ['Specificitet', 'Authority', 'Status'],
       mustInclude: "UGC følelse foran spejlet, 'Jeg var så tæt på at give op...', vis før/efter resultat på huden."
@@ -479,6 +479,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   });
 
   const currentCfg = scriptConfigs[activeTab] || defaultPresets[0];
+  const activeTemp = normalizeTrafficTemperature(currentCfg.trafficType);
   const selectedTypeDesc = t.scriptTypeDescs[currentCfg.scriptType];
 
   /**
@@ -529,7 +530,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       competitors
     },
     awarenessStage: currentCfg.awarenessStage || 'Problem Aware',
-    trafficType: currentCfg.trafficType || 'cold',
+    trafficType: activeTemp,
     bodyDuration: currentCfg.bodyDuration,
     numHooks: currentCfg.numHooks || 3,
     scriptFocus,
@@ -538,7 +539,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   };
   const activeStageId = currentCfg.awarenessStage || 'Problem Aware';
   const activeStage = t.awareness[activeStageId];
-  const activeTraffic = t.traffic[(currentCfg.trafficType || 'cold') as 'cold' | 'retargeting'];
+  const activeTraffic = t.traffic[activeTemp];
 
   const segmentCls = (active: boolean) =>
     `px-3.5 py-2 rounded-[6px] text-[15px] font-semibold transition-colors cursor-pointer ${
@@ -1088,16 +1089,16 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           {/* Trafik */}
           <Disclosure title={t.form.trafficTitle} summary={activeTraffic?.title}>
             <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {TRAFFIC_TYPE_IDS.map((id) => (
                   <ChoiceButton
                     key={id}
-                    selected={(currentCfg.trafficType || 'cold') === id}
+                    selected={activeTemp === id}
                     onClick={() => updateCurrentScriptConfig('trafficType', id)}
                     title={t.traffic[id].title}
                     description={t.traffic[id].desc}
                     meta={
-                      (currentCfg.trafficType || 'cold') === id ? (
+                      activeTemp === id ? (
                         <Check className="w-4 h-4 text-rec shrink-0" strokeWidth={2.5} aria-hidden="true" />
                       ) : (
                         <span className="font-mono text-[11px] uppercase tracking-wider text-muted shrink-0">
@@ -1109,7 +1110,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 ))}
               </div>
 
-              {currentCfg.trafficType === 'retargeting' && (
+              {activeTemp !== 'cold' && (
                 <Field label={t.form.retargetingNotes} hint={t.form.retargetingHint}>
                   <input
                     type="text"

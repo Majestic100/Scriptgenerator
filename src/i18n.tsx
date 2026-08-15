@@ -134,9 +134,9 @@ const da = {
     awarenessTitle: 'Awareness-stadie',
     focus: 'Fokus:',
     trafficTitle: 'Trafik-type',
-    retargetingNotes: 'Retargeting-noter',
-    retargetingHint: "Valgfrit. Hvad skal AI'en huske om de besøgende der kommer tilbage?",
-    retargetingPlaceholder: 'f.eks. glemte varer i kurven, nævn rabatkoden KOMTILBAGE...',
+    retargetingNotes: 'Hvad har de allerede set?',
+    retargetingHint: 'Valgfrit. Den side, video eller vare seeren kender, så scriptet kan referere til den i stedet for at starte forfra.',
+    retargetingPlaceholder: 'f.eks. glemte varer i kurven, har set prissiden, så demoen til ende...',
     hookAnglesTitle: 'Hook-vinkler',
     angleCount: (n: number) => `${n} ${n === 1 ? 'vinkel' : 'vinkler'}`,
     hookN: (n: number) => `Hook ${n}`,
@@ -242,20 +242,23 @@ const da = {
 
   traffic: {
     cold: {
-      title: 'Kold trafik',
-      sub: 'Prospecting / nye besøgende',
-      desc: 'Målrettet personer der aldrig har hørt om virksomheden før. Bygger kendskab og tillid op fra bunden.'
+      title: 'Kold',
+      sub: 'Første møde',
+      desc: 'Kender ikke virksomheden. Start i deres eget problem, ikke i produktet. Næste skridt er at lære mere, ikke at købe.'
     },
-    retargeting: {
-      title: 'Retargeting',
-      sub: 'Varm trafik / kurv-forladere',
-      desc: 'Målrettet tidligere besøgende, inaktive kunder eller forladte kurve. Bruger genkendeligt sprog og lukker salget.'
+    warm: {
+      title: 'Varm',
+      sub: 'Har set jer før',
+      desc: 'Har besøgt sitet, set en video eller klikket en annonce. Springer introduktionen over og går efter konkret bevis og fit.'
+    },
+    hot: {
+      title: 'Hot',
+      sub: 'Købsklar',
+      desc: 'Kurv-afbrud, prisside eller gentagne besøg på beslutningssider. Direkte tilbud, mindre friktion, ingen genopvarmning.'
     }
   },
 
   card: {
-    coldTraffic: 'Kold trafik',
-    retargeting: 'Retargeting',
     saveToProject: 'Gem til Projekt',
     saveToProjectTitle: 'Gem dette script til et projekt',
     generateVisuals: 'Generér visuals',
@@ -688,9 +691,9 @@ const en: typeof da = {
     awarenessTitle: 'Awareness stage',
     focus: 'Focus:',
     trafficTitle: 'Traffic type',
-    retargetingNotes: 'Retargeting notes',
-    retargetingHint: 'Optional. What should the AI remember about the visitors coming back?',
-    retargetingPlaceholder: 'e.g. items left in the cart, mention the discount code COMEBACK...',
+    retargetingNotes: 'What have they already seen?',
+    retargetingHint: 'Optional. The page, video or item the viewer knows, so the script can reference it instead of starting over.',
+    retargetingPlaceholder: 'e.g. items left in the cart, viewed the pricing page, watched the demo through...',
     hookAnglesTitle: 'Hook angles',
     angleCount: (n: number) => `${n} ${n === 1 ? 'angle' : 'angles'}`,
     hookN: (n: number) => `Hook ${n}`,
@@ -795,20 +798,23 @@ const en: typeof da = {
 
   traffic: {
     cold: {
-      title: 'Cold traffic',
-      sub: 'Prospecting / new visitors',
-      desc: 'Targets people who have never heard of the company. Builds awareness and trust from scratch.'
+      title: 'Cold',
+      sub: 'First contact',
+      desc: 'Does not know the company. Start in their own problem, not the product. The next step is to learn more, not to buy.'
     },
-    retargeting: {
-      title: 'Retargeting',
-      sub: 'Warm traffic / cart abandoners',
-      desc: 'Targets previous visitors, inactive customers or abandoned carts. Uses familiar language and closes the sale.'
+    warm: {
+      title: 'Warm',
+      sub: 'Has seen you before',
+      desc: 'Visited the site, watched a video or clicked an ad. Skip the introduction and go for specific proof and fit.'
+    },
+    hot: {
+      title: 'Hot',
+      sub: 'Ready to buy',
+      desc: 'Cart abandon, pricing page or repeat visits to decision pages. Direct offer, less friction, no re-education.'
     }
   },
 
   card: {
-    coldTraffic: 'Cold traffic',
-    retargeting: 'Retargeting',
     saveToProject: 'Save to Project',
     saveToProjectTitle: 'Save this script to a project',
     generateVisuals: 'Generate visuals',
