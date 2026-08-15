@@ -369,6 +369,20 @@ function readPlaybookFile(rel: string): string {
   }
 }
 
+/** 'retargeting' var den gamle værdi og svarer til 'warm' i tre-lags-modellen. */
+function normalizeTraffic(value) {
+  const v = (value || "").toLowerCase();
+  if (v === "hot") return "hot";
+  if (v === "warm" || v.includes("retarget")) return "warm";
+  return "cold";
+}
+
+const TRAFFIC_LABELS = {
+  cold: "KOLD (første møde, kender ikke virksomheden)",
+  warm: "VARM (har set jer før: sitet, video, annonce eller brandsøgning)",
+  hot: "HOT (købsklar: kurv-afbrud, prisside, gentagne besøg på beslutningssider)",
+};
+
 const AWARENESS_STAGE_FILES: Record<string, string> = {
   "unaware": "stages/unaware.md",
   "completely unaware": "stages/unaware.md",
@@ -405,7 +419,10 @@ function buildPlaybookGenerationSection(options: {
     if (marketContent) parts.push(marketContent);
   }
 
-  // Skrivestilen gælder hvert eneste script uanset stadie og forretningsmodel
+  // Trafik-temperatur og skrivestil gælder hvert eneste script uanset stadie
+  const trafficContent = readPlaybookFile("trafik-temperatur.md");
+  if (trafficContent) parts.push(trafficContent);
+
   const styleContent = readPlaybookFile("skrivestil.md");
   if (styleContent) parts.push(styleContent);
 
@@ -451,7 +468,7 @@ async function classifyScriptStrategies(input: {
   const outputLanguageName = input.language === "en" ? "English" : "Danish";
 
   const configLines = input.scriptConfigs.map((cfg: any, i: number) => {
-    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic "${cfg.trafficType || "cold"}"${cfg.retargetingNotes ? ` (retargeting notes: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
+    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic temperature "${normalizeTraffic(cfg.trafficType)}"${cfg.retargetingNotes ? ` (what the viewer has already seen: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
   }).join("\n");
 
   const prompt = `You are classifying advertising strategy BEFORE any copy is written, following the playbook below. Do not write any script copy in this step.
@@ -774,17 +791,13 @@ app.post("/api/generate-scripts", async (req, res) => {
         const scriptHookTypes = Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? cfg.preferredHookTypes : null;
         const scriptMustInclude = cfg.mustInclude ? cfg.mustInclude.trim() : null;
         const scriptAwareness = cfg.awarenessStage ? cfg.awarenessStage.trim() : null;
-        const scriptTrafficType = cfg.trafficType ? cfg.trafficType : 'cold';
+        const scriptTrafficType = normalizeTraffic(cfg.trafficType);
         const scriptRetargetingNotes = cfg.retargetingNotes ? cfg.retargetingNotes.trim() : null;
         const scriptAnalogies = Array.isArray(cfg.analogies) && cfg.analogies.length > 0 ? cfg.analogies : null;
 
         let extraDetails = [];
         if (scriptAwareness) extraDetails.push(`AWARENESS STADIE: "${scriptAwareness}"`);
-        if (scriptTrafficType === 'retargeting') {
-          extraDetails.push(`MÅLGRUPPE: RETARGETING / VARM TRAFIK (tidligere besøgende/interagerede brugere).${scriptRetargetingNotes ? ` Særlige retargeting-noter: "${scriptRetargetingNotes}"` : ''}`);
-        } else {
-          extraDetails.push(`MÅLGRUPPE: KOLD TRAFIK (Helt nye potentielle kunder)`);
-        }
+        extraDetails.push(`TRAFIK-TEMPERATUR: ${TRAFFIC_LABELS[scriptTrafficType]}${scriptRetargetingNotes ? ` Hvad seeren allerede har set: "${scriptRetargetingNotes}"` : ''}`);
         if (scriptProdDesc) extraDetails.push(`Produkt/USP: "${scriptProdDesc}"`);
         if (scriptTargetAud) extraDetails.push(`Ideelle kunde: "${scriptTargetAud}"`);
         if (scriptDemographics) extraDetails.push(`Hvor i landet / Geografi: "${scriptDemographics}"`);
@@ -883,18 +896,28 @@ REGLER FOR AWARENESS STADIE & TRAFIK-TYPE:
   * Solution Aware (Løsningsbevidst): Fokuser på hvorfor dit produkt/mekanisme virker anderledes og bedre end andre løsninger på markedet.
   * Product Aware (Produktbevidst): Fjern tvivl og indvendinger, fremvis beviser, UGC, anmeldelser og produkt-demonstration.
   * Most Aware (Mest bevidst / Købsklar): Fokuser direkte på tilbuddet, rabat, garanti, tidsfrist/urgency og en kontant CTA.
-- TRAFIK-TYPEN ER LIGE SÅ BINDENDE SOM AWARENESS-STADIET. Den afgør hvad seeren allerede ved om VIRKSOMHEDEN, og dermed hvad scriptet må tage for givet. Awareness og trafik-type er to forskellige akser: et Problem Aware-script til kold trafik må kende smerten, men ikke brandet.
-- Hvis et script er markeret som KOLD TRAFIK:
+- TRAFIK-TEMPERATUREN ER LIGE SÅ BINDENDE SOM AWARENESS-STADIET. Awareness handler om hvad seeren ved om PROBLEMET og LØSNINGEN. Temperatur handler om deres historik med VIRKSOMHEDEN. De to akser bruges sammen: et Problem Aware-script til kold trafik må kende smerten, men ikke brandet.
+- "Hot" betyder KØBSKLAR (kurv-afbrud, prisside, gentagne besøg på beslutningssider), ikke "eksisterende kunde".
+- Hvis et script er markeret som KOLD:
   * Seeren har ALDRIG hørt om virksomheden. Scriptet må intet tage for givet om kendskab til brand, produkt, tidligere besøg eller tilbud.
-  * STRENGT FORBUDT i kold trafik: "Som du ved", "Husker du", "Du har set", "Kom tilbage", "Din kurv", "Igen i dag", "Vi har jo", og enhver anden formulering der forudsætter et tidligere møde med virksomheden.
-  * Hooket skal fortjene opmærksomheden fra nul: start i seerens egen situation eller symptom, aldrig i produktet. Virksomhedsnavnet falder først når der er skabt genkendelse.
+  * STRENGT FORBUDT: "Som du ved", "Husker du", "Du har set", "Kom tilbage", "Din kurv", "Igen i dag", "Vi har jo", og enhver anden formulering der forudsætter et tidligere møde med virksomheden.
+  * Intet brandnavn i første linje. Start ved problemet, formuleret som seeren selv ville sige det. Virksomhedsnavnet falder først når der er skabt genkendelse.
   * Tilbuddet er ikke åbningen. Rabat, kode og deadline hører til i CTA'en, ikke i de første sekunder hvor seeren endnu ikke ved hvad der sælges.
+  * CTA'en er et lavfriktions-skridt: se hvordan, hent guiden, se sammenligningen. IKKE "book en demo" eller "køb nu" som primær opfordring.
+  * Bevis må gerne være generisk kategoribevis, for der er endnu ingen relation at trække på. Vis det i billedet frem for at påstå det.
   * Kvalificér den rigtige seer tidligt, så de forkerte scroller videre: nævn situationen, faget eller rollen konkret i stedet for en bred påstand alle kan nikke til.
-  * Regn med nul forhåndstillid. Beviser skal VISES i billedet (demonstration, rigtige optagelser, konkrete tal fra materialet), ikke blot påstås.
-- Hvis et script er markeret som RETARGETING / VARM TRAFIK:
-  * Brug sprog henvendt til folk der allerede kender brandet (f.eks. "Overvejer du stadig...", "Glemte du noget i kurven?", "Før du beslutter dig...").
-  * Fokuser på at fjerne de sidste købsforhindringer (risikofri prøve, gratis fragt, 100 dages returret, kunders anmeldelser) og giv et stærkt retargeting-tilbud.
-  * Genforklar ikke problemet fra bunden. Seeren kender det, og en genopvarmning spilder de sekunder der skulle lukke salget.
+- Hvis et script er markeret som VARM:
+  * Seeren har en forbindelse til virksomheden: har været på sitet, set en video, klikket en annonce eller søgt på brandet. Spring den generiske introduktion over.
+  * Referér konkret til det seeren allerede har set eller gjort (se feltet "Hvad har de allerede set?", hvis det er udfyldt).
+  * Beviset skal være SPECIFIKT: en case, et tal, en navngiven kunde, en demonstration. Ikke kategoribevis.
+  * CTA'en er et lavtærskel-næste-skridt, ikke et køb: se casen, book en snak, få et estimat, sammenlign.
+  * Genforklar ikke problemet fra bunden. Seeren kender det, og en genopvarmning spilder de sekunder der skulle flytte beslutningen.
+- Hvis et script er markeret som HOT:
+  * Seeren er købsklar og færdig med at blive undervist. Fjern friktion frem for at tilføje overtalelse.
+  * Knyt budskabet til præcis det de har set: varen i kurven, siden de læste, prisen de tjekkede.
+  * Direkte tilbud og tydelig CTA: køb nu, vælg tidspunkt, betal depositum, fuldfør bestillingen.
+  * Hastværk KUN hvis det er ægte og står i materialet. Falsk knaphed og permanente nedtællinger koster tillid.
+  * Ingen genopvarmning af problemet og ingen ny undervisning. Det forsinker købet.
 
 KRITISK REGEL FOR VARIGHED, TALEHASTIGHED OG REPLIKLÆNGDE (SAMLET TID FOR HELE VIDEOEN):
 - Den angivne varighed (f.eks. "15 sekunder", "20 sekunder", "30 sekunder", "45 sekunder", "60 sekunder") er den SAMLEDE LÆNGDE FOR HELE MANUSKRIPTET TILSAMMEN (Hook + Body-scener + CTA).
@@ -1046,7 +1069,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       // det operatøren valgte. Opsætningen vinder, så kortet og det gemte script viser
       // det der faktisk blev bestilt.
       const effectiveAwareness = cfg?.awarenessStage || script.awarenessStage || "Problem Aware";
-      const effectiveTrafficType = cfg?.trafficType || script.trafficType || "cold";
+      const effectiveTrafficType = normalizeTraffic(cfg?.trafficType || script.trafficType);
 
       const rawScript = {
         ...script,
@@ -2329,7 +2352,7 @@ ${documentText ? `--- MÅLGRUPPEANALYSE ---\n${documentText.slice(0, 50000)}\n--
 ${briefLines ? `--- BRIEF ---\n${briefLines}\n--- SLUT PÅ BRIEF ---\n` : ""}
 OPSÆTNING FOR DETTE SCRIPT:
 - Awareness-stadie: ${awarenessStage || "Problem Aware"}
-- Trafik: ${trafficType === "retargeting" ? "Retargeting, varm trafik" : "Kold trafik, prospecting"}
+- Trafik-temperatur: ${TRAFFIC_LABELS[normalizeTraffic(trafficType)]}
 - Varighed: ${bodyDuration || "30 sekunder"}
 - Antal hooks der skal skrives: ${hooksWanted}
 ${scriptFocus === "lead" ? "- Målet er leads, ikke direkte salg.\n" : "- Målet er salg af produktet.\n"}

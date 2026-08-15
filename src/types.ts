@@ -26,6 +26,16 @@ export type ScriptType =
   | 'Risikofri / Garanti-fokus'
   | 'Transparens & Priskalkyle';
 
+export type TrafficTemperature = 'cold' | 'warm' | 'hot';
+
+/** Ældre scripts og opsætninger gemte 'retargeting'. Det svarer til 'warm' i den nye model. */
+export const normalizeTrafficTemperature = (value?: string): TrafficTemperature => {
+  const v = (value || '').toLowerCase();
+  if (v === 'hot') return 'hot';
+  if (v === 'warm' || v === 'retargeting' || v.includes('retarget')) return 'warm';
+  return 'cold';
+};
+
 export interface PerScriptConfig {
   scriptType: string;
   bodyDuration: string;
@@ -37,7 +47,12 @@ export interface PerScriptConfig {
   preferredHookTypes?: string[];
   mustInclude?: string;
   awarenessStage?: string; // 'Unaware' | 'Problem Aware' | 'Solution Aware' | 'Product Aware' | 'Most Aware'
-  trafficType?: 'cold' | 'retargeting';
+  /**
+   * Trafik-temperatur: hvad seeren ved om VIRKSOMHEDEN. Egen akse i forhold til awareness,
+   * som handler om hvad de ved om problemet. "hot" betyder købsklar, ikke eksisterende kunde.
+   * 'retargeting' er den gamle værdi og læses som 'warm'.
+   */
+  trafficType?: TrafficTemperature | 'retargeting';
   retargetingNotes?: string;
   analogies?: string[]; // Custom or chosen Danish analogies/idioms
 }
