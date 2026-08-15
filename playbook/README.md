@@ -12,6 +12,8 @@ Princippet: **generatoren klassificerer strategien, før den skriver.** Klassifi
 | `stages/<stadie>.md` | I genererings-kaldet — kun de stadier, de aktuelle scripts rammer |
 | `markets/da.md` | I genererings-kaldet når scriptsproget er dansk |
 | `ecommerce.md` / `leadgen.md` | I genererings-kaldet efter kampagnefokus (produkt/leads) |
+| `trafik-temperatur.md` | I genererings-kaldet — sprogregler for kold, varm og hot trafik |
+| `skrivestil.md` | I genererings-kaldet og ved regenerering — reglerne mod AI-klingende tekst |
 | `processes.md` | Reference — stadie-filerne har hver deres relevante processer indlejret |
 
 Filnavnene under `stages/` matcher awareness-id'erne i appen ("Problem Aware" → `problem-aware.md`). Rediger indholdet frit — serveren læser filerne ved hvert kald, så ændringer slår igennem uden genstart af buildet (dog kræver Render et re-deploy, da filerne følger med repoet).
