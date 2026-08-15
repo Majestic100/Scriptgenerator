@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, RotateCcw, Type, MoveVertical } from 'lucide-react';
 import { GeneratedScript, HookItem } from '../types';
+import { useLang } from '../i18n';
 
 interface TeleprompterModalProps {
   script: GeneratedScript;
@@ -13,6 +14,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
   selectedHook,
   onClose
 }) => {
+  const { t } = useLang();
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(2); // 1 to 5
   const [fontSize, setFontSize] = useState(28); // px
@@ -44,7 +46,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
       <div className="flex items-center justify-between border-b border-slate-800 pb-4 max-w-4xl mx-auto w-full">
         <div>
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <span>🎥 Teleprompter Mode</span>
+            <span>{t.tele.title}</span>
           </h3>
           <p className="text-base text-muted">
             {script.title} · {script.companyName}
@@ -73,7 +75,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {/* Speed */}
           <div className="flex items-center gap-2 bg-ink px-3 py-1 rounded-[var(--radius-control)] border border-slate-700 text-base">
             <MoveVertical className="w-3.5 h-3.5 text-muted" />
-            <span className="text-muted">Hastighed:</span>
+            <span className="text-muted">{t.tele.speed}</span>
             <input
               type="range"
               min={1}
@@ -94,13 +96,13 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
             }`}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            <span>{isPlaying ? 'Pause' : 'Start Scroll'}</span>
+            <span>{isPlaying ? t.tele.pause : t.tele.start}</span>
           </button>
 
           <button
             onClick={handleReset}
             className="p-2 bg-ink hover:bg-slate-700 text-slate-300 rounded-[var(--radius-control)] cursor-pointer"
-            title="Nulstil"
+            title={t.tele.reset}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -123,7 +125,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
         {/* Eye level marker */}
         <div className="sticky top-1/3 left-0 right-0 h-0.5 bg-indigo-500/30 pointer-events-none flex items-center justify-end">
           <span className="text-sm text-indigo-400 bg-ink px-2 rounded-full border border-indigo-500/30 -mr-8">
-            ØJENHØJDE
+            {t.tele.eyeLevel}
           </span>
         </div>
 
@@ -132,13 +134,13 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {/* Selected Hook */}
           <div className="p-6 bg-indigo-950/40 border border-indigo-500/30 rounded-2xl">
             <span className="text-base uppercase font-bold text-indigo-400 tracking-widest block mb-2">
-              HOOK {selectedHook.hookNumber} ({selectedHook.angleType})
+              {t.tele.hook} {selectedHook.hookNumber} ({selectedHook.angleType})
             </span>
             <p className="font-bold text-indigo-100 leading-snug">
               "{selectedHook.audioDialogue}"
             </p>
             <span className="text-base text-indigo-300/70 block mt-2 font-normal">
-              Visuelt: {selectedHook.visualDirection}
+              {t.tele.visual} {selectedHook.visualDirection}
             </span>
           </div>
 
@@ -146,14 +148,14 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {script.scenes.map((scene, idx) => (
             <div key={scene.id} className="p-4 rounded-[var(--radius-card)] space-y-2">
               <div className="text-base text-muted uppercase tracking-wider font-semibold">
-                Scene {idx + 1} [{scene.timecode}] · {scene.section}
+                {t.tele.scene} {idx + 1} [{scene.timecode}] · {scene.section}
               </div>
               <p className="font-semibold text-slate-100 leading-relaxed">
                 "{scene.audioDialogue}"
               </p>
               {scene.textOnScreen && (
                 <div className="text-lg text-amber-300/80 font-normal">
-                  Tekst på skærmen: {scene.textOnScreen}
+                  {t.tele.textOnScreen} {scene.textOnScreen}
                 </div>
               )}
             </div>
@@ -162,7 +164,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
           {/* CTA */}
           <div className="p-6 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl">
             <span className="text-base uppercase font-bold text-emerald-400 tracking-widest block mb-2">
-              CALL TO ACTION
+              {t.tele.cta}
             </span>
             <p className="font-bold text-emerald-100">
               "{script.callToAction}"
@@ -174,7 +176,7 @@ export const TeleprompterModal: React.FC<TeleprompterModalProps> = ({
 
       {/* Footer hint */}
       <div className="text-center text-base text-muted">
-        Placér din mobil eller kamera direkte bag skærmen ved øjenhøjde-linjen for naturlig øjenkontakt.
+        {t.tele.footer}
       </div>
 
     </div>

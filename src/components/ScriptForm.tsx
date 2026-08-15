@@ -17,6 +17,8 @@ import { ScriptRequest, ScriptType, AnalysisDocument } from '../types';
 import { AwarenessFunnelFigure } from './AwarenessFunnelFigure';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
+import { FlagDK, FlagGB } from './ui/flags';
+import { useLang, formatDuration } from '../i18n';
 
 interface ScriptFormProps {
   onSubmit: (request: ScriptRequest) => void;
@@ -25,33 +27,34 @@ interface ScriptFormProps {
   onSaveAsCustomer?: (data: Partial<ScriptRequest>) => void;
 }
 
-const SCRIPT_TYPES: { type: ScriptType; desc: string }[] = [
-  { type: 'Problem–Solution / PAS', desc: 'Fokusér stærkt på kundens smerte før produktet introduceres som helten.' },
-  { type: 'Humor & Skæv Vinkel', desc: 'Underholdende, sjov eller selvironisk tilgang der fanger opmærksomheden.' },
-  { type: 'Educational / Explainer', desc: 'Pædagogisk gennemgang af problemet og hvorfor produktet er løsningen.' },
-  { type: 'Lifestyle & Product in Action', desc: 'Æstetisk visuel fremvisning af produktet i brug i hverdagen.' },
-  { type: 'Testimonial / UGC', desc: 'Autentisk anmeldelse og oplevelse fra en tilfreds kunde eller skuespiller.' },
-  { type: 'Demonstration & How-it-Works', desc: 'Hands-on demonstration af hvordan produktet fungerer i praksis.' },
-  { type: 'Before-and-After Transformation', desc: 'Dramatisk visuel kontrast før og efter brug af produktet.' },
-  { type: 'Story-Driven / Narrative', desc: 'En medrivende personlig historie eller rejse der opbygger empati.' },
-  { type: 'Shock / Pattern Interrupt', desc: 'Chokerende påstand eller uventet visuel start der stopper scrollen.' },
-  { type: 'ASMR / Sensory Experience', desc: 'Fokus på lyde, teksturer og nærbilleder for en sanselig oplevelse.' },
-  { type: 'Aesthetic / Cinematic', desc: 'Flot produceret video med lækre vinkler og eksklusiv stemning.' },
-  { type: 'Comparison (Us vs Competitors)', desc: 'Direkte sammenligning af dit produkt mod konkurrenter eller alternativer.' },
-  { type: 'Social Proof / Data-Backed', desc: 'Fokus på gode anmeldelser, testresultater, kliniske studier og tal.' },
-  { type: 'Tips & Hacks', desc: 'Nyttige råd og genveje hvor produktet naturligt indgår som løsningen.' },
-  { type: 'Green Screen / Reaction & Review', desc: 'Kreatøren står foran et screenshot af en artikel, anmeldelse eller opslag.' },
-  { type: 'Unboxing & First Impression', desc: 'Spændingen ved at åbne pakken og afprøve produktet for første gang.' },
-  { type: 'Founder Story & Behind the Scenes', desc: 'Personlig historie fra stifteren om hvorfor virksomheden blev skabt.' },
-  { type: 'Objection Handling / Indvendingsknuser', desc: 'Tager kundens største tvivl op og aflyser den direkte i hooket.' },
-  { type: 'Skeptiker → Overbevist', desc: 'Kreatøren starter som decideret skeptiker og bliver vendt af resultatet.' },
-  { type: 'Myth-Busting / Aflivning af myter', desc: 'Punkterer en udbredt misforståelse i kategorien og korrigerer den.' },
-  { type: 'FAQ / Rapid-Fire Q&A', desc: 'Besvarer de 3-5 mest stillede spørgsmål i højt tempo.' },
-  { type: 'Anmeldelses-oplæsning', desc: 'Kreatøren læser rigtige kundeanmeldelser højt på skærmen.' },
-  { type: 'Ingrediens- & Spec Deep-Dive', desc: 'Zoomer ind på én ingrediens, materiale eller teknologi og hvorfor den virker.' },
-  { type: 'Ekspert & Autoritet', desc: 'Læge, tandlæge, fysioterapeut eller fagperson forklarer og validerer produktet.' },
-  { type: 'Risikofri / Garanti-fokus', desc: 'Hele scriptet bygger på returret, garanti eller "prøv gratis" for at fjerne købsrisiko.' },
-  { type: 'Transparens & Priskalkyle', desc: 'Bryder prisen ned i råvarer, produktion og markup for at retfærdiggøre den.' }
+/** Script-stilene er faste id'er; beskrivelserne slås op i oversættelserne. */
+const SCRIPT_TYPES: ScriptType[] = [
+  'Problem–Solution / PAS',
+  'Humor & Skæv Vinkel',
+  'Educational / Explainer',
+  'Lifestyle & Product in Action',
+  'Testimonial / UGC',
+  'Demonstration & How-it-Works',
+  'Before-and-After Transformation',
+  'Story-Driven / Narrative',
+  'Shock / Pattern Interrupt',
+  'ASMR / Sensory Experience',
+  'Aesthetic / Cinematic',
+  'Comparison (Us vs Competitors)',
+  'Social Proof / Data-Backed',
+  'Tips & Hacks',
+  'Green Screen / Reaction & Review',
+  'Unboxing & First Impression',
+  'Founder Story & Behind the Scenes',
+  'Objection Handling / Indvendingsknuser',
+  'Skeptiker → Overbevist',
+  'Myth-Busting / Aflivning af myter',
+  'FAQ / Rapid-Fire Q&A',
+  'Anmeldelses-oplæsning',
+  'Ingrediens- & Spec Deep-Dive',
+  'Ekspert & Autoritet',
+  'Risikofri / Garanti-fokus',
+  'Transparens & Priskalkyle'
 ];
 
 const DURATION_OPTIONS = [
@@ -59,79 +62,21 @@ const DURATION_OPTIONS = [
   '40 sekunder', '45 sekunder', '50 sekunder', '55 sekunder', '60 sekunder'
 ];
 
-const HOOK_TYPE_OPTIONS = [
-  { id: 'Pattern interrupt', label: 'Pattern interrupt', desc: 'sig noget uventet', example: '"Stop med at bruge din almindelige pude..."' },
-  { id: 'Loss aversion', label: 'Loss aversion', desc: 'folk vil hellere undgå at tabe end vinde', example: '"Du smider 500 kr. ud af vinduet hver måned..."' },
-  { id: 'Specificitet', label: 'Specificitet', desc: '"37.000 kr." føles stærkere end "mange penge"', example: '"14.820 danskere har skiftet..."' },
-  { id: 'Status', label: 'Status', desc: '"de bedste brands gør..."', example: '"Hvorfor de bedst præsterende bureauer..."' },
-  { id: 'Curiosity gap', label: 'Curiosity gap', desc: 'hjernen vil have svaret', example: '"Der er én hemmelig grund til..."' },
-  { id: 'Identity', label: 'Identity', desc: '"du er ikke typen der..."', example: '"Hvis du er typen der tager dine mål seriøst..."' },
-  { id: 'Authority', label: 'Authority', desc: '"vi ser det igen og igen..."', example: '"Eksperter råber op: De fleste gør denne fejl..."' },
-  { id: 'Future pacing', label: 'Future pacing', desc: '"om 6 måneder står du samme sted..."', example: '"Forestil dig hvordan din hverdag ser ud om 30 dage..."' },
-  { id: 'Kontrast', label: 'Kontrast', desc: '"det er ikke X... det er Y"', example: '"Det er ikke dine evner, det er metoden..."' }
+const HOOK_TYPE_IDS = [
+  'Pattern interrupt',
+  'Loss aversion',
+  'Specificitet',
+  'Status',
+  'Curiosity gap',
+  'Identity',
+  'Authority',
+  'Future pacing',
+  'Kontrast'
 ];
 
-const AWARENESS_STAGES = [
-  {
-    id: 'Unaware',
-    short: 'Unaware',
-    badge: 'Koldest',
-    desc: 'Kender hverken til problemet eller løsningen.',
-    focus: 'Væk nysgerrighed, stop scrollen og afslør en uopdaget ulempe eller smerte.'
-  },
-  {
-    id: 'Problem Aware',
-    short: 'Problem Aware',
-    badge: 'Middel kold',
-    desc: 'Mærker problemet og frustreres i hverdagen.',
-    focus: 'Spejl smerten stærkt, skab empati og introducer løsningskategorien.'
-  },
-  {
-    id: 'Solution Aware',
-    short: 'Solution Aware',
-    badge: 'Middel varm',
-    desc: 'Kender til løsninger, men søger den bedste mulighed.',
-    focus: 'Fremhæv mekanismen og hvorfor dit produkt virker bedre end alternativer.'
-  },
-  {
-    id: 'Product Aware',
-    short: 'Product Aware',
-    badge: 'Varm',
-    desc: 'Kender dit produkt, men har tvivl eller indvendinger.',
-    focus: 'Fjern købsmodstand, vis social proof, kunders anmeldelser og demo.'
-  },
-  {
-    id: 'Most Aware',
-    short: 'Most Aware',
-    badge: 'Hot',
-    desc: 'Klar til køb, mangler kun et uimodståeligt tilbud.',
-    focus: 'Fokusér stærkt på tilbuddet, rabat eller bonus, garanti, urgency og CTA.'
-  }
-];
+const AWARENESS_STAGE_IDS = ['Unaware', 'Problem Aware', 'Solution Aware', 'Product Aware', 'Most Aware'];
 
-const TRAFFIC_TYPES = [
-  {
-    id: 'cold',
-    title: 'Kold trafik',
-    sub: 'Prospecting / nye besøgende',
-    desc: 'Målrettet personer der aldrig har hørt om virksomheden før. Bygger kendskab og tillid op fra bunden.'
-  },
-  {
-    id: 'retargeting',
-    title: 'Retargeting',
-    sub: 'Varm trafik / kurv-forladere',
-    desc: 'Målrettet tidligere besøgende, inaktive kunder eller forladte kurve. Bruger genkendeligt sprog og lukker salget.'
-  }
-];
-
-const TONE_PRESETS = [
-  'Afslappet dansk talesprog, som en god ven der anbefaler',
-  'Ungt og energisk, TikTok-tempo',
-  'Professionelt og troværdigt, business-tone',
-  'Varmt og omsorgsfuldt, empatisk',
-  'Direkte og kontant, ingen omsvøb',
-  'Humoristisk og selvironisk'
-];
+const TRAFFIC_TYPE_IDS = ['cold', 'retargeting'] as const;
 
 const SAMPLE_EXAMPLE_DATA = {
   companyName: 'GlowSkin Scandinavia',
@@ -144,7 +89,6 @@ const SAMPLE_EXAMPLE_DATA = {
   demographics: 'Kvinder 25-45 år, bosat i Norden/Danmark, byboere, middel til høj indkomst, interesserede i skønhed, selvforkælelse og hudpleje.',
   offerOrCta: 'Spar 20% + Gratis fragt ved køb af 2 flasker i dag (Brug koden: SCANDI20)',
   scriptFocus: 'product' as const,
-  language: 'da' as const,
   scriptConfigs: [
     {
       scriptType: 'Problem–Solution / PAS',
@@ -228,6 +172,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   initialData,
   onSaveAsCustomer
 }) => {
+  const { t, lang, setLang } = useLang();
+
   const [companyName, setCompanyName] = useState(initialData?.companyName || SAMPLE_EXAMPLE_DATA.companyName);
   const [documentTitle, setDocumentTitle] = useState(
     initialData?.documentTitle || (initialData?.companyName ? `${initialData.companyName} - Script 2` : 'JP Køl og Klima - Script 2')
@@ -265,7 +211,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [demographics, setDemographics] = useState(initialData?.demographics || SAMPLE_EXAMPLE_DATA.demographics);
   const [offerOrCta, setOfferOrCta] = useState(initialData?.offerOrCta || SAMPLE_EXAMPLE_DATA.offerOrCta);
   const [scriptFocus, setScriptFocus] = useState<'product' | 'lead'>(initialData?.scriptFocus || SAMPLE_EXAMPLE_DATA.scriptFocus);
-  const [language, setLanguage] = useState<'da' | 'en'>(initialData?.language || SAMPLE_EXAMPLE_DATA.language);
 
   // Automatisk udfyldning ud fra den uploadede analyse
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -317,20 +262,20 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       }
     };
 
-    set('Virksomhedens navn', fields.companyName, (v) => {
+    set(t.form.fieldLabels.companyName, fields.companyName, (v) => {
       setCompanyName(v);
       setDocumentTitle(`${v} - Script 2`);
     });
-    set('Produktets navn', fields.productName, setProductName);
-    set('Produkt og unikke fordele', fields.productDescription, setProductDescription);
-    set('Den ideelle kunde', fields.targetAudience, setTargetAudience);
-    set('Geografi og demografi', fields.demographics, setDemographics);
-    set('Call to action', fields.offerOrCta, setOfferOrCta);
-    set('Talesprog', fields.toneOfVoice, setToneOfVoice);
+    set(t.form.fieldLabels.productName, fields.productName, setProductName);
+    set(t.form.fieldLabels.productDescription, fields.productDescription, setProductDescription);
+    set(t.form.fieldLabels.targetAudience, fields.targetAudience, setTargetAudience);
+    set(t.form.fieldLabels.demographics, fields.demographics, setDemographics);
+    set(t.form.fieldLabels.offerOrCta, fields.offerOrCta, setOfferOrCta);
+    set(t.form.fieldLabels.toneOfVoice, fields.toneOfVoice, setToneOfVoice);
 
     if (Array.isArray(fields.competitors) && fields.competitors.length > 0) {
       setCompetitors(fields.competitors.slice(0, 3));
-      filled.push('Konkurrenter');
+      filled.push(t.form.fieldLabels.competitors);
     }
 
     // Ryd tidligere overstyringer pr. script, så de nye værdier slår igennem på alle scripts
@@ -367,7 +312,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       const data = await res.json();
 
       if (!data.success) {
-        setAnalysisError(data.error || 'Kunne ikke læse analysen.');
+        setAnalysisError(data.error || t.form.couldNotReadAnalysis);
         return;
       }
 
@@ -387,7 +332,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       });
     } catch (err) {
       console.error('Fejl ved analyse af dokument:', err);
-      setAnalysisError('Kunne ikke få fat i serveren. Prøv igen.');
+      setAnalysisError(t.form.serverUnreachable);
     } finally {
       setIsAnalyzing(false);
     }
@@ -442,7 +387,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     setDemographics(SAMPLE_EXAMPLE_DATA.demographics);
     setOfferOrCta(SAMPLE_EXAMPLE_DATA.offerOrCta);
     setScriptFocus(SAMPLE_EXAMPLE_DATA.scriptFocus);
-    setLanguage(SAMPLE_EXAMPLE_DATA.language);
     setScriptConfigs(SAMPLE_EXAMPLE_DATA.scriptConfigs);
   };
 
@@ -470,7 +414,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     const currentHooks = [...(cfg.preferredHookTypes || [])];
 
     for (let i = 0; i < hooks; i++) {
-      if (!currentHooks[i]) currentHooks[i] = HOOK_TYPE_OPTIONS[i % HOOK_TYPE_OPTIONS.length].id;
+      if (!currentHooks[i]) currentHooks[i] = HOOK_TYPE_IDS[i % HOOK_TYPE_IDS.length];
     }
 
     currentHooks[hookIndex] = angleId;
@@ -505,7 +449,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       demographics: demographics.trim(),
       offerOrCta: offerOrCta.trim(),
       scriptFocus,
-      language,
+      language: lang,
       toneOfVoice: toneOfVoice.trim() || undefined,
       explainHookPsychology
     });
@@ -525,7 +469,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   });
 
   const currentCfg = scriptConfigs[activeTab] || defaultPresets[0];
-  const selectedType = SCRIPT_TYPES.find((st) => st.type === currentCfg.scriptType);
+  const selectedTypeDesc = t.scriptTypeDescs[currentCfg.scriptType];
 
   /** Sætter en hel række hook-vinkler ind på det aktive script. */
   const applyHookAngles = (ids: string[]) => {
@@ -533,7 +477,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     const next = [...(currentCfg.preferredHookTypes || [])];
     for (let i = 0; i < hooks; i++) {
       if (ids[i]) next[i] = ids[i];
-      else if (!next[i]) next[i] = HOOK_TYPE_OPTIONS[i % HOOK_TYPE_OPTIONS.length].id;
+      else if (!next[i]) next[i] = HOOK_TYPE_IDS[i % HOOK_TYPE_IDS.length];
     }
     updateCurrentScriptConfig('preferredHookTypes', next.slice(0, hooks));
   };
@@ -554,11 +498,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     bodyDuration: currentCfg.bodyDuration,
     numHooks: currentCfg.numHooks || 3,
     scriptFocus,
-    scriptTypes: SCRIPT_TYPES.map((st) => st.type),
-    hookAngles: HOOK_TYPE_OPTIONS.map((h) => ({ id: h.id, label: h.label, desc: h.desc }))
+    scriptTypes: SCRIPT_TYPES,
+    hookAngles: HOOK_TYPE_IDS.map((id) => ({ id, label: id, desc: t.hookAngles[id]?.desc || '' }))
   };
-  const activeStage = AWARENESS_STAGES.find((s) => s.id === (currentCfg.awarenessStage || 'Problem Aware'));
-  const activeTraffic = TRAFFIC_TYPES.find((t) => t.id === (currentCfg.trafficType || 'cold'));
+  const activeStageId = currentCfg.awarenessStage || 'Problem Aware';
+  const activeStage = t.awareness[activeStageId];
+  const activeTraffic = t.traffic[(currentCfg.trafficType || 'cold') as 'cold' | 'retargeting'];
 
   const segmentCls = (active: boolean) =>
     `px-3.5 py-2 rounded-[6px] text-[15px] font-semibold transition-colors cursor-pointer ${
@@ -572,19 +517,31 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       <Section
         id="kunde"
         step={1}
-        title="Kunde & produkt"
-        description="Grundlaget AI'en skriver ud fra. Gem det som kunde, så du slipper for at taste det igen."
+        title={t.form.section1Title}
+        description={t.form.section1Desc}
         aside={
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={handleFillExampleData} className={buttonStyles.ghost}>
               <Sparkles className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-              Eksempeldata
+              {t.form.exampleData}
             </button>
             <div className="segment-track grid-cols-2">
-              <button type="button" onClick={() => setLanguage('da')} className={segmentCls(language === 'da')}>
+              <button
+                type="button"
+                onClick={() => setLang('da')}
+                className={`${segmentCls(lang === 'da')} flex items-center justify-center gap-2`}
+                aria-pressed={lang === 'da'}
+              >
+                <FlagDK />
                 Dansk
               </button>
-              <button type="button" onClick={() => setLanguage('en')} className={segmentCls(language === 'en')}>
+              <button
+                type="button"
+                onClick={() => setLang('en')}
+                className={`${segmentCls(lang === 'en')} flex items-center justify-center gap-2`}
+                aria-pressed={lang === 'en'}
+              >
+                <FlagGB />
                 English
               </button>
             </div>
@@ -592,7 +549,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         }
       >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <Field label="Virksomhedens navn" required htmlFor="companyName">
+          <Field label={t.form.companyName} required htmlFor="companyName">
             <input
               id="companyName"
               type="text"
@@ -602,12 +559,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 setCompanyName(e.target.value);
                 setDocumentTitle(`${e.target.value} - Script 2`);
               }}
-              placeholder="f.eks. JP Køl og Klima"
+              placeholder={t.form.companyPlaceholder}
               className="control"
             />
           </Field>
 
-          <Field label="Hjemmeside" hint="AI'en læser siden og bruger den som baggrund." htmlFor="companyWebsite">
+          <Field label={t.form.website} hint={t.form.websiteHint} htmlFor="companyWebsite">
             <input
               id="companyWebsite"
               type="url"
@@ -618,34 +575,34 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             />
           </Field>
 
-          <Field label="Produktets navn" meta="Valgfri" htmlFor="productName">
+          <Field label={t.form.productName} meta={t.form.optional} htmlFor="productName">
             <input
               id="productName"
               type="text"
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
-              placeholder={scriptFocus === 'lead' ? 'f.eks. Gratis e-bog / konsultation' : 'f.eks. Hydrating Face Serum'}
+              placeholder={scriptFocus === 'lead' ? t.form.productPlaceholderLead : t.form.productPlaceholderProduct}
               className="control"
             />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <Field label="Hvad skal scriptet sælge?">
+          <Field label={t.form.focusLabel}>
             <div className="segment-track grid-cols-2">
               <button type="button" onClick={() => setScriptFocus('product')} className={`${segmentCls(scriptFocus === 'product')} flex items-center justify-center gap-1.5`}>
                 <ShoppingBag className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
-                Produkt
+                {t.form.focusProduct}
               </button>
               <button type="button" onClick={() => setScriptFocus('lead')} className={`${segmentCls(scriptFocus === 'lead')} flex items-center justify-center gap-1.5`}>
                 <UserPlus className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
-                Leads
+                {t.form.focusLeads}
               </button>
             </div>
           </Field>
 
           <div className="lg:col-span-2">
-            <Field label="Konkurrenter" meta={`${competitors.length} af 3`} htmlFor="competitor">
+            <Field label={t.form.competitors} meta={t.form.nOf3(competitors.length)} htmlFor="competitor">
               <div className="flex gap-2">
                 <input
                   id="competitor"
@@ -659,7 +616,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     }
                   }}
                   disabled={competitors.length >= 3}
-                  placeholder={competitors.length >= 3 ? 'Maksimalt 3 konkurrenter' : 'f.eks. Luminance'}
+                  placeholder={competitors.length >= 3 ? t.form.competitorMax : t.form.competitorPlaceholder}
                   className="control"
                 />
                 <button
@@ -669,7 +626,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   className={buttonStyles.secondary}
                 >
                   <Plus className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                  Tilføj
+                  {t.form.add}
                 </button>
               </div>
               {competitors.length > 0 && (
@@ -684,7 +641,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                         type="button"
                         onClick={() => handleRemoveCompetitor(idx)}
                         className="text-muted hover:text-rec transition-colors cursor-pointer"
-                        aria-label={`Fjern ${comp}`}
+                        aria-label={t.form.removeCompetitor(comp)}
                       >
                         <X className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
                       </button>
@@ -698,8 +655,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
         <div className="border-t border-line pt-6">
           <Field
-            label="Målgruppe- eller virksomhedsanalyse"
-            hint="PDF, Word eller tekst. Felterne herunder udfyldes automatisk med det, der står i dokumentet."
+            label={t.form.analysisLabel}
+            hint={t.form.analysisHint}
           >
             {!analysisDoc ? (
               <button
@@ -716,7 +673,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 />
                 <Upload className="w-5 h-5 text-muted" strokeWidth={1.75} aria-hidden="true" />
                 <span className="font-semibold text-[15.5px] text-ink">
-                  {isReadingDoc ? 'Læser fil...' : 'Upload analyse'}
+                  {isReadingDoc ? t.form.readingFile : t.form.uploadAnalysis}
                 </span>
               </button>
             ) : (
@@ -727,7 +684,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     <div className="min-w-0">
                       <p className="font-semibold text-[15.5px] text-ink truncate">{analysisDoc.name}</p>
                       <p className="field-hint">
-                        {analysisDoc.size ? `${(analysisDoc.size / 1024).toFixed(0)} KB` : 'Dokument tilknyttet'} · bruges som grundlag
+                        {analysisDoc.size ? `${(analysisDoc.size / 1024).toFixed(0)} KB` : t.form.docAttached} · {t.form.usedAsBasis}
                       </p>
                     </div>
                   </div>
@@ -737,14 +694,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                       onClick={() => analyseDocument(analysisDoc)}
                       disabled={isAnalyzing}
                       className="chip-btn"
-                      title="Læs dokumentet igen og udfyld felterne forfra"
+                      title={t.form.refillTitle}
                     >
                       <Wand2
                         className={`w-3.5 h-3.5 text-muted ${isAnalyzing ? 'animate-pulse' : ''}`}
                         strokeWidth={1.75}
                         aria-hidden="true"
                       />
-                      {isAnalyzing ? 'Læser...' : 'Udfyld felter'}
+                      {isAnalyzing ? t.form.reading : t.form.fillFields}
                     </button>
                     <button
                       type="button"
@@ -755,7 +712,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
                       className="p-1.5 text-muted hover:text-rec rounded-[6px] transition-colors cursor-pointer"
-                      aria-label="Fjern analysedokument"
+                      aria-label={t.form.removeDoc}
                     >
                       <X className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
                     </button>
@@ -768,13 +725,13 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     {isAnalyzing && (
                       <p className="flex items-center gap-2.5 text-[15px] text-ink">
                         <span className="rec-dot rec-blink" aria-hidden="true" />
-                        Læser analysen og udfylder felterne...
+                        {t.form.analyzing}
                       </p>
                     )}
 
                     {!isAnalyzing && analysisError && (
                       <p className="text-[15px] text-ink">
-                        <span className="font-semibold">Kunne ikke udfylde felterne. </span>
+                        <span className="font-semibold">{t.form.couldNotFill} </span>
                         {analysisError}
                       </p>
                     )}
@@ -785,10 +742,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                           <p className="text-[15px] text-ink">
                             <span className="font-semibold">
                               {analysisNotice.filled.length > 0
-                                ? `${analysisNotice.filled.length} ${
-                                    analysisNotice.filled.length === 1 ? 'felt' : 'felter'
-                                  } udfyldt fra analysen.`
-                                : 'Analysen indeholdt ikke noget der kunne udfylde felterne.'}
+                                ? t.form.fieldsFilled(analysisNotice.filled.length)
+                                : t.form.nothingFilled}
                             </span>{' '}
                             {analysisNotice.summary}
                           </p>
@@ -799,21 +754,21 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                               className="chip-btn shrink-0"
                             >
                               <Undo2 className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                              Fortryd
+                              {t.form.undo}
                             </button>
                           )}
                         </div>
 
                         {analysisNotice.filled.length > 0 && (
-                          <p className="field-hint">Udfyldt: {analysisNotice.filled.join(', ')}.</p>
+                          <p className="field-hint">{t.form.filledLabel} {analysisNotice.filled.join(', ')}.</p>
                         )}
                         {analysisNotice.missing.length > 0 && (
                           <p className="field-hint">
-                            Stod ikke i analysen, så udfyld selv: {analysisNotice.missing.join(', ')}.
+                            {t.form.missingLabel} {analysisNotice.missing.join(', ')}.
                           </p>
                         )}
                         {analysisNotice.usedWebsite && (
-                          <p className="field-hint">Hjemmesiden er læst med som supplement.</p>
+                          <p className="field-hint">{t.form.websiteUsed}</p>
                         )}
                       </div>
                     )}
@@ -825,7 +780,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         </div>
 
         <div className="border-t border-line pt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label={scriptFocus === 'lead' ? 'Ydelse og unikke fordele' : 'Produkt og unikke fordele'}>
+          <Field label={scriptFocus === 'lead' ? t.form.productDescLead : t.form.productDescProduct}>
             <textarea
               rows={4}
               value={currentCfg.productDescription ?? productDescription}
@@ -833,12 +788,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 updateCurrentScriptConfig('productDescription', e.target.value);
                 if (activeTab === 0) setProductDescription(e.target.value);
               }}
-              placeholder="f.eks. Lavendelduft, justerbart skum og kølende side..."
+              placeholder={t.form.productDescPlaceholder}
               className="control resize-y"
             />
           </Field>
 
-          <Field label="Den ideelle kunde">
+          <Field label={t.form.targetAudience}>
             <textarea
               rows={4}
               value={currentCfg.targetAudience ?? targetAudience}
@@ -846,12 +801,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 updateCurrentScriptConfig('targetAudience', e.target.value);
                 if (activeTab === 0) setTargetAudience(e.target.value);
               }}
-              placeholder="f.eks. folk med soveproblemer, travle forældre, boligejere..."
+              placeholder={t.form.targetAudiencePlaceholder}
               className="control resize-y"
             />
           </Field>
 
-          <Field label="Geografi og demografi">
+          <Field label={t.form.demographics}>
             <textarea
               rows={4}
               value={currentCfg.demographics ?? demographics}
@@ -859,12 +814,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 updateCurrentScriptConfig('demographics', e.target.value);
                 if (activeTab === 0) setDemographics(e.target.value);
               }}
-              placeholder="f.eks. Hele Danmark, Storkøbenhavn, inden for 50 km..."
+              placeholder={t.form.demographicsPlaceholder}
               className="control resize-y"
             />
           </Field>
 
-          <Field label="Call to action">
+          <Field label={t.form.cta}>
             <textarea
               rows={4}
               value={currentCfg.offerOrCta ?? offerOrCta}
@@ -872,7 +827,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 updateCurrentScriptConfig('offerOrCta', e.target.value);
                 if (activeTab === 0) setOfferOrCta(e.target.value);
               }}
-              placeholder="f.eks. Bestil i dag, book en gratis samtale..."
+              placeholder={t.form.ctaPlaceholder}
               className="control resize-y"
             />
           </Field>
@@ -887,7 +842,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               className={buttonStyles.ghost}
             >
               <Plus className="w-4 h-4 text-muted" strokeWidth={2} aria-hidden="true" />
-              Gem som kunde
+              {t.form.saveAsCustomer}
             </button>
           </div>
         )}
@@ -897,10 +852,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       <Section
         id="scripts"
         step={2}
-        title="Scripts"
-        description="Vælg hvor mange scripts du vil have, og sæt hvert enkelt op for sig."
+        title={t.form.section2Title}
+        description={t.form.section2Desc}
       >
-        <Field label="Antal scripts" meta={`${numScripts} ${numScripts === 1 ? 'script' : 'scripts'}`}>
+        <Field label={t.form.numScripts} meta={t.form.scriptCount(numScripts)}>
           <div className="flex items-center gap-4">
             <input
               type="range"
@@ -913,7 +868,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 if (activeTab >= val) setActiveTab(val - 1);
               }}
               className="flex-1 h-2 cursor-pointer"
-              aria-label="Antal scripts"
+              aria-label={t.form.numScripts}
             />
             <span className="font-mono text-[20px] font-medium text-ink w-8 text-right tabular-nums">{numScripts}</span>
           </div>
@@ -935,7 +890,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                     : 'bg-surface border-line-strong text-muted hover:text-ink hover:border-ink/35'
                 }`}
               >
-                Script {idx + 1}
+                {t.form.scriptTab(idx + 1)}
               </button>
             ))}
           </div>
@@ -943,7 +898,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           {numScripts > 1 && (
             <button type="button" onClick={handleApplyToAll} className={buttonStyles.ghost}>
               <Copy className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-              Kopiér til alle scripts
+              {t.form.copyToAll}
             </button>
           )}
         </div>
@@ -951,7 +906,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         {/* Opsætning for det aktive script */}
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field label="Varighed" htmlFor="duration">
+            <Field label={t.form.duration} htmlFor="duration">
               <select
                 id="duration"
                 value={currentCfg.bodyDuration}
@@ -959,12 +914,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 className="control"
               >
                 {DURATION_OPTIONS.map((d) => (
-                  <option key={d} value={d}>{d}</option>
+                  <option key={d} value={d}>{formatDuration(d, lang)}</option>
                 ))}
               </select>
             </Field>
 
-            <Field label="Antal hooks" meta={`${currentCfg.numHooks} ${currentCfg.numHooks === 1 ? 'hook' : 'hooks'}`}>
+            <Field label={t.form.numHooks} meta={t.form.hookCount(currentCfg.numHooks)}>
               <div className="flex items-center gap-4">
                 <input
                   type="range"
@@ -973,7 +928,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   value={currentCfg.numHooks}
                   onChange={(e) => updateCurrentScriptConfig('numHooks', parseInt(e.target.value))}
                   className="flex-1 h-2 cursor-pointer"
-                  aria-label="Antal hooks"
+                  aria-label={t.form.numHooks}
                 />
                 <span className="font-mono text-[20px] font-medium text-ink w-8 text-right tabular-nums">
                   {currentCfg.numHooks}
@@ -985,63 +940,63 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           {/* Script-stil */}
           <div>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2 mb-2">
-              <span className="field-label mb-0">Stil og vinkel</span>
+              <span className="field-label mb-0">{t.form.styleLabel}</span>
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="field-hint">{SCRIPT_TYPES.length} at vælge mellem</span>
+                <span className="field-hint">{t.form.chooseBetween(SCRIPT_TYPES.length)}</span>
                 <button
                   type="button"
                   onClick={() => setIsAdvisorOpen(true)}
                   className="chip-btn"
-                  title="Lad AI'en foreslå stil og hook-vinkler ud fra analysen og kundeoplysningerne"
+                  title={t.form.suggestTitle}
                 >
                   <Wand2 className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                  Foreslå ud fra analysen
+                  {t.form.suggestFromAnalysis}
                 </button>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-              {SCRIPT_TYPES.map((st) => {
-                const isSelected = currentCfg.scriptType === st.type;
+              {SCRIPT_TYPES.map((type) => {
+                const isSelected = currentCfg.scriptType === type;
                 return (
                   <button
                     type="button"
-                    key={st.type}
-                    onClick={() => updateCurrentScriptConfig('scriptType', st.type)}
+                    key={type}
+                    onClick={() => updateCurrentScriptConfig('scriptType', type)}
                     aria-pressed={isSelected}
-                    title={st.desc}
+                    title={t.scriptTypeDescs[type]}
                     className={`flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-[var(--radius-control)] border text-[15px] font-medium transition-colors cursor-pointer ${
                       isSelected
                         ? 'border-rec bg-rec-soft text-ink font-semibold ring-1 ring-rec'
                         : 'border-line bg-surface text-muted hover:text-ink hover:border-line-strong'
                     }`}
                   >
-                    <span className="truncate">{st.type}</span>
+                    <span className="truncate">{type}</span>
                     {isSelected && <Check className="w-4 h-4 text-rec shrink-0" strokeWidth={2.5} aria-hidden="true" />}
                   </button>
                 );
               })}
             </div>
-            {selectedType && <p className="field-hint mt-2.5">{selectedType.desc}</p>}
+            {selectedTypeDesc && <p className="field-hint mt-2.5">{selectedTypeDesc}</p>}
           </div>
 
           {/* Awareness */}
-          <Disclosure title="Awareness-stadie" summary={activeStage?.short}>
+          <Disclosure title={t.form.awarenessTitle} summary={activeStageId}>
             <div className="space-y-4">
               <AwarenessFunnelFigure
                 currentStage={currentCfg.awarenessStage || 'Problem Aware'}
                 onSelectStage={(stId) => updateCurrentScriptConfig('awarenessStage', stId)}
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                {AWARENESS_STAGES.map((st) => (
+                {AWARENESS_STAGE_IDS.map((id) => (
                   <ChoiceButton
-                    key={st.id}
-                    selected={(currentCfg.awarenessStage || 'Problem Aware') === st.id}
-                    onClick={() => updateCurrentScriptConfig('awarenessStage', st.id)}
-                    title={st.short}
-                    description={st.desc}
+                    key={id}
+                    selected={(currentCfg.awarenessStage || 'Problem Aware') === id}
+                    onClick={() => updateCurrentScriptConfig('awarenessStage', id)}
+                    title={id}
+                    description={t.awareness[id]?.desc}
                     meta={
                       <span className="font-mono text-[11px] uppercase tracking-wider text-muted shrink-0">
-                        {st.badge}
+                        {t.awareness[id]?.badge}
                       </span>
                     }
                   />
@@ -1049,7 +1004,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               </div>
               {activeStage && (
                 <p className="field-hint border-t border-line pt-3">
-                  <span className="font-semibold text-ink">Fokus: </span>
+                  <span className="font-semibold text-ink">{t.form.focus} </span>
                   {activeStage.focus}
                 </p>
               )}
@@ -1057,22 +1012,22 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </Disclosure>
 
           {/* Trafik */}
-          <Disclosure title="Trafik-type" summary={activeTraffic?.title}>
+          <Disclosure title={t.form.trafficTitle} summary={activeTraffic?.title}>
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {TRAFFIC_TYPES.map((tt) => (
+                {TRAFFIC_TYPE_IDS.map((id) => (
                   <ChoiceButton
-                    key={tt.id}
-                    selected={(currentCfg.trafficType || 'cold') === tt.id}
-                    onClick={() => updateCurrentScriptConfig('trafficType', tt.id)}
-                    title={tt.title}
-                    description={tt.desc}
+                    key={id}
+                    selected={(currentCfg.trafficType || 'cold') === id}
+                    onClick={() => updateCurrentScriptConfig('trafficType', id)}
+                    title={t.traffic[id].title}
+                    description={t.traffic[id].desc}
                     meta={
-                      (currentCfg.trafficType || 'cold') === tt.id ? (
+                      (currentCfg.trafficType || 'cold') === id ? (
                         <Check className="w-4 h-4 text-rec shrink-0" strokeWidth={2.5} aria-hidden="true" />
                       ) : (
                         <span className="font-mono text-[11px] uppercase tracking-wider text-muted shrink-0">
-                          {tt.sub}
+                          {t.traffic[id].sub}
                         </span>
                       )
                     }
@@ -1081,12 +1036,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               </div>
 
               {currentCfg.trafficType === 'retargeting' && (
-                <Field label="Retargeting-noter" hint="Valgfrit. Hvad skal AI'en huske om de besøgende der kommer tilbage?">
+                <Field label={t.form.retargetingNotes} hint={t.form.retargetingHint}>
                   <input
                     type="text"
                     value={currentCfg.retargetingNotes || ''}
                     onChange={(e) => updateCurrentScriptConfig('retargetingNotes', e.target.value)}
-                    placeholder="f.eks. glemte varer i kurven, nævn rabatkoden KOMTILBAGE..."
+                    placeholder={t.form.retargetingPlaceholder}
                     className="control"
                   />
                 </Field>
@@ -1096,30 +1051,30 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
           {/* Hook-vinkler */}
           <Disclosure
-            title="Hook-vinkler"
-            summary={`${currentCfg.numHooks} ${currentCfg.numHooks === 1 ? 'vinkel' : 'vinkler'}`}
+            title={t.form.hookAnglesTitle}
+            summary={t.form.angleCount(currentCfg.numHooks)}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: currentCfg.numHooks || 3 }).map((_, hookIdx) => {
                 const currentHooksList = currentCfg.preferredHookTypes || [];
-                const selectedAngleId = currentHooksList[hookIdx] || HOOK_TYPE_OPTIONS[hookIdx % HOOK_TYPE_OPTIONS.length].id;
-                const selectedOption = HOOK_TYPE_OPTIONS.find((h) => h.id === selectedAngleId) || HOOK_TYPE_OPTIONS[0];
+                const selectedAngleId = currentHooksList[hookIdx] || HOOK_TYPE_IDS[hookIdx % HOOK_TYPE_IDS.length];
+                const selectedAngle = t.hookAngles[selectedAngleId] || t.hookAngles[HOOK_TYPE_IDS[0]];
 
                 return (
-                  <Field key={hookIdx} label={`Hook ${hookIdx + 1}`}>
+                  <Field key={hookIdx} label={t.form.hookN(hookIdx + 1)}>
                     <select
                       value={selectedAngleId}
                       onChange={(e) => setHookAngleForHookIndex(hookIdx, e.target.value)}
                       className="control"
-                      aria-label={`Vinkel for hook ${hookIdx + 1}`}
+                      aria-label={t.form.hookAngleAria(hookIdx + 1)}
                     >
-                      {HOOK_TYPE_OPTIONS.map((ht) => (
-                        <option key={ht.id} value={ht.id}>
-                          {ht.label} ({ht.desc})
+                      {HOOK_TYPE_IDS.map((id) => (
+                        <option key={id} value={id}>
+                          {id} ({t.hookAngles[id]?.desc})
                         </option>
                       ))}
                     </select>
-                    <p className="field-hint mt-1.5 italic">{selectedOption.example}</p>
+                    <p className="field-hint mt-1.5 italic">{selectedAngle?.example}</p>
                   </Field>
                 );
               })}
@@ -1127,14 +1082,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </Disclosure>
 
           <Field
-            label={`Skal med i script ${activeTab + 1}`}
-            hint="Tilbud, koder, garantier eller billeder AI'en ikke må glemme."
+            label={t.form.mustInclude(activeTab + 1)}
+            hint={t.form.mustIncludeHint}
           >
             <textarea
               rows={3}
               value={currentCfg.mustInclude ?? ''}
               onChange={(e) => updateCurrentScriptConfig('mustInclude', e.target.value)}
-              placeholder="f.eks. Køb 2 få 1 gratis med koden SOMMER, nævn 100 dages returret, vis den grønne flaske i nærbillede..."
+              placeholder={t.form.mustIncludePlaceholder}
               className="control resize-y"
             />
           </Field>
@@ -1145,27 +1100,27 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       <Section
         id="tone"
         step={3}
-        title="Tone"
-        description="Måden replikkerne skal tales på. Gennemsyrer alle hooks, body og CTA."
+        title={t.form.section3Title}
+        description={t.form.section3Desc}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label="Talesprog" hint="Vælg fra listen eller skriv din egen." htmlFor="toneOfVoice">
+          <Field label={t.form.toneLabel} hint={t.form.toneHint} htmlFor="toneOfVoice">
             <input
               id="toneOfVoice"
               list="tone-presets"
               value={toneOfVoice}
               onChange={(e) => setToneOfVoice(e.target.value)}
-              placeholder="f.eks. afslappet dansk talesprog"
+              placeholder={t.form.tonePlaceholder}
               className="control"
             />
             <datalist id="tone-presets">
-              {TONE_PRESETS.map((t) => (
-                <option key={t} value={t} />
+              {t.form.tonePresets.map((preset) => (
+                <option key={preset} value={preset} />
               ))}
             </datalist>
           </Field>
 
-          <Field label="Psykologi bag hooks">
+          <Field label={t.form.psychologyLabel}>
             <label className="flex items-start gap-3 px-4 py-3 border border-line-strong rounded-[var(--radius-control)] cursor-pointer hover:bg-sunken transition-colors">
               <input
                 type="checkbox"
@@ -1174,9 +1129,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 className="mt-1 w-4 h-4 accent-[var(--color-rec)] cursor-pointer shrink-0"
               />
               <span>
-                <span className="block font-semibold text-[15.5px] text-ink">Forklar mekanismen bag hvert hook</span>
+                <span className="block font-semibold text-[15.5px] text-ink">{t.form.psychologyTitle}</span>
                 <span className="field-hint">
-                  AI'en tilføjer 1-2 sætninger pr. hook om psykologien, f.eks. loss aversion eller curiosity gap.
+                  {t.form.psychologyHint}
                 </span>
               </span>
             </label>
@@ -1191,9 +1146,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <span className="font-semibold text-ink">{numScripts}</span>{' '}
             {numScripts === 1 ? 'script' : 'scripts'}
             <span className="mx-2 text-line-strong">·</span>
-            <span className="font-semibold text-ink">{currentCfg.numHooks}</span> hooks
+            <span className="font-semibold text-ink">{currentCfg.numHooks}</span> {t.form.hooksWord}
             <span className="mx-2 text-line-strong">·</span>
-            {currentCfg.bodyDuration}
+            {formatDuration(currentCfg.bodyDuration, lang)}
           </p>
 
           <button
@@ -1205,12 +1160,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               <>
                 <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
                 <span className="font-mono text-[14.5px] tracking-[0.12em] uppercase">
-                  Genererer {numScripts} scripts
+                  {t.form.generating(numScripts)}
                 </span>
               </>
             ) : (
               <>
-                Generér {numScripts} {numScripts === 1 ? 'script' : 'scripts'}
+                {t.form.generate(numScripts)}
                 <ChevronRight className="w-4 h-4" strokeWidth={2.25} aria-hidden="true" />
               </>
             )}
@@ -1222,7 +1177,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         isOpen={isAdvisorOpen}
         onClose={() => setIsAdvisorOpen(false)}
         payload={advisorPayload}
-        angleLabel={(id) => HOOK_TYPE_OPTIONS.find((h) => h.id === id)?.label || id}
+        angleLabel={(id) => id}
         currentScriptType={currentCfg.scriptType}
         onApplyScriptType={(type) => updateCurrentScriptConfig('scriptType', type)}
         onApplyHookAngles={applyHookAngles}

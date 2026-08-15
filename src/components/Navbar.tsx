@@ -9,6 +9,7 @@ import {
   MotionNavigationMenuTrigger
 } from './ui/motion-navigation-menu';
 import { Customer, Project } from '../types';
+import { useLang } from '../i18n';
 
 interface NavbarProps {
   aiTrainingCount?: number;
@@ -25,11 +26,12 @@ interface NavbarProps {
 
 export const JalalVisualsLogo: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = () => null;
 
-const EXAMPLES = [
-  { key: 'ecommerce', title: 'Naturhud', desc: 'Skincare i UGC-stil med før og efter.' },
-  { key: 'saas', title: 'TaskFlow', desc: 'SaaS holdt op mod konkurrenterne.' },
-  { key: 'fitness', title: 'FitPulse', desc: 'Træning bygget på problem, agitate, solution.' }
-];
+const EXAMPLE_KEYS = ['ecommerce', 'saas', 'fitness'] as const;
+const EXAMPLE_TITLES: Record<(typeof EXAMPLE_KEYS)[number], string> = {
+  ecommerce: 'Naturhud',
+  saas: 'TaskFlow',
+  fitness: 'FitPulse'
+};
 
 const countBadge =
   'font-mono text-[12.5px] font-medium text-muted bg-sunken border border-line rounded px-1.5 min-w-[22px] text-center tabular-nums';
@@ -73,6 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLoadExample,
   onLogout
 }) => {
+  const { t } = useLang();
   const recentCustomers = customers.slice(0, 5);
   const recentProjects = projects.slice(0, 5);
 
@@ -82,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="rec-dot shrink-0" aria-hidden="true" />
-          <span className="font-display text-[19px] text-ink whitespace-nowrap">Script Generator</span>
+          <span className="font-display text-[19px] text-ink whitespace-nowrap">{t.nav.appName}</span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -93,25 +96,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MotionNavigationMenuItem value="kunder">
                 <MotionNavigationMenuTrigger>
                   <Users className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                  Kunder
+                  {t.nav.customers}
                   <span className={countBadge}>{customers.length}</span>
                 </MotionNavigationMenuTrigger>
                 <MotionNavigationMenuContent className="w-[340px]">
                   {recentCustomers.length === 0 ? (
                     <p className="px-2.5 py-3 text-[14.5px] text-muted">
-                      Ingen kunder gemt endnu. Udfyld trin 1 og tryk "Gem som kunde".
+                      {t.nav.customersEmpty}
                     </p>
                   ) : (
                     recentCustomers.map((c) => (
                       <PanelRow
                         key={c.id}
                         title={c.name || c.companyName}
-                        desc={c.productName || c.companyName || 'Gemt kundeinfo'}
+                        desc={c.productName || c.companyName || t.nav.savedCustomerInfo}
                         onClick={() => onSelectCustomer?.(c)}
                       />
                     ))
                   )}
-                  <PanelFooter label="Åbn kundekartotek" onClick={() => onOpenCustomers?.()} />
+                  <PanelFooter label={t.nav.openCustomerIndex} onClick={() => onOpenCustomers?.()} />
                 </MotionNavigationMenuContent>
               </MotionNavigationMenuItem>
 
@@ -119,27 +122,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MotionNavigationMenuItem value="projekter">
                 <MotionNavigationMenuTrigger>
                   <Folder className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                  Projekter
+                  {t.nav.projects}
                   <span className={countBadge}>{projects.length}</span>
                 </MotionNavigationMenuTrigger>
                 <MotionNavigationMenuContent className="w-[340px]">
                   {recentProjects.length === 0 ? (
                     <p className="px-2.5 py-3 text-[14.5px] text-muted">
-                      Ingen projekter endnu. Gem et script for at oprette det første.
+                      {t.nav.projectsEmpty}
                     </p>
                   ) : (
                     recentProjects.map((p) => (
                       <PanelRow
                         key={p.id}
                         title={p.name}
-                        desc={`${p.scripts?.length || 0} ${
-                          (p.scripts?.length || 0) === 1 ? 'script' : 'scripts'
-                        }${p.description ? ` · ${p.description}` : ''}`}
+                        desc={`${t.nav.scripts(p.scripts?.length || 0)}${p.description ? ` · ${p.description}` : ''}`}
                         onClick={() => onOpenProjects?.()}
                       />
                     ))
                   )}
-                  <PanelFooter label="Åbn alle projekter" onClick={() => onOpenProjects?.()} />
+                  <PanelFooter label={t.nav.openAllProjects} onClick={() => onOpenProjects?.()} />
                 </MotionNavigationMenuContent>
               </MotionNavigationMenuItem>
 
@@ -147,20 +148,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <MotionNavigationMenuItem value="eksempler">
                 <MotionNavigationMenuTrigger>
                   <Zap className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                  Eksempler
+                  {t.nav.examples}
                 </MotionNavigationMenuTrigger>
                 <MotionNavigationMenuContent className="w-[320px]">
-                  {EXAMPLES.map((preset) => (
+                  {EXAMPLE_KEYS.map((key) => (
                     <PanelRow
-                      key={preset.key}
-                      title={preset.title}
-                      desc={preset.desc}
-                      onClick={() => onLoadExample(preset.key)}
+                      key={key}
+                      title={EXAMPLE_TITLES[key]}
+                      desc={t.nav.exampleDescs[key]}
+                      onClick={() => onLoadExample(key)}
                     />
                   ))}
                   <p className="px-2.5 pt-2 pb-1 text-[13.5px] text-muted border-t border-line mt-1">
                     <FileText className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" strokeWidth={1.75} aria-hidden="true" />
-                    Udfylder hele formularen med testdata.
+                    {t.nav.examplesFooter}
                   </p>
                 </MotionNavigationMenuContent>
               </MotionNavigationMenuItem>
@@ -173,10 +174,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onOpenAiTraining}
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius-control)] text-[15px] font-semibold text-ink bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
-              title="AI Træning: dine stjernemarkerede guldstandarder"
+              title={t.nav.aiTrainingTitle}
             >
               <Brain className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-              <span className="hidden sm:inline">AI Træning</span>
+              <span className="hidden sm:inline">{t.nav.aiTraining}</span>
               <span className={countBadge}>{aiTrainingCount}</span>
             </button>
           )}
@@ -188,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={onOpenCustomers}
                 className="p-2.5 rounded-[var(--radius-control)] bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
-                aria-label="Kunder"
+                aria-label={t.nav.customers}
               >
                 <Users className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
               </button>
@@ -198,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={onOpenProjects}
                 className="p-2.5 rounded-[var(--radius-control)] bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
-                aria-label="Projekter"
+                aria-label={t.nav.projects}
               >
                 <Folder className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
               </button>
@@ -210,8 +211,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onLogout}
               className="p-2.5 rounded-[var(--radius-control)] bg-surface border border-line-strong hover:bg-sunken transition-colors cursor-pointer"
-              title="Log ud"
-              aria-label="Log ud"
+              title={t.nav.logout}
+              aria-label={t.nav.logout}
             >
               <LogOut className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
             </button>

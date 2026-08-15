@@ -13,8 +13,10 @@ import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType
 import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from './utils/exportUtils';
+import { useLang } from './i18n';
 
 export default function App() {
+  const { t } = useLang();
   const [generatedScripts, setGeneratedScripts] = useState<GeneratedScript[]>([]);
   const [documentTitle, setDocumentTitle] = useState('JP Køl og Klima - Script 2');
   const [aiTrainingItems, setAiTrainingItems] = useState<AiTrainingItem[]>([]);
@@ -168,13 +170,13 @@ export default function App() {
       const result = await res.json();
       if (result.success) {
         fetchCustomers();
-        alert(`"${data.companyName}" er gemt som kunde. Fremover kan du vælge kunden under "Kunder" i toppen.`);
+        alert(t.app.customerSavedAlert(data.companyName || ''));
       } else {
-        alert(result.error || 'Kunden kunne ikke gemmes.');
+        alert(result.error || t.app.customerSaveFailed);
       }
     } catch (err) {
       console.error('Fejl ved gem som kunde:', err);
-      alert('Kunden kunne ikke gemmes. Prøv igen.');
+      alert(t.app.customerSaveRetry);
     }
   };
 
@@ -225,7 +227,7 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Der opstod en uventet fejl ved generering af scripts.');
+        throw new Error(data.error || t.app.genericGenError);
       }
 
       setGeneratedScripts(data.scripts || []);
@@ -240,7 +242,7 @@ export default function App() {
 
     } catch (err: any) {
       console.error('Genereringsfejl:', err);
-      setErrorMessage(err.message || 'Der kunne ikke oprettes forbindelse til serveren.');
+      setErrorMessage(err.message || t.app.serverConnError);
     } finally {
       setIsLoading(false);
     }
@@ -344,10 +346,10 @@ export default function App() {
 
         <div className="pb-1">
           <h1 className="font-display text-[30px] sm:text-[34px] leading-tight text-ink">
-            Nye scripts til Meta-annoncer
+            {t.app.title}
           </h1>
           <p className="text-[16.5px] text-muted mt-1">
-            Udfyld de tre trin herunder. AI'en skriver hooks, body og CTA på baggrund af dem.
+            {t.app.subtitle}
           </p>
         </div>
 
@@ -365,7 +367,7 @@ export default function App() {
           <div className="p-4 bg-rec-soft border border-rec/40 rounded-[var(--radius-card)] flex items-start gap-3 animate-fadeIn" role="alert">
             <AlertCircle className="w-5 h-5 text-rec shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
             <div>
-              <span className="font-semibold block text-[16px] text-ink">Kunne ikke generere script</span>
+              <span className="font-semibold block text-[16px] text-ink">{t.app.errorTitle}</span>
               <p className="field-hint mt-0.5">{errorMessage}</p>
             </div>
           </div>
@@ -378,24 +380,24 @@ export default function App() {
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 bg-surface border border-line rounded-[var(--radius-card)] p-5 shadow-[0_1px_2px_rgb(22_24_29/0.04)]">
               <div className="flex-1 min-w-0">
                 <label htmlFor="documentTitle" className="field-label">
-                  Dokumenttitel
+                  {t.app.docTitle}
                 </label>
                 <input
                   id="documentTitle"
                   type="text"
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
-                  placeholder="f.eks. JP Køl og Klima - Script 2"
+                  placeholder={t.app.docTitlePlaceholder}
                   className="control font-semibold"
                 />
-                <p className="field-hint mt-1.5">Vises øverst på eksporteret PDF og Docs.</p>
+                <p className="field-hint mt-1.5">{t.app.docTitleHint}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <button
                   onClick={() => downloadScriptsAsDocx(generatedScripts, documentTitle)}
                   className={buttonStyles.ghost}
-                  title="Download alle scripts som Google Docs (.docx), 1 script pr. side"
+                  title={t.app.docsBtnTitle}
                 >
                   <FileText className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
                   Docs
@@ -404,7 +406,7 @@ export default function App() {
                 <button
                   onClick={() => downloadScriptsAsPdf(generatedScripts, documentTitle)}
                   className={buttonStyles.ghost}
-                  title="Download alle scripts som PDF, 1 script pr. side"
+                  title={t.app.pdfBtnTitle}
                 >
                   <FileDown className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
                   PDF
@@ -418,23 +420,23 @@ export default function App() {
                   className={buttonStyles.ghost}
                 >
                   <RefreshCw className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                  Nye parametre
+                  {t.app.newParams}
                 </button>
 
                 <button
                   onClick={handleCopyAllScripts}
                   className={buttonStyles.secondary}
-                  title="Kopiér alle scripts med Google Docs-formatering"
+                  title={t.app.copyAllTitle}
                 >
                   {copiedAll ? (
                     <>
                       <Check className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
-                      Kopieret
+                      {t.app.copied}
                     </>
                   ) : (
                     <>
                       <Copy className="w-4 h-4" strokeWidth={1.75} aria-hidden="true" />
-                      Kopiér alle
+                      {t.app.copyAll}
                     </>
                   )}
                 </button>

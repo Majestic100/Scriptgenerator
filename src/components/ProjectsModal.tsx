@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { GeneratedScript, Project } from '../types';
 import { formatScriptToHtml, formatScriptToPlainText, copyFormattedToClipboard } from '../utils/formatUtils';
+import { useLang, formatDuration, dateLocale } from '../i18n';
 
 interface ProjectsModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
   onSelectScript,
   showSharing = false,
 }) => {
+  const { t, lang } = useLang();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -119,7 +121,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm('Er du sikker på, at du vil slette dette projekt og alle dets gemte scripts?')) {
+    if (!window.confirm(t.projectsM.confirmDelete)) {
       return;
     }
     setDeletingId(projectId);
@@ -178,13 +180,13 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-xl text-ink">Projekter</h2>
+                <h2 className="font-bold text-xl text-ink">{t.projectsM.title}</h2>
                 <span className="text-base bg-rec-soft text-rec font-extrabold px-2 py-0.5 rounded-full">
                   {projects.length}
                 </span>
               </div>
               <p className="text-base text-muted">
-                Gem og organiser scripts i fælles projekter. Gemmes automatisk til alle brugere.
+                {t.projectsM.subtitle}
               </p>
             </div>
           </div>
@@ -196,7 +198,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                 className="px-3.5 py-2 bg-rec hover:bg-rec-hover text-white rounded-[var(--radius-card)] text-base font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Nyt Projekt</span>
+                <span>{t.projectsM.newProject}</span>
               </button>
             )}
 
@@ -216,41 +218,41 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-rec uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
-                  Opret et nyt projekt
+                  {t.projectsM.createHeader}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsCreating(false)}
                   className="text-base text-muted hover:text-ink font-semibold"
                 >
-                  Annuller
+                  {t.projectsM.cancel}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-bold text-ink block mb-1">
-                    Projektnavn *
+                    {t.projectsM.nameLabel}
                   </label>
                   <input
                     type="text"
                     required
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="f.eks. Kampagne Q3, Skønhed & Hudpleje"
+                    placeholder={t.projectsM.namePlaceholder}
                     className="w-full bg-surface border border-line rounded-[var(--radius-control)] p-2.5 text-base text-ink placeholder-slate-400 outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                   />
                 </div>
 
                 <div>
                   <label className="text-sm font-bold text-ink block mb-1">
-                    Beskrivelse (Valgfri)
+                    {t.projectsM.descLabel}
                   </label>
                   <input
                     type="text"
                     value={descInput}
                     onChange={(e) => setDescInput(e.target.value)}
-                    placeholder="f.eks. Vinkel-tests for C-Vitamin serum"
+                    placeholder={t.projectsM.descPlaceholder}
                     className="w-full bg-surface border border-line rounded-[var(--radius-control)] p-2.5 text-base text-ink placeholder-slate-400 outline-none focus:border-rec focus:ring-1 focus:ring-rec"
                   />
                 </div>
@@ -265,8 +267,8 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                       className="mt-1 w-4 h-4 accent-rec cursor-pointer"
                     />
                     <span className="text-base text-ink">
-                      <span className="font-semibold text-ink block">Fælles projekt</span>
-                      Synligt for begge virksomheder. Uden flueben ser kun din egen virksomhed projektet.
+                      <span className="font-semibold text-ink block">{t.projectsM.sharedTitle}</span>
+                      {t.projectsM.sharedDesc}
                     </span>
                   </label>
                 </div>
@@ -282,12 +284,12 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Gemmer projekt...</span>
+                      <span>{t.projectsM.savingProject}</span>
                     </>
                   ) : (
                     <>
                       <FolderCheck className="w-4 h-4" />
-                      <span>Gem Projekt</span>
+                      <span>{t.projectsM.saveProject}</span>
                     </>
                   )}
                 </button>
@@ -304,7 +306,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Søg i projekter eller scripts..."
+              placeholder={t.projectsM.searchPlaceholder}
               className="w-full bg-surface border border-line rounded-[var(--radius-control)] pl-9 pr-3 py-2 text-base text-ink placeholder-slate-400 outline-none focus:border-rec"
             />
           </div>
@@ -317,8 +319,8 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
               <Folder className="w-10 h-10 text-slate-300 mx-auto" />
               <p className="text-base font-medium text-muted">
                 {searchTerm
-                  ? 'Ingen projekter matcher din søgning.'
-                  : 'Du har ingen oprettede projekter endnu. Klik på "Nyt Projekt" for at komme i gang!'}
+                  ? t.projectsM.emptySearch
+                  : t.projectsM.emptyNone}
               </p>
               {!searchTerm && (
                 <button
@@ -326,7 +328,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                   className="px-4 py-2 bg-rec text-white rounded-[var(--radius-control)] text-base font-bold hover:bg-rec-hover transition-all inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Opret dit første projekt</span>
+                  <span>{t.projectsM.createFirst}</span>
                 </button>
               )}
             </div>
@@ -359,7 +361,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                               {proj.name}
                             </h3>
                             <span className="text-sm bg-surface border border-line text-ink font-bold px-2 py-0.5 rounded-full">
-                              {scriptCount} {scriptCount === 1 ? 'script' : 'scripts'}
+                              {t.projectsM.scriptsBadge(scriptCount)}
                             </span>
                           </div>
                           {proj.description && (
@@ -368,7 +370,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                             </p>
                           )}
                           <span className="text-sm text-muted block mt-1">
-                            Opdateret {new Date(proj.updatedAt || proj.createdAt).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            {t.projectsM.updated} {new Date(proj.updatedAt || proj.createdAt).toLocaleDateString(dateLocale(lang), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </div>
@@ -378,7 +380,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          placeholder="Projektnavn"
+                          placeholder={t.projectsM.editNamePlaceholder}
                           className="bg-surface border border-line-strong rounded-[var(--radius-control)] p-1.5 text-base font-bold outline-none focus:border-rec"
                         />
                         <div className="flex items-center gap-2">
@@ -386,14 +388,14 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                             type="text"
                             value={editDesc}
                             onChange={(e) => setEditDesc(e.target.value)}
-                            placeholder="Beskrivelse"
+                            placeholder={t.projectsM.editDescPlaceholder}
                             className="w-full bg-surface border border-line-strong rounded-[var(--radius-control)] p-1.5 text-base outline-none focus:border-rec"
                           />
                           <button
                             onClick={() => handleUpdateProject(proj.id)}
                             className="px-2.5 py-1.5 bg-rec text-white rounded text-base font-bold shrink-0"
                           >
-                            Gem
+                            {t.projectsM.save}
                           </button>
                           <button
                             onClick={() => setEditingProjectId(null)}
@@ -415,7 +417,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                             setEditDesc(proj.description || '');
                           }}
                           className="p-1.5 rounded text-muted hover:text-ink hover:bg-line transition-colors cursor-pointer"
-                          title="Rediger projekt"
+                          title={t.projectsM.editTitle}
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
@@ -425,7 +427,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                         disabled={isDeleting}
                         onClick={() => handleDeleteProject(proj.id)}
                         className="p-1.5 rounded text-muted hover:text-rec hover:bg-rec-soft transition-colors cursor-pointer disabled:opacity-50"
-                        title="Slet projekt"
+                        title={t.projectsM.deleteTitle}
                       >
                         {isDeleting ? (
                           <Loader2 className="w-4 h-4 animate-spin text-rec" />
@@ -448,12 +450,12 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                   {isExpanded && (
                     <div className="p-4 border-t border-line bg-sunken/50 space-y-3 animate-fadeIn">
                       <div className="flex items-center justify-between text-base font-bold text-ink">
-                        <span>Gemte scripts i dette projekt ({scriptCount})</span>
+                        <span>{t.projectsM.scriptsInProject(scriptCount)}</span>
                       </div>
 
                       {scriptCount === 0 ? (
                         <div className="p-6 text-center bg-surface rounded-[var(--radius-control)] border border-dashed border-line text-muted text-base">
-                          Der er endnu ingen scripts gemt i dette projekt. Når du genererer et script, kan du klikke "Gem til Projekt".
+                          {t.projectsM.noScriptsInProject}
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -480,7 +482,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                     disabled={isDeletingScript}
                                     onClick={() => handleRemoveScriptFromProject(proj.id, script.id)}
                                     className="text-muted hover:text-rec p-1 transition-colors cursor-pointer disabled:opacity-50"
-                                    title="Fjern script fra projekt"
+                                    title={t.projectsM.removeScript}
                                   >
                                     {isDeletingScript ? (
                                       <Loader2 className="w-4 h-4 animate-spin text-rec" />
@@ -497,11 +499,11 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                   </span>
                                   <span className="flex items-center gap-1 bg-sunken px-2 py-0.5 rounded border border-line text-sm">
                                     <Clock className="w-3 h-3 text-ink" />
-                                    {script.bodyDuration}
+                                    {formatDuration(script.bodyDuration, lang)}
                                   </span>
                                   {script.hooks?.length > 0 && (
                                     <span className="text-sm text-muted">
-                                      {script.hooks.length} Hooks
+                                      {script.hooks.length} {t.projectsM.hooksWord}
                                     </span>
                                   )}
                                 </div>
@@ -515,7 +517,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                       }}
                                       className="text-base text-rec hover:text-red-800 font-bold flex items-center gap-1 cursor-pointer bg-rec-soft hover:bg-rec-soft px-2.5 py-1 rounded border border-rec/30 transition-colors"
                                     >
-                                      <span>Vis Script</span>
+                                      <span>{t.projectsM.viewScript}</span>
                                       <ExternalLink className="w-3.5 h-3.5" />
                                     </button>
 
@@ -527,7 +529,7 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                       className="text-base text-indigo-700 hover:text-indigo-900 font-bold flex items-center gap-1 cursor-pointer bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded border border-indigo-200 transition-colors"
                                     >
                                       <Video className="w-3.5 h-3.5" />
-                                      <span>Teleprompter Mode</span>
+                                      <span>{t.projectsM.teleprompter}</span>
                                     </button>
                                   </div>
 
@@ -538,12 +540,12 @@ export const ProjectsModal: React.FC<ProjectsModalProps> = ({
                                     {copiedScriptId === script.id ? (
                                       <>
                                         <Check className="w-3.5 h-3.5 text-ink" />
-                                        <span className="text-ink font-bold">Kopieret!</span>
+                                        <span className="text-ink font-bold">{t.projectsM.copied}</span>
                                       </>
                                     ) : (
                                       <>
                                         <Copy className="w-3.5 h-3.5 text-muted" />
-                                        <span>Kopiér Script</span>
+                                        <span>{t.projectsM.copyScript}</span>
                                       </>
                                     )}
                                   </button>

@@ -17,6 +17,7 @@ import { GeneratedScript } from '../types';
 import { formatScriptToHtml, formatScriptToPlainText, copyFormattedToClipboard, weaveBodyWithAnalogy } from '../utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from '../utils/exportUtils';
 import { AnalogyModal, AnalogyTargetContext } from './AnalogyModal';
+import { useLang } from '../i18n';
 
 interface ScriptCardProps {
   script: GeneratedScript;
@@ -35,6 +36,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   onSaveToProject,
   onSaveToAiTraining
 }) => {
+  const { t } = useLang();
   const [copiedText, setCopiedText] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
@@ -451,8 +453,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               <span className="text-line-strong" aria-hidden="true">·</span>
               <span className="text-[14.5px] text-muted">
                 {script.trafficType === 'retargeting' || script.trafficType?.toLowerCase().includes('retargeting')
-                  ? 'Retargeting'
-                  : 'Kold trafik'}
+                  ? t.card.retargeting
+                  : t.card.coldTraffic}
               </span>
             </>
           )}
@@ -464,10 +466,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             <button
               onClick={() => onSaveToProject(script)}
               className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-              title="Gem dette script til et projekt"
+              title={t.card.saveToProjectTitle}
             >
               <FolderPlus className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
-              <span>Gem til Projekt</span>
+              <span>{t.card.saveToProject}</span>
             </button>
           )}
 
@@ -476,10 +478,10 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             onClick={handleGenerateAllVisuals}
             disabled={isGeneratingVisuals || isRegeneratingScript}
             className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-            title="Generér en komplet shot list: konkrete optage-idéer til alle hooks og scener"
+            title={t.card.generateVisualsTitle}
           >
             <Clapperboard className={`w-3.5 h-3.5 ${isGeneratingVisuals ? 'animate-pulse text-rec' : 'text-muted'}`} />
-            <span>{isGeneratingVisuals ? 'Genererer visuals...' : 'Generér visuals'}</span>
+            <span>{isGeneratingVisuals ? t.card.generatingVisuals : t.card.generateVisuals}</span>
           </button>
 
           {/* Regenerate Full Script Button */}
@@ -487,17 +489,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             onClick={handleRegenerateFullScript}
             disabled={isRegeneratingScript || regeneratingHookIndex !== null || isRegeneratingBody || isRegeneratingCta}
             className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-            title="Lav et helt nyt forslag til netop dette script (nye hooks, ny body og ny CTA)"
+            title={t.card.regenScriptTitle}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingScript ? 'animate-spin text-rec' : 'text-muted'}`} />
-            <span>{isRegeneratingScript ? 'Laver nyt forslag...' : 'Nyt forslag'}</span>
+            <span>{isRegeneratingScript ? t.card.makingNewSuggestion : t.card.newSuggestion}</span>
           </button>
 
           {/* Single Script Download Docs Button */}
           <button
             onClick={() => downloadScriptsAsDocx([script], script.documentTitle)}
             className="px-2.5 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-            title="Download dette enkelt script som Google Docs (.docx)"
+            title={t.card.docsTitle}
           >
             <FileText className="w-3.5 h-3.5 text-muted" />
             <span>Docs</span>
@@ -507,7 +509,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           <button
             onClick={() => downloadScriptsAsPdf([script], script.documentTitle)}
             className="px-2.5 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-            title="Download dette enkelt script som PDF (.pdf)"
+            title={t.card.pdfTitle}
           >
             <FileDown className="w-3.5 h-3.5 text-muted" />
             <span>PDF</span>
@@ -517,17 +519,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           <button
             onClick={handleCopyText}
             className="px-3.5 py-2 bg-ink hover:bg-black text-white rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-            title="Kopiér dette script"
+            title={t.card.copyScriptTitle}
           >
             {copiedText ? (
               <>
                 <Check className="w-4 h-4 text-white" />
-                <span>Kopieret!</span>
+                <span>{t.card.copiedExcl}</span>
               </>
             ) : (
               <>
                 <Copy className="w-4 h-4 text-white" />
-                <span>Kopiér dette script</span>
+                <span>{t.card.copyScript}</span>
               </>
             )}
           </button>
@@ -539,13 +541,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
         <div className="px-5 py-2.5 bg-rec-soft border-b border-rec/30 flex items-center justify-between text-base text-ink font-medium animate-fadeIn">
           <div className="flex items-center gap-2">
             <Pencil className="w-4 h-4 text-rec shrink-0" />
-            <span><strong>Redigeringstilstand aktiv:</strong> Du kan nu rette ord eller sætninger i alle felter herunder. Ændringerne opdateres automatisk.</span>
+            <span><strong>{t.card.editBannerStrong}</strong> {t.card.editBannerRest}</span>
           </div>
           <button
             onClick={() => setIsEditing(false)}
             className="px-2.5 py-1 bg-rec hover:bg-rec-hover text-white rounded text-sm font-bold cursor-pointer transition-colors shrink-0"
           >
-            Færdig med redigering
+            {t.card.doneEditing}
           </button>
         </div>
       )}
@@ -570,8 +572,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                   {isHookAudioEditing ? (
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between text-base font-bold text-black">
-                        <span>Hook {globalHookNumber} {hook.angleType ? `(${hook.angleType})` : ''}:</span>
-                        <span className="text-sm text-rec font-semibold">Gemmes automatisk</span>
+                        <span>{t.card.hook} {globalHookNumber} {hook.angleType ? `(${hook.angleType})` : ''}:</span>
+                        <span className="text-sm text-rec font-semibold">{t.card.autoSaved}</span>
                       </div>
                       <textarea
                         rows={2}
@@ -586,19 +588,19 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                           }
                         }}
                         className="w-full bg-rec-soft border border-rec/40 rounded-[var(--radius-control)] p-2 text-base text-black font-['Arial',sans-serif] outline-none focus:border-rec focus:ring-1 focus:ring-rec"
-                        placeholder="Skriv hook-teksten her..."
+                        placeholder={t.card.hookPlaceholder}
                       />
                     </div>
                   ) : (
                     <p
                       onDoubleClick={() => setEditingFieldKey(`hook-${i}`)}
                       className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-rec-soft hover:outline-dashed hover:outline-1 hover:outline-rec/40 p-1.5 -m-1.5 rounded-[var(--radius-control)] transition-all group/hook"
-                      title="Dobbeltklik direkte i teksten for at redigere"
+                      title={t.card.dblClickTitle}
                     >
-                      <strong className="font-bold text-black">Hook {globalHookNumber} -</strong> {hook.audioDialogue}
+                      <strong className="font-bold text-black">{t.card.hook} {globalHookNumber} -</strong> {hook.audioDialogue}
                       {hook.psychology && (
                         <span className="block mt-1.5 text-base text-ink bg-sunken border border-line rounded px-2.5 py-1.5">
-                          <strong className="font-semibold">Psykologi:</strong> {hook.psychology}
+                          <strong className="font-semibold">{t.card.psychology}</strong> {hook.psychology}
                         </span>
                       )}
                       {hook.angleType && (
@@ -607,7 +609,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                         </span>
                       )}
                       <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/hook:opacity-100 transition-opacity text-sm font-normal">
-                        <Pencil className="w-3 h-3 inline mr-0.5" /> Dobbeltklik for at rette
+                        <Pencil className="w-3 h-3 inline mr-0.5" /> {t.card.dblClickEdit}
                       </span>
                     </p>
                   )}
@@ -615,17 +617,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                   <div className="flex flex-wrap items-center gap-1.5 shrink-0 self-end sm:self-auto pt-0.5">
                     {/* Gem Hook til AI Træning Button */}
                     <button
-                      onClick={() => handleSaveElementToAiTraining('hook', hook.audioDialogue, `hook-${i}`, `Hook ${globalHookNumber} (${hook.angleType || 'Vinkel'})`)}
+                      onClick={() => handleSaveElementToAiTraining('hook', hook.audioDialogue, `hook-${i}`, `Hook ${globalHookNumber} (${hook.angleType || t.card.angleWord})`)}
                       className="chip-btn"
                       data-active={savedTrainingKeys[`hook-${i}`] ? 'true' : 'false'}
-                      title="Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede hooks fremover"
+                      title={t.card.starHookTitle}
                     >
                       <Star
                         className={`w-3.5 h-3.5 ${savedTrainingKeys[`hook-${i}`] ? 'fill-rec text-rec' : 'text-muted'}`}
                         strokeWidth={1.75}
                         aria-hidden="true"
                       />
-                      <span>{savedTrainingKeys[`hook-${i}`] ? 'Stjernemarkeret' : 'Stjernemarkér'}</span>
+                      <span>{savedTrainingKeys[`hook-${i}`] ? t.card.starred : t.card.star}</span>
                     </button>
 
                     {/* Visual Idea Toggle Button */}
@@ -634,24 +636,24 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                       disabled={isVisualLoading || isRegeneratingScript}
                       className="chip-btn"
                       data-active={isVisualOpen ? 'true' : 'false'}
-                      title={`Se visuel idé til hvad der kan filmes til Hook ${globalHookNumber}`}
+                      title={t.card.visualTitle(globalHookNumber)}
                     >
                       <Video
                         className={`w-3.5 h-3.5 ${isVisualLoading ? 'animate-spin' : ''}`}
                         strokeWidth={1.75}
                         aria-hidden="true"
                       />
-                      <span>{isVisualLoading ? 'Henter idé...' : isVisualOpen ? 'Skjul optage-idé' : 'Hvad kan filmes?'}</span>
+                      <span>{isVisualLoading ? t.card.fetchingIdea : isVisualOpen ? t.card.hideFilmingIdea : t.card.whatToFilm}</span>
                     </button>
 
                     {/* Analogi / Talesprog Button for Hook */}
                     <button
                       onClick={() => handleOpenAnalogyModal('hook', i)}
                       className="chip-btn"
-                      title="Søg eller vælg analogier til at flette ind i Hook"
+                      title={t.card.analogyHookTitle}
                     >
                       <Quote className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                      <span>Analogi</span>
+                      <span>{t.card.analogy}</span>
                     </button>
 
                     {/* Regenerate Hook Button */}
@@ -659,14 +661,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                       onClick={() => handleRegenerateHook(i)}
                       disabled={isThisHookLoading || isRegeneratingScript}
                       className="chip-btn"
-                      title={`Gen-generér Hook ${globalHookNumber}`}
+                      title={t.card.regenHookTitle(globalHookNumber)}
                     >
                       <RefreshCw
                         className={`w-3.5 h-3.5 text-muted ${isThisHookLoading ? 'animate-spin' : ''}`}
                         strokeWidth={1.75}
                         aria-hidden="true"
                       />
-                      <span>{isThisHookLoading ? 'Regenererer...' : 'Nyt forslag'}</span>
+                      <span>{isThisHookLoading ? t.card.regenerating : t.card.newSuggestion}</span>
                     </button>
                   </div>
                 </div>
@@ -676,7 +678,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                   <div className="p-2.5 bg-rec-soft border border-rec/30 rounded-[var(--radius-control)] text-base space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-ink flex items-center gap-1 text-sm">
-                        🎥 Optage-idé til Hook {globalHookNumber}:
+                        {t.card.filmingIdeaFor(globalHookNumber)}
                       </span>
                       {!isEditing && (
                         <button
@@ -684,7 +686,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                           disabled={isVisualLoading}
                           className="text-sm text-rec hover:text-ink underline font-semibold cursor-pointer disabled:opacity-50"
                         >
-                          Nyt optage-forslag
+                          {t.card.newFilmingSuggestion}
                         </button>
                       )}
                     </div>
@@ -701,16 +703,16 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                             setEditingFieldKey(null);
                           }
                         }}
-                        placeholder="Skriv instruks eller hvad der kan filmes..."
+                        placeholder={t.card.visualPlaceholder}
                         className="w-full bg-surface border border-rec/40 rounded p-1.5 text-sm text-ink outline-none focus:border-rec"
                       />
                     ) : (
                       <p
                         onDoubleClick={() => setEditingFieldKey(`hook-vis-${i}`)}
                         className="text-ink text-sm leading-snug italic m-0 cursor-pointer hover:bg-rec-soft p-1 -m-1 rounded transition-colors"
-                        title="Dobbeltklik for at redigere optage-idéen"
+                        title={t.card.visualEditTitle}
                       >
-                        {hook.visualDirection || 'Kameraet panorerer tæt over produktet, mens personen ser overrasket på skærmen.'}
+                        {hook.visualDirection || t.card.visualFallback}
                       </p>
                     )}
                   </div>
@@ -726,8 +728,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             {isEditing || editingFieldKey === 'body' ? (
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between text-base font-bold text-black">
-                  <span>Body (Manuskriftets hoveddel):</span>
-                  <span className="text-sm text-rec font-semibold">Gemmes automatisk</span>
+                  <span>{t.card.bodyLabel}</span>
+                  <span className="text-sm text-rec font-semibold">{t.card.autoSaved}</span>
                 </div>
                 <textarea
                   rows={4}
@@ -742,58 +744,58 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     }
                   }}
                   className="w-full bg-rec-soft border border-rec/40 rounded-[var(--radius-control)] p-2 text-base text-black font-['Arial',sans-serif] outline-none focus:border-rec focus:ring-1 focus:ring-rec"
-                  placeholder="Skriv manuskriptets brødtekst / body her..."
+                  placeholder={t.card.bodyPlaceholder}
                 />
               </div>
             ) : (
               <p
                 onDoubleClick={() => setEditingFieldKey('body')}
                 className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-rec-soft hover:outline-dashed hover:outline-1 hover:outline-rec/40 p-1.5 -m-1.5 rounded-[var(--radius-control)] transition-all group/body"
-                title="Dobbeltklik direkte i teksten for at redigere"
+                title={t.card.dblClickTitle}
               >
-                <strong className="font-bold text-black">Body -</strong> {bodyText}
+                <strong className="font-bold text-black">{t.card.bodyWord} -</strong> {bodyText}
                 <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/body:opacity-100 transition-opacity text-sm font-normal">
-                  <Pencil className="w-3 h-3 inline mr-0.5" /> Dobbeltklik for at rette
+                  <Pencil className="w-3 h-3 inline mr-0.5" /> {t.card.dblClickEdit}
                 </span>
               </p>
             )}
 
             <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0 mt-1">
               <button
-                onClick={() => handleSaveElementToAiTraining('body', bodyText, 'body', `Body - ${script.title || 'Manuskript'}`)}
+                onClick={() => handleSaveElementToAiTraining('body', bodyText, 'body', `Body - ${script.title || t.card.bodyFallbackTitle}`)}
                 className="chip-btn"
                 data-active={savedTrainingKeys['body'] ? 'true' : 'false'}
-                title="Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede bodies fremover"
+                title={t.card.starBodyTitle}
               >
                 <Star
                   className={`w-3.5 h-3.5 ${savedTrainingKeys['body'] ? 'fill-rec text-rec' : 'text-muted'}`}
                   strokeWidth={1.75}
                   aria-hidden="true"
                 />
-                <span>{savedTrainingKeys['body'] ? 'Stjernemarkeret' : 'Stjernemarkér'}</span>
+                <span>{savedTrainingKeys['body'] ? t.card.starred : t.card.star}</span>
               </button>
 
               <button
                 onClick={() => handleOpenAnalogyModal('body')}
                 className="chip-btn"
-                title="Tilføj en stærk analogi til Body"
+                title={t.card.analogyBodyTitle}
               >
                 <Quote className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                <span>Analogi</span>
+                <span>{t.card.analogy}</span>
               </button>
 
               <button
                 onClick={handleRegenerateBody}
                 disabled={isRegeneratingBody || isRegeneratingScript}
                 className="chip-btn"
-                title="Gen-generér Body"
+                title={t.card.regenBodyTitle}
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 text-muted ${isRegeneratingBody ? 'animate-spin' : ''}`}
                   strokeWidth={1.75}
                   aria-hidden="true"
                 />
-                <span>{isRegeneratingBody ? 'Regenererer...' : 'Nyt forslag'}</span>
+                <span>{isRegeneratingBody ? t.card.regenerating : t.card.newSuggestion}</span>
               </button>
             </div>
           </div>
@@ -805,8 +807,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
             {isEditing || editingFieldKey === 'cta' ? (
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between text-base font-bold text-black">
-                  <span>CTA (Call to Action / Tilbud):</span>
-                  <span className="text-sm text-rec font-semibold">Gemmes automatisk</span>
+                  <span>{t.card.ctaLabel}</span>
+                  <span className="text-sm text-rec font-semibold">{t.card.autoSaved}</span>
                 </div>
                 <textarea
                   rows={2}
@@ -821,49 +823,49 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     }
                   }}
                   className="w-full bg-rec-soft border border-rec/40 rounded-[var(--radius-control)] p-2 text-base text-black font-[#Arial',sans-serif] outline-none focus:border-rec focus:ring-1 focus:ring-rec"
-                  placeholder="Skriv Call to Action her..."
+                  placeholder={t.card.ctaPlaceholder}
                 />
               </div>
             ) : (
               <p
                 onDoubleClick={() => setEditingFieldKey('cta')}
                 className="text-black font-['Arial',sans-serif] m-0 flex-1 cursor-pointer hover:bg-rec-soft hover:outline-dashed hover:outline-1 hover:outline-rec/40 p-1.5 -m-1.5 rounded-[var(--radius-control)] transition-all group/cta"
-                title="Dobbeltklik direkte i teksten for at redigere"
+                title={t.card.dblClickTitle}
               >
-                <strong className="font-bold text-black">CTA -</strong> {script.callToAction}
+                <strong className="font-bold text-black">{t.card.ctaWord} -</strong> {script.callToAction}
                 <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/cta:opacity-100 transition-opacity text-sm font-normal">
-                  <Pencil className="w-3 h-3 inline mr-0.5" /> Dobbeltklik for at rette
+                  <Pencil className="w-3 h-3 inline mr-0.5" /> {t.card.dblClickEdit}
                 </span>
               </p>
             )}
 
             <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0 mt-1">
               <button
-                onClick={() => handleSaveElementToAiTraining('cta', script.callToAction, 'cta', `CTA - ${script.title || 'Tilbud'}`)}
+                onClick={() => handleSaveElementToAiTraining('cta', script.callToAction, 'cta', `CTA - ${script.title || t.card.ctaFallbackTitle}`)}
                 className="chip-btn"
                 data-active={savedTrainingKeys['cta'] ? 'true' : 'false'}
-                title="Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede CTA'er fremover"
+                title={t.card.starCtaTitle}
               >
                 <Star
                   className={`w-3.5 h-3.5 ${savedTrainingKeys['cta'] ? 'fill-rec text-rec' : 'text-muted'}`}
                   strokeWidth={1.75}
                   aria-hidden="true"
                 />
-                <span>{savedTrainingKeys['cta'] ? 'Stjernemarkeret' : 'Stjernemarkér'}</span>
+                <span>{savedTrainingKeys['cta'] ? t.card.starred : t.card.star}</span>
               </button>
 
               <button
                 onClick={handleRegenerateCta}
                 disabled={isRegeneratingCta || isRegeneratingScript}
                 className="chip-btn"
-                title="Gen-generér CTA"
+                title={t.card.regenCtaTitle}
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 text-muted ${isRegeneratingCta ? 'animate-spin' : ''}`}
                   strokeWidth={1.75}
                   aria-hidden="true"
                 />
-                <span>{isRegeneratingCta ? 'Regenererer...' : 'Nyt forslag'}</span>
+                <span>{isRegeneratingCta ? t.card.regenerating : t.card.newSuggestion}</span>
               </button>
             </div>
           </div>
