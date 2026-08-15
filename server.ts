@@ -734,7 +734,6 @@ app.post("/api/generate-scripts", async (req, res) => {
       language = "da",
       globalAnalogies = [],
       toneOfVoice = "",
-      explainHookPsychology = false
     } = req.body;
 
     if (!companyName) {
@@ -825,10 +824,6 @@ CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til DIREKTE 
       ? `\nTONE OF VOICE / TALESPROG (SKAL GENNEMSYRE ALLE TALTE REPLIKKER):\n"${toneOfVoice.trim()}"\n- Alle audioDialogue-replikker skal lyde som denne tone, uden at bryde hook-reglerne og sprogforbuddene.\n`
       : "";
 
-    const psychologyInstruction = explainHookPsychology
-      ? `\nPSYKOLOGI BAG HOOKS: For hver hook SKAL du udfylde feltet "psychology" med 1-2 korte danske sætninger, der forklarer den psykologiske mekanisme bag hooket (f.eks. loss aversion, curiosity gap, social proof) og hvorfor den stopper scrollen for netop denne målgruppe.\n`
-      : "";
-
     // Skridt 1 af 2: klassificér strategien pr. script FØR der skrives copy (playbookens kernekrav).
     const effectiveConfigs = Array.isArray(scriptConfigs) && scriptConfigs.length > 0
       ? scriptConfigs.slice(0, numScripts)
@@ -864,7 +859,7 @@ Du er en verdensklasse Direct Response Meta Ads (Facebook & Instagram Video Ads)
 Din opgave er at generere præcis ${numScripts} højkonverterende video-script-koncepter til en Meta annoncekampagne.
 
 ${focusInstruction}
-${toneInstruction}${psychologyInstruction}${scriptTypeMasterGuidelines}
+${toneInstruction}${scriptTypeMasterGuidelines}
 PRODUKT / VIRKSOMHED DETALJER:
 - Virksomhedsnavn: "${companyName}"
 ${companyWebsite ? `- Virksomhedens Hjemmeside: "${companyWebsite}"` : ""}
@@ -888,9 +883,18 @@ REGLER FOR AWARENESS STADIE & TRAFIK-TYPE:
   * Solution Aware (Løsningsbevidst): Fokuser på hvorfor dit produkt/mekanisme virker anderledes og bedre end andre løsninger på markedet.
   * Product Aware (Produktbevidst): Fjern tvivl og indvendinger, fremvis beviser, UGC, anmeldelser og produkt-demonstration.
   * Most Aware (Mest bevidst / Købsklar): Fokuser direkte på tilbuddet, rabat, garanti, tidsfrist/urgency og en kontant CTA.
+- TRAFIK-TYPEN ER LIGE SÅ BINDENDE SOM AWARENESS-STADIET. Den afgør hvad seeren allerede ved om VIRKSOMHEDEN, og dermed hvad scriptet må tage for givet. Awareness og trafik-type er to forskellige akser: et Problem Aware-script til kold trafik må kende smerten, men ikke brandet.
+- Hvis et script er markeret som KOLD TRAFIK:
+  * Seeren har ALDRIG hørt om virksomheden. Scriptet må intet tage for givet om kendskab til brand, produkt, tidligere besøg eller tilbud.
+  * STRENGT FORBUDT i kold trafik: "Som du ved", "Husker du", "Du har set", "Kom tilbage", "Din kurv", "Igen i dag", "Vi har jo", og enhver anden formulering der forudsætter et tidligere møde med virksomheden.
+  * Hooket skal fortjene opmærksomheden fra nul: start i seerens egen situation eller symptom, aldrig i produktet. Virksomhedsnavnet falder først når der er skabt genkendelse.
+  * Tilbuddet er ikke åbningen. Rabat, kode og deadline hører til i CTA'en, ikke i de første sekunder hvor seeren endnu ikke ved hvad der sælges.
+  * Kvalificér den rigtige seer tidligt, så de forkerte scroller videre: nævn situationen, faget eller rollen konkret i stedet for en bred påstand alle kan nikke til.
+  * Regn med nul forhåndstillid. Beviser skal VISES i billedet (demonstration, rigtige optagelser, konkrete tal fra materialet), ikke blot påstås.
 - Hvis et script er markeret som RETARGETING / VARM TRAFIK:
   * Brug sprog henvendt til folk der allerede kender brandet (f.eks. "Overvejer du stadig...", "Glemte du noget i kurven?", "Før du beslutter dig...").
   * Fokuser på at fjerne de sidste købsforhindringer (risikofri prøve, gratis fragt, 100 dages returret, kunders anmeldelser) og giv et stærkt retargeting-tilbud.
+  * Genforklar ikke problemet fra bunden. Seeren kender det, og en genopvarmning spilder de sekunder der skulle lukke salget.
 
 KRITISK REGEL FOR VARIGHED, TALEHASTIGHED OG REPLIKLÆNGDE (SAMLET TID FOR HELE VIDEOEN):
 - Den angivne varighed (f.eks. "15 sekunder", "20 sekunder", "30 sekunder", "45 sekunder", "60 sekunder") er den SAMLEDE LÆNGDE FOR HELE MANUSKRIPTET TILSAMMEN (Hook + Body-scener + CTA).
@@ -1019,10 +1023,6 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       required: ["scripts"]
     };
 
-    if (explainHookPsychology) {
-      ((responseSchema as any).properties.scripts.items.properties.hooks.items.properties).psychology = { type: Type.STRING };
-    }
-
     const response = await generateContentJson({
       prompt,
               system: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
@@ -1042,6 +1042,11 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       const cfg = Array.isArray(scriptConfigs) && scriptConfigs[idx] ? scriptConfigs[idx] : null;
       const effectiveScriptType = cfg?.scriptType || script.scriptType || scriptType;
       const effectiveBodyDuration = cfg?.bodyDuration || script.bodyDuration || bodyDuration;
+      // Modellen selvrapporterer stadie og trafik-type i sit svar, og den kan drive fra
+      // det operatøren valgte. Opsætningen vinder, så kortet og det gemte script viser
+      // det der faktisk blev bestilt.
+      const effectiveAwareness = cfg?.awarenessStage || script.awarenessStage || "Problem Aware";
+      const effectiveTrafficType = cfg?.trafficType || script.trafficType || "cold";
 
       const rawScript = {
         ...script,
@@ -1052,6 +1057,8 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
         competitors: filteredCompetitors,
         scriptType: effectiveScriptType,
         bodyDuration: effectiveBodyDuration,
+        awarenessStage: effectiveAwareness,
+        trafficType: effectiveTrafficType,
         strategy: strategies?.[idx] || undefined,
         createdAt: new Date().toISOString(),
         hooks: (script.hooks || []).map((h: any, hIdx: number) => ({

@@ -192,7 +192,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || '');
   const [analysisDoc, setAnalysisDoc] = useState<AnalysisDocument | null>(initialData?.analysisDocument || null);
   const [toneOfVoice, setToneOfVoice] = useState(initialData?.toneOfVoice || '');
-  const [explainHookPsychology, setExplainHookPsychology] = useState(!!initialData?.explainHookPsychology);
   const [isReadingDoc, setIsReadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -462,8 +461,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       offerOrCta: offerOrCta.trim(),
       scriptFocus,
       language: lang,
-      toneOfVoice: toneOfVoice.trim() || undefined,
-      explainHookPsychology
+      toneOfVoice: toneOfVoice.trim() || undefined
     });
   };
 
@@ -1179,45 +1177,40 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         title={t.form.section3Title}
         description={t.form.section3Desc}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field
-            label={t.form.toneLabel}
-            hint={t.form.toneHint}
-            meta={missingMark(!toneOfVoice.trim())}
-            htmlFor="toneOfVoice"
-          >
-            <input
-              id="toneOfVoice"
-              list="tone-presets"
-              value={toneOfVoice}
-              onChange={(e) => setToneOfVoice(e.target.value)}
-              placeholder={t.form.tonePlaceholder}
-              className="control"
-            />
-            <datalist id="tone-presets">
-              {t.form.tonePresets.map((preset) => (
-                <option key={preset} value={preset} />
-              ))}
-            </datalist>
-          </Field>
-
-          <Field label={t.form.psychologyLabel}>
-            <label className="flex items-start gap-3 px-4 py-3 border border-line-strong rounded-[var(--radius-control)] cursor-pointer hover:bg-sunken transition-colors">
-              <input
-                type="checkbox"
-                checked={explainHookPsychology}
-                onChange={(e) => setExplainHookPsychology(e.target.checked)}
-                className="mt-1 w-4 h-4 accent-[var(--color-rec)] cursor-pointer shrink-0"
-              />
-              <span>
-                <span className="block font-semibold text-[15.5px] text-ink">{t.form.psychologyTitle}</span>
-                <span className="field-hint">
-                  {t.form.psychologyHint}
-                </span>
-              </span>
-            </label>
-          </Field>
-        </div>
+        <Field
+          label={t.form.toneLabel}
+          hint={t.form.toneHint}
+          meta={missingMark(!toneOfVoice.trim())}
+          htmlFor="toneOfVoice"
+        >
+          <input
+            id="toneOfVoice"
+            value={toneOfVoice}
+            onChange={(e) => setToneOfVoice(e.target.value)}
+            placeholder={t.form.tonePlaceholder}
+            className="control"
+          />
+          {/* Forslagene stod før i en datalist, som browseren ikke viser nogen
+              indgang til. Nu er de synlige knapper, man kan klikke direkte. */}
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {t.form.tonePresets.map((preset) => {
+              const selected = toneOfVoice.trim() === preset;
+              return (
+                <button
+                  type="button"
+                  key={preset}
+                  onClick={() => setToneOfVoice(selected ? '' : preset)}
+                  aria-pressed={selected}
+                  className="chip-btn"
+                  data-active={selected ? 'true' : 'false'}
+                >
+                  {selected && <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />}
+                  {preset}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
       </Section>
 
       {/* ------------------------------------------------ Fast handlingsbjælke */}

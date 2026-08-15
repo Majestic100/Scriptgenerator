@@ -70,7 +70,6 @@ export interface ScriptRequest {
   language?: 'da' | 'en';
   globalAnalogies?: string[];
   toneOfVoice?: string;
-  explainHookPsychology?: boolean;
 }
 
 export interface HookItem {
