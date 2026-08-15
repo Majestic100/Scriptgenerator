@@ -11,7 +11,8 @@ import {
   Copy,
   Sparkles,
   Wand2,
-  Undo2
+  Undo2,
+  AlertTriangle
 } from 'lucide-react';
 import { ScriptRequest, ScriptType, AnalysisDocument } from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
@@ -165,6 +166,17 @@ const SAMPLE_EXAMPLE_DATA = {
   ]
 };
 
+/**
+ * Opsætning pr. script når formularen er tom. Samme spredning af typer, varigheder
+ * og stadier som eksemplet, men uden en linje kundetekst: intet "Skal med i script"
+ * og ingen retargeting-noter, så en anden kundes tilbud aldrig kan slippe med ind
+ * i manuskripterne. Formularen starter tom ved hver indlæsning.
+ */
+const BLANK_SCRIPT_CONFIGS = SAMPLE_EXAMPLE_DATA.scriptConfigs.map((cfg: any) => {
+  const { mustInclude, retargetingNotes, ...setup } = cfg;
+  return { ...setup, mustInclude: '' };
+});
+
 export const ScriptForm: React.FC<ScriptFormProps> = ({
   onSubmit,
   isLoading,
@@ -173,26 +185,24 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 }) => {
   const { t, lang, setLang } = useLang();
 
-  const [companyName, setCompanyName] = useState(initialData?.companyName || SAMPLE_EXAMPLE_DATA.companyName);
+  const [companyName, setCompanyName] = useState(initialData?.companyName || '');
   const [documentTitle, setDocumentTitle] = useState(
-    initialData?.documentTitle || (initialData?.companyName ? `${initialData.companyName} - Script 2` : 'JP Køl og Klima - Script 2')
+    initialData?.documentTitle || (initialData?.companyName ? `${initialData.companyName} - Script 2` : '')
   );
-  const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || SAMPLE_EXAMPLE_DATA.companyWebsite);
+  const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || '');
   const [analysisDoc, setAnalysisDoc] = useState<AnalysisDocument | null>(initialData?.analysisDocument || null);
   const [toneOfVoice, setToneOfVoice] = useState(initialData?.toneOfVoice || '');
   const [explainHookPsychology, setExplainHookPsychology] = useState(!!initialData?.explainHookPsychology);
   const [isReadingDoc, setIsReadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [productName, setProductName] = useState(initialData?.productName || SAMPLE_EXAMPLE_DATA.productName);
+  const [productName, setProductName] = useState(initialData?.productName || '');
   const [competitorInput, setCompetitorInput] = useState('');
-  const [competitors, setCompetitors] = useState<string[]>(
-    initialData?.competitors || SAMPLE_EXAMPLE_DATA.competitors
-  );
-  const [numScripts, setNumScripts] = useState<number>(initialData?.numScripts || SAMPLE_EXAMPLE_DATA.numScripts);
+  const [competitors, setCompetitors] = useState<string[]>(initialData?.competitors || []);
+  const [numScripts, setNumScripts] = useState<number>(initialData?.numScripts || 2);
   const [activeTab, setActiveTab] = useState<number>(0);
 
-  const defaultPresets = SAMPLE_EXAMPLE_DATA.scriptConfigs;
+  const defaultPresets = BLANK_SCRIPT_CONFIGS;
 
   const [scriptConfigs, setScriptConfigs] = useState(() => {
     if (initialData?.scriptConfigs && initialData.scriptConfigs.length > 0) {
@@ -205,18 +215,17 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     return defaultPresets;
   });
 
-  const [productDescription, setProductDescription] = useState(initialData?.productDescription || SAMPLE_EXAMPLE_DATA.productDescription);
-  const [targetAudience, setTargetAudience] = useState(initialData?.targetAudience || SAMPLE_EXAMPLE_DATA.targetAudience);
-  const [demographics, setDemographics] = useState(initialData?.demographics || SAMPLE_EXAMPLE_DATA.demographics);
-  const [offerOrCta, setOfferOrCta] = useState(initialData?.offerOrCta || SAMPLE_EXAMPLE_DATA.offerOrCta);
-  const [scriptFocus, setScriptFocus] = useState<'product' | 'lead'>(initialData?.scriptFocus || SAMPLE_EXAMPLE_DATA.scriptFocus);
+  const [productDescription, setProductDescription] = useState(initialData?.productDescription || '');
+  const [targetAudience, setTargetAudience] = useState(initialData?.targetAudience || '');
+  const [demographics, setDemographics] = useState(initialData?.demographics || '');
+  const [offerOrCta, setOfferOrCta] = useState(initialData?.offerOrCta || '');
+  const [scriptFocus, setScriptFocus] = useState<'product' | 'lead'>(initialData?.scriptFocus || 'product');
 
   // Automatisk udfyldning ud fra den uploadede analyse
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisNotice, setAnalysisNotice] = useState<{
     summary: string;
     filled: string[];
-    missing: string[];
     usedWebsite: boolean;
   } | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -253,17 +262,18 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       undoRef.current = null;
     };
 
+    // Analysen er eneste kilde: felter uden dækning i materialet ryddes i stedet for at
+    // beholde eksempel- eller kundedata, som AI'en ellers ville skrive scripts ud fra.
     const filled: string[] = [];
     const set = (label: string, value: string, setter: (v: string) => void) => {
-      if (value) {
-        setter(value);
-        filled.push(label);
-      }
+      const clean = typeof value === 'string' ? value.trim() : '';
+      setter(clean);
+      if (clean) filled.push(label);
     };
 
     set(t.form.fieldLabels.companyName, fields.companyName, (v) => {
       setCompanyName(v);
-      setDocumentTitle(`${v} - Script 2`);
+      if (v) setDocumentTitle(`${v} - Script 2`);
     });
     set(t.form.fieldLabels.productName, fields.productName, setProductName);
     set(t.form.fieldLabels.productDescription, fields.productDescription, setProductDescription);
@@ -272,19 +282,22 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     set(t.form.fieldLabels.offerOrCta, fields.offerOrCta, setOfferOrCta);
     set(t.form.fieldLabels.toneOfVoice, fields.toneOfVoice, setToneOfVoice);
 
-    if (Array.isArray(fields.competitors) && fields.competitors.length > 0) {
-      setCompetitors(fields.competitors.slice(0, 3));
-      filled.push(t.form.fieldLabels.competitors);
-    }
+    const foundCompetitors = Array.isArray(fields.competitors)
+      ? fields.competitors.filter((c: any) => typeof c === 'string' && c.trim()).slice(0, 3)
+      : [];
+    setCompetitors(foundCompetitors);
+    if (foundCompetitors.length > 0) filled.push(t.form.fieldLabels.competitors);
 
-    // Ryd tidligere overstyringer pr. script, så de nye værdier slår igennem på alle scripts
-    const overridden = ['productDescription', 'targetAudience', 'demographics', 'offerOrCta'] as const;
+    // Ryd alle overstyringer og eksempeltekster pr. script, så intet fra en anden kunde
+    // slipper med over i manuskripterne. Opsætningen (type, varighed, hooks) bevares.
     setScriptConfigs((configs) =>
       configs.map((cfg) => {
         const next: any = { ...cfg };
-        overridden.forEach((key) => {
-          if (fields[key]) delete next[key];
+        (['productDescription', 'targetAudience', 'demographics', 'offerOrCta'] as const).forEach((key) => {
+          delete next[key];
         });
+        next.mustInclude = '';
+        next.retargetingNotes = '';
         return next;
       })
     );
@@ -326,7 +339,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       setAnalysisNotice({
         summary: data.summary || '',
         filled,
-        missing: data.missingFields || [],
         usedWebsite: !!data.usedWebsite
       });
     } catch (err) {
@@ -375,8 +387,9 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   };
 
   const handleFillExampleData = () => {
+    setAnalysisNotice(null);
     setCompanyName(SAMPLE_EXAMPLE_DATA.companyName);
-    setDocumentTitle('JP Køl og Klima - Script 2');
+    setDocumentTitle(`${SAMPLE_EXAMPLE_DATA.companyName} - Script 2`);
     setCompanyWebsite(SAMPLE_EXAMPLE_DATA.companyWebsite);
     setProductName(SAMPLE_EXAMPLE_DATA.productName);
     setCompetitors(SAMPLE_EXAMPLE_DATA.competitors);
@@ -469,6 +482,31 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
   const currentCfg = scriptConfigs[activeTab] || defaultPresets[0];
   const selectedTypeDesc = t.scriptTypeDescs[currentCfg.scriptType];
+
+  /**
+   * Felter der bærer scriptets kvalitet. Efter en analyse markeres de tomme,
+   * så man kan se hvad analysen ikke dækkede. Beregnes løbende, så markeringen
+   * forsvinder i samme øjeblik feltet udfyldes.
+   */
+  const briefFields = [
+    { label: t.form.productName, empty: !productName.trim() },
+    {
+      label: scriptFocus === 'lead' ? t.form.productDescLead : t.form.productDescProduct,
+      empty: !(currentCfg.productDescription ?? productDescription).trim()
+    },
+    { label: t.form.targetAudience, empty: !(currentCfg.targetAudience ?? targetAudience).trim() },
+    { label: t.form.demographics, empty: !(currentCfg.demographics ?? demographics).trim() },
+    { label: t.form.cta, empty: !(currentCfg.offerOrCta ?? offerOrCta).trim() },
+    { label: t.form.competitors, empty: competitors.length === 0 },
+    { label: t.form.toneLabel, empty: !toneOfVoice.trim() }
+  ];
+  const missingFields = analysisNotice ? briefFields.filter((f) => f.empty).map((f) => f.label) : [];
+
+  /** "Mangler"-mærkat på et tomt felt, kun efter en analyse. */
+  const missingMark = (isEmpty: boolean) =>
+    analysisNotice && isEmpty ? (
+      <span className="font-mono text-[11px] uppercase tracking-wider text-rec">{t.form.missingBadge}</span>
+    ) : undefined;
 
   /** Sætter en hel række hook-vinkler ind på det aktive script. */
   const applyHookAngles = (ids: string[]) => {
@@ -574,7 +612,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             />
           </Field>
 
-          <Field label={t.form.productName} meta={t.form.optional} htmlFor="productName">
+          <Field
+            label={t.form.productName}
+            meta={missingMark(!productName.trim()) ?? t.form.optional}
+            htmlFor="productName"
+          >
             <input
               id="productName"
               type="text"
@@ -601,7 +643,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </Field>
 
           <div className="lg:col-span-2">
-            <Field label={t.form.competitors} meta={t.form.nOf3(competitors.length)} htmlFor="competitor">
+            <Field
+              label={t.form.competitors}
+              meta={missingMark(competitors.length === 0) ?? t.form.nOf3(competitors.length)}
+              htmlFor="competitor"
+            >
               <div className="flex gap-2">
                 <input
                   id="competitor"
@@ -761,11 +807,34 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                         {analysisNotice.filled.length > 0 && (
                           <p className="field-hint">{t.form.filledLabel} {analysisNotice.filled.join(', ')}.</p>
                         )}
-                        {analysisNotice.missing.length > 0 && (
-                          <p className="field-hint">
-                            {t.form.missingLabel} {analysisNotice.missing.join(', ')}.
+
+                        {missingFields.length > 0 ? (
+                          <div className="flex items-start gap-2.5 bg-rec-soft border border-rec/30 rounded-[var(--radius-control)] px-3.5 py-3">
+                            <AlertTriangle className="w-4 h-4 text-rec shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
+                            <div className="min-w-0">
+                              <p className="font-semibold text-[15px] text-ink">
+                                {t.form.missingHeading(missingFields.length)}
+                              </p>
+                              <p className="field-hint">{t.form.missingHelp}</p>
+                              <ul className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">
+                                {missingFields.map((label) => (
+                                  <li
+                                    key={label}
+                                    className="text-[14.5px] text-ink bg-surface border border-rec/30 rounded px-2 py-0.5"
+                                  >
+                                    {label}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="flex items-center gap-2 text-[15px] text-ink">
+                            <Check className="w-4 h-4 text-rec shrink-0" strokeWidth={2.5} aria-hidden="true" />
+                            {t.form.allFilled}
                           </p>
                         )}
+
                         {analysisNotice.usedWebsite && (
                           <p className="field-hint">{t.form.websiteUsed}</p>
                         )}
@@ -779,7 +848,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         </div>
 
         <div className="border-t border-line pt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label={scriptFocus === 'lead' ? t.form.productDescLead : t.form.productDescProduct}>
+          <Field
+            label={scriptFocus === 'lead' ? t.form.productDescLead : t.form.productDescProduct}
+            meta={missingMark(!(currentCfg.productDescription ?? productDescription).trim())}
+          >
             <textarea
               rows={4}
               value={currentCfg.productDescription ?? productDescription}
@@ -792,7 +864,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             />
           </Field>
 
-          <Field label={t.form.targetAudience}>
+          <Field
+            label={t.form.targetAudience}
+            meta={missingMark(!(currentCfg.targetAudience ?? targetAudience).trim())}
+          >
             <textarea
               rows={4}
               value={currentCfg.targetAudience ?? targetAudience}
@@ -805,7 +880,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             />
           </Field>
 
-          <Field label={t.form.demographics}>
+          <Field
+            label={t.form.demographics}
+            meta={missingMark(!(currentCfg.demographics ?? demographics).trim())}
+          >
             <textarea
               rows={4}
               value={currentCfg.demographics ?? demographics}
@@ -818,7 +896,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             />
           </Field>
 
-          <Field label={t.form.cta}>
+          <Field
+            label={t.form.cta}
+            meta={missingMark(!(currentCfg.offerOrCta ?? offerOrCta).trim())}
+          >
             <textarea
               rows={4}
               value={currentCfg.offerOrCta ?? offerOrCta}
@@ -1099,7 +1180,12 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         description={t.form.section3Desc}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label={t.form.toneLabel} hint={t.form.toneHint} htmlFor="toneOfVoice">
+          <Field
+            label={t.form.toneLabel}
+            hint={t.form.toneHint}
+            meta={missingMark(!toneOfVoice.trim())}
+            htmlFor="toneOfVoice"
+          >
             <input
               id="toneOfVoice"
               list="tone-presets"
