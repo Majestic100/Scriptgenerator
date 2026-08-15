@@ -15,7 +15,15 @@ import {
   Undo2,
   AlertTriangle
 } from 'lucide-react';
-import { ScriptRequest, ScriptType, AnalysisDocument, normalizeTrafficTemperature } from '../types';
+import {
+  ScriptRequest,
+  ScriptType,
+  AnalysisDocument,
+  normalizeTrafficTemperature,
+  normalizeDuration,
+  DURATION_OPTIONS,
+  DEFAULT_DURATION
+} from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
 import { FlagDK, FlagGB } from './ui/flags';
@@ -58,11 +66,6 @@ const SCRIPT_TYPES: ScriptType[] = [
   'Transparens & Priskalkyle'
 ];
 
-const DURATION_OPTIONS = [
-  '15 sekunder', '20 sekunder', '25 sekunder', '30 sekunder', '35 sekunder',
-  '40 sekunder', '45 sekunder', '50 sekunder', '55 sekunder', '60 sekunder'
-];
-
 const HOOK_TYPE_IDS = [
   'Pattern interrupt',
   'Loss aversion',
@@ -93,7 +96,7 @@ const SAMPLE_EXAMPLE_DATA = {
   scriptConfigs: [
     {
       scriptType: 'Problem–Solution / PAS',
-      bodyDuration: '30 sekunder',
+      bodyDuration: '30-40 sekunder',
       numHooks: 3,
       awarenessStage: 'Problem Aware',
       trafficType: 'cold' as const,
@@ -102,7 +105,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Testimonial / UGC',
-      bodyDuration: '30 sekunder',
+      bodyDuration: '30-40 sekunder',
       numHooks: 3,
       awarenessStage: 'Product Aware',
       trafficType: 'warm' as const,
@@ -112,7 +115,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Humor & Skæv Vinkel',
-      bodyDuration: '25 sekunder',
+      bodyDuration: '20-30 sekunder',
       numHooks: 3,
       awarenessStage: 'Unaware',
       trafficType: 'cold' as const,
@@ -121,7 +124,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Comparison (Us vs Competitors)',
-      bodyDuration: '35 sekunder',
+      bodyDuration: '30-40 sekunder',
       numHooks: 3,
       awarenessStage: 'Solution Aware',
       trafficType: 'cold' as const,
@@ -130,7 +133,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Educational / Explainer',
-      bodyDuration: '40 sekunder',
+      bodyDuration: '40-50 sekunder',
       numHooks: 3,
       awarenessStage: 'Problem Aware',
       trafficType: 'cold' as const,
@@ -139,7 +142,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Story-Driven / Narrative',
-      bodyDuration: '45 sekunder',
+      bodyDuration: '40-50 sekunder',
       numHooks: 3,
       awarenessStage: 'Problem Aware',
       trafficType: 'cold' as const,
@@ -148,7 +151,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Tips & Hacks',
-      bodyDuration: '30 sekunder',
+      bodyDuration: '30-40 sekunder',
       numHooks: 3,
       awarenessStage: 'Unaware',
       trafficType: 'cold' as const,
@@ -157,7 +160,7 @@ const SAMPLE_EXAMPLE_DATA = {
     },
     {
       scriptType: 'Founder Story & Behind the Scenes',
-      bodyDuration: '50 sekunder',
+      bodyDuration: '50-60 sekunder',
       numHooks: 3,
       awarenessStage: 'Solution Aware',
       trafficType: 'cold' as const,
@@ -208,7 +211,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     if (initialData?.scriptConfigs && initialData.scriptConfigs.length > 0) {
       const merged = [...defaultPresets];
       initialData.scriptConfigs.forEach((cfg, idx) => {
-        if (merged[idx]) merged[idx] = { ...merged[idx], ...cfg };
+        // Varigheden læses gennem normalizeDuration, så en gammel opsætning med ét
+        // sekundtal ('30 sekunder') stadig rammer et gyldigt interval i listen.
+        if (merged[idx]) {
+          merged[idx] = { ...merged[idx], ...cfg, bodyDuration: normalizeDuration(cfg.bodyDuration) };
+        }
       });
       return merged;
     }
@@ -528,7 +535,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       numScripts,
       scriptConfigs: activeConfigs,
       numHooksPerScript: activeConfigs[0]?.numHooks || 3,
-      bodyDuration: activeConfigs[0]?.bodyDuration || '30 sekunder',
+      bodyDuration: activeConfigs[0]?.bodyDuration || DEFAULT_DURATION,
       scriptType: activeConfigs[0]?.scriptType || 'UGC (User Generated Content)',
       productDescription: productDescription.trim(),
       targetAudience: targetAudience.trim(),
@@ -1096,10 +1103,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         {/* Opsætning for det aktive script */}
         <div className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field label={t.form.duration} htmlFor="duration">
+            <Field label={t.form.duration} hint={t.form.durationHint} htmlFor="duration">
               <select
                 id="duration"
-                value={currentCfg.bodyDuration}
+                value={normalizeDuration(currentCfg.bodyDuration)}
                 onChange={(e) => updateCurrentScriptConfig('bodyDuration', e.target.value)}
                 className="control"
               >

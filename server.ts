@@ -369,6 +369,31 @@ function readPlaybookFile(rel: string): string {
   }
 }
 
+/**
+ * Varighed angives som interval ('30-40 sekunder'). Læser tallene ud, så både
+ * intervaller og gamle enkelt-tal ('30 sekunder') kan omsættes til et ordbudget.
+ * Ca. 2,1 ord i sekundet er et roligt dansk taletempo.
+ */
+function durationRange(value) {
+  const numbers = String(value || "").match(/\d+/g);
+  const minSec = numbers ? parseInt(numbers[0], 10) : 30;
+  const maxSec = numbers ? parseInt(numbers[numbers.length - 1], 10) : 40;
+  return {
+    minSec,
+    maxSec,
+    minWords: Math.round(minSec * 2.0),
+    maxWords: Math.round(maxSec * 2.1),
+  };
+}
+
+/** Én linje med varighed og ordbudget til script-specifikationen. */
+function durationSpec(value) {
+  const r = durationRange(value);
+  return r.minSec === r.maxSec
+    ? `"${value}" (ca. ${r.maxWords} ord dialog i alt)`
+    : `"${value}". Scriptet må lande hvor som helst mellem ${r.minSec} og ${r.maxSec} sekunder, med ${r.minWords}-${r.maxWords} ord dialog i alt`;
+}
+
 /** 'retargeting' var den gamle værdi og svarer til 'warm' i tre-lags-modellen. */
 function normalizeTraffic(value) {
   const v = (value || "").toLowerCase();
@@ -468,7 +493,7 @@ async function classifyScriptStrategies(input: {
   const outputLanguageName = input.language === "en" ? "English" : "Danish";
 
   const configLines = input.scriptConfigs.map((cfg: any, i: number) => {
-    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic temperature "${normalizeTraffic(cfg.trafficType)}"${cfg.retargetingNotes ? ` (what the viewer has already seen: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
+    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic temperature "${normalizeTraffic(cfg.trafficType)}"${cfg.retargetingNotes ? ` (what the viewer has already seen: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30-40 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
   }).join("\n");
 
   const prompt = `You are classifying advertising strategy BEFORE any copy is written, following the playbook below. Do not write any script copy in this step.
@@ -741,7 +766,7 @@ app.post("/api/generate-scripts", async (req, res) => {
       numScripts = 2,
       scriptConfigs = [],
       numHooksPerScript = 3,
-      bodyDuration = "30 sekunder",
+      bodyDuration = "30-40 sekunder",
       scriptType = "UGC (User Generated Content)",
       productDescription = "",
       targetAudience = "",
@@ -811,11 +836,11 @@ app.post("/api/generate-scripts", async (req, res) => {
 
         return `SCRIPT #${i + 1}:
 - Type: "${cfg.scriptType || scriptType}"
-- Samlet varighed for HELE videoen (Hook + Body + CTA): "${cfg.bodyDuration || bodyDuration}"
+- Samlet varighed for HELE videoen (Hook + Body + CTA): ${durationSpec(cfg.bodyDuration || bodyDuration)}
 - Antal hooks: ${cfg.numHooks || numHooksPerScript}${extraDetails.length > 0 ? `\n- Specifikke detaljer for dette script: ${extraDetails.join(" | ")}` : ""}`;
       }).join("\n\n");
     } else {
-      perScriptSpecs = `Alle ${numScripts} scripts skal have standard type "${scriptType}", samlet varighed for hele videoen "${bodyDuration}" og ${numHooksPerScript} hooks.`;
+      perScriptSpecs = `Alle ${numScripts} scripts skal have standard type "${scriptType}", samlet varighed for hele videoen ${durationSpec(bodyDuration)} og ${numHooksPerScript} hooks.`;
     }
 
     const focusInstruction = scriptFocus === 'lead'
@@ -920,20 +945,12 @@ REGLER FOR AWARENESS STADIE & TRAFIK-TYPE:
   * Ingen genopvarmning af problemet og ingen ny undervisning. Det forsinker købet.
 
 KRITISK REGEL FOR VARIGHED, TALEHASTIGHED OG REPLIKLÆNGDE (SAMLET TID FOR HELE VIDEOEN):
-- Den angivne varighed (f.eks. "15 sekunder", "20 sekunder", "30 sekunder", "45 sekunder", "60 sekunder") er den SAMLEDE LÆNGDE FOR HELE MANUSKRIPTET TILSAMMEN (Hook + Body-scener + CTA).
-- Mennesker taler i et roligt, naturligt og behageligt tempo i videoer (ca. 2.0 - 2.2 ord pr. sekund på dansk). Skuespillere skal ikke tale for hurtigt eller stresse.
-- SKAL VÆRE KORTE OG PRÆCISE: For at manuskriptet kan læses i roligt tempo og overholde den SAMLEDE tid, SKAL du STRICT begrænse det samlede ordantal af dialogen (audioDialogue) på tværs af hele scriptet:
-  * 15 sekunder total = MAKS 30–35 ord i alt (Hook + Body + CTA)
-  * 20 sekunder total = MAKS 40–45 ord i alt (Hook + Body + CTA)
-  * 25 sekunder total = MAKS 50–55 ord i alt (Hook + Body + CTA)
-  * 30 sekunder total = MAKS 60–65 ord i alt (Hook + Body + CTA)
-  * 35 sekunder total = MAKS 70–75 ord i alt (Hook + Body + CTA)
-  * 40 sekunder total = MAKS 80–85 ord i alt (Hook + Body + CTA)
-  * 45 sekunder total = MAKS 90–95 ord i alt (Hook + Body + CTA)
-  * 50 sekunder total = MAKS 100–105 ord i alt (Hook + Body + CTA)
-  * 60 sekunder total = MAKS 120–125 ord i alt (Hook + Body + CTA)
+- Varigheden angives som et INTERVAL (f.eks. "20-30 sekunder", "30-40 sekunder"). Det er den SAMLEDE LÆNGDE FOR HELE MANUSKRIPTET TILSAMMEN (Hook + Body-scener + CTA).
+- Intervallet er en ramme, ikke et præcist mål. Scriptet må lande hvor som helst inde i intervallet. Lad indholdet bestemme længden: har historien brug for hele intervallet, så brug det, og er pointen landet før, så stop dér i stedet for at strække teksten med fyld. Gå aldrig under den nedre eller over den øvre grænse.
+- Mennesker taler i et roligt, naturligt og behageligt tempo i videoer (ca. 2,0-2,2 ord pr. sekund på dansk). Skuespillere skal ikke tale for hurtigt eller stresse.
+- Ordbudgettet for hvert script står i selve script-specifikationen og følger taletempoet. Hold det samlede ordantal af dialogen (audioDialogue) på tværs af hele scriptet inden for det budget.
 - Replikkerne skal være mundtlige, skarpe, fængende og fri for fyldord!
-- Tidskoderne for Body-scenerne og CTA skal justeres præcist så de passer til den samlede angivne tid!
+- Tidskoderne for Body-scenerne og CTA skal lægges, så de går op med den samlede længde, du har valgt inde i intervallet. Sidste tidskode slutter dér, hvor scriptet reelt slutter.
 
 REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
 - Generer det præcise antal hooks der er angivet for det pågældende script. Alle hooks til et script skal kunne klippes ind foran samme body.
@@ -1263,7 +1280,7 @@ Returnér UDELUKKENDE et JSON-objekt:
     } else if (elementType === "body") {
       const scriptType = script.scriptType || "UGC (User Generated Content)";
       const scriptTypeGuide = getScriptTypeGuidelinesPrompt([scriptType]);
-      const bodyDuration = script.bodyDuration || "30 sekunder";
+      const bodyDuration = script.bodyDuration || "30-40 sekunder";
       const hooksSummary = (script.hooks || []).map((h: any) => h.audioDialogue).join(" / ");
 
       const prompt = `
@@ -1279,7 +1296,7 @@ ${targetAudience ? `- Målgruppe: "${targetAudience}"` : ''}
 ${offerOrCta ? `- Tilbud/CTA: "${offerOrCta}"` : ''}
 - Sprog: ${promptLanguage}
 - Script Type: "${scriptType}"
-- Varighed: "${bodyDuration}"
+- Varighed: ${durationSpec(bodyDuration)}
 
 EKSISTERENDE HOOKS DER SKAL PASSES TIL:
 "${hooksSummary}"
@@ -1398,7 +1415,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const numHooks = (script.hooks || []).length || 3;
       const scriptType = script.scriptType || "UGC (User Generated Content)";
       const scriptTypeGuide = getScriptTypeGuidelinesPrompt([scriptType]);
-      const bodyDuration = script.bodyDuration || "30 sekunder";
+      const bodyDuration = script.bodyDuration || "30-40 sekunder";
 
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
@@ -1413,7 +1430,7 @@ ${targetAudience ? `- Målgruppe: "${targetAudience}"` : ''}
 ${offerOrCta ? `- Tilbud/CTA: "${offerOrCta}"` : ''}
 - Sprog: ${promptLanguage}
 - Script Type: "${scriptType}"
-- Varighed: "${bodyDuration}"
+- Varighed: ${durationSpec(bodyDuration)}
 - Antal hooks: ${numHooks}
 ${scriptFocus === 'lead' ? '- Fokus: LEAD GENERERING (Gratis guide, book samtale, tilmeld)' : '- Fokus: PRODUKTSALG'}
 
@@ -1879,7 +1896,7 @@ Returnér et komplet JSON-objekt med følgende struktur:
     "title": "Meta Ad Inspirations-Script (Facebook Ad Library)",
     "conceptAngle": "Tilpasset vinder-struktur fra Facebook Ad Library",
     "scriptType": "Problem–Solution / PAS",
-    "bodyDuration": "30 sekunder",
+    "bodyDuration": "30-40 sekunder",
     "companyName": "${companyName || 'Virksomhed'}",
     "productName": "${productName || 'Produkt'}",
     "competitors": [],
@@ -2353,7 +2370,7 @@ ${briefLines ? `--- BRIEF ---\n${briefLines}\n--- SLUT PÅ BRIEF ---\n` : ""}
 OPSÆTNING FOR DETTE SCRIPT:
 - Awareness-stadie: ${awarenessStage || "Problem Aware"}
 - Trafik-temperatur: ${TRAFFIC_LABELS[normalizeTraffic(trafficType)]}
-- Varighed: ${bodyDuration || "30 sekunder"}
+- Varighed: ${durationSpec(bodyDuration || "30-40 sekunder")}
 - Antal hooks der skal skrives: ${hooksWanted}
 ${scriptFocus === "lead" ? "- Målet er leads, ikke direkte salg.\n" : "- Målet er salg af produktet.\n"}
 

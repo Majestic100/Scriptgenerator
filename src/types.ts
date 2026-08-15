@@ -26,6 +26,41 @@ export type ScriptType =
   | 'Risikofri / Garanti-fokus'
   | 'Transparens & Priskalkyle';
 
+/**
+ * Varighed vælges som interval, ikke som ét præcist sekundtal. Et manuskript, der
+ * skal ramme "30 sekunder" på slaget, bliver klippet til efter uret i stedet for
+ * efter indholdet. Intervallet giver replikken plads til at fylde det, den skal,
+ * og er stadig en ramme, ikke et frit slag.
+ */
+export const DURATION_OPTIONS = [
+  '15-20 sekunder',
+  '20-30 sekunder',
+  '30-40 sekunder',
+  '40-50 sekunder',
+  '50-60 sekunder',
+  '60-75 sekunder'
+];
+
+export const DEFAULT_DURATION = '30-40 sekunder';
+
+/**
+ * Ældre kunder og scripts gemte ét tal ('30 sekunder'). Læses som det interval,
+ * tallet falder i, så en gammel opsætning stadig rammer et gyldigt valg i listen.
+ */
+export const normalizeDuration = (value?: string): string => {
+  if (!value) return DEFAULT_DURATION;
+  if (DURATION_OPTIONS.includes(value)) return value;
+  const numbers = value.match(/\d+/g);
+  if (!numbers) return DEFAULT_DURATION;
+  const seconds = parseInt(numbers[numbers.length - 1], 10);
+  if (seconds <= 20) return DURATION_OPTIONS[0];
+  if (seconds <= 30) return DURATION_OPTIONS[1];
+  if (seconds <= 40) return DURATION_OPTIONS[2];
+  if (seconds <= 50) return DURATION_OPTIONS[3];
+  if (seconds <= 60) return DURATION_OPTIONS[4];
+  return DURATION_OPTIONS[5];
+};
+
 export type TrafficTemperature = 'cold' | 'warm' | 'hot';
 
 /** Ældre scripts og opsætninger gemte 'retargeting'. Det svarer til 'warm' i den nye model. */
