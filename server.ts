@@ -989,6 +989,7 @@ REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
 REGLER FOR BODY SCENES (Manuskriptet):
 - Opdel kropsstykket af scriptet i strukturerede scener med præcise tidskoder tilpasset den angivne varighed for det script.
 - KRITISK REGEL FOR BODY: Body-scenerne SKAL KUN indeholde historien, problemløsningen, produktfordelene, B-roll og social proof. Body-scenerne må ALDRIG indeholde den afsluttende Call To Action, rabatkoder (f.eks. 'Spar 20%', 'Brug koden SCANDI20'), eller købsopfordringer! Alt tilbud og Call To Action placeres UDELUKKENDE i 'callToAction'.
+- KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
 - Hver scene skal have:
   1. timecode (f.eks. "0:03 - 0:08")
   2. section (en af: 'Problem/Pain', 'Solution/Demo', 'Social Proof', 'Value Prop')
@@ -1252,9 +1253,11 @@ DEN EKSISTERENDE CTA DER SKAL UDSKIFTES:
 
 Generér en ny, skarp og handlingsanvisende CTA replik.
 
+KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
+
 Returnér UDELUKKENDE et JSON-objekt:
 {
-  "callToAction": "Den nye stærke CTA replik"
+  "callToAction": "Kun den talte CTA-replik"
 }
 `;
 
@@ -1447,8 +1450,10 @@ Returnér et komplet JSON-objekt:
   "competitorDifferentiation": "Hvordan dette nye script differentierer sig",
   "hooks": [ ${numHooks} stks hooks med angleType, visualDirection, textOnScreen, audioDialogue, estimatedDurationSec ],
   "scenes": [ opdelte scener med timecode, section, visualDescription, textOnScreen, audioDialogue, soundEffects ],
-  "callToAction": "Stærk afsluttende CTA"
+  "callToAction": "Stærk afsluttende CTA, kun den talte replik"
 }
+
+KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
 `;
 
       const responseSchema = {
@@ -1591,6 +1596,7 @@ function buildAiTrainingPromptSnippet(): string {
   const hooks = items.filter((i: any) => i.type === 'hook').slice(0, 8);
   const bodies = items.filter((i: any) => i.type === 'body').slice(0, 8);
   const ctas = items.filter((i: any) => i.type === 'cta').slice(0, 8);
+  const fullScripts = items.filter((i: any) => i.type === 'script').slice(0, 4);
 
   let snippet = `\n\n🎯 BRUGERENS TRÆNEDE AI-GULDSTANDARDER (EFTERLIGN DENNE STIL, TONE OG STRUKTUR KVALITETSMÆSSIGT):\n`;
 
@@ -1602,6 +1608,14 @@ function buildAiTrainingPromptSnippet(): string {
   }
   if (ctas.length > 0) {
     snippet += `GODE CTA-EKSEMPLER TIL EFTERLIGNING:\n` + ctas.map((c: any) => `- "${c.text}"${c.brandContext ? ` (${c.brandContext})` : ''}`).join('\n') + `\n`;
+  }
+  // Hele scripts står som blokke, ikke i punktopstilling: de skal læses som en
+  // sammenhængende helhed, og det er rytmen fra hook til CTA, der skal efterlignes.
+  if (fullScripts.length > 0) {
+    snippet += `HELE SCRIPTS TIL EFTERLIGNING (efterlign rytmen og overgangene fra hook til CTA, ikke ordene):\n`;
+    snippet += fullScripts
+      .map((sc: any, idx: number) => `--- Script-eksempel ${idx + 1}${sc.title ? `: ${sc.title}` : ''}${sc.brandContext ? ` (${sc.brandContext})` : ''} ---\n${sc.text}`)
+      .join('\n\n') + `\n`;
   }
 
   return snippet;
@@ -1969,6 +1983,8 @@ Returnér et komplet JSON-objekt med følgende struktur:
     "createdAt": "${new Date().toISOString()}"
   }
 }
+
+KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
 `;
 
     const response = await generateContentJson({

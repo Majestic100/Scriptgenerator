@@ -28,7 +28,7 @@ interface ScriptCardProps {
   startHookNumber?: number;
   onUpdateScript?: (updatedScript: GeneratedScript) => void;
   onSaveToProject?: (script: GeneratedScript) => void;
-  onSaveToAiTraining?: (type: 'hook' | 'body' | 'cta', text: string, title?: string, brandContext?: string) => void;
+  onSaveToAiTraining?: (type: 'hook' | 'body' | 'cta' | 'script', text: string, title?: string, brandContext?: string) => void;
 }
 
 export const ScriptCard: React.FC<ScriptCardProps> = ({
@@ -63,7 +63,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   // Track saved AI training items per card
   const [savedTrainingKeys, setSavedTrainingKeys] = useState<Record<string, boolean>>({});
 
-  const handleSaveElementToAiTraining = (type: 'hook' | 'body' | 'cta', text: string, key: string, title?: string) => {
+  const handleSaveElementToAiTraining = (type: 'hook' | 'body' | 'cta' | 'script', text: string, key: string, title?: string) => {
     if (!text || !text.trim()) return;
     const brandContext = [script.companyName, script.productName].filter(Boolean).join(' - ');
     onSaveToAiTraining?.(type, text.trim(), title, brandContext);
@@ -97,6 +97,18 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
     .join(' ');
 
   const bodyText = stripCtaFromText(rawBodyScenes, script.callToAction);
+
+  /**
+   * Hele manuskriptet som ét stykke, i den rækkefølge det læses op. Bruges når man
+   * gemmer scriptet som træningseksempel: det er sammenhængen fra hook til CTA,
+   * AI'en skal lære af, ikke de tre dele hver for sig. Kun første hook kommer med,
+   * fordi de øvrige er alternativer til samme body.
+   */
+  const wholeScriptText = [
+    script.hooks?.[0]?.audioDialogue?.trim(),
+    bodyText,
+    script.callToAction?.trim()
+  ].filter(Boolean).join('\n\n');
 
   // Full concatenated script text for detecting added analogies
   const fullScriptText = [
@@ -485,6 +497,23 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           >
             <Clapperboard className={`w-3.5 h-3.5 ${isGeneratingVisuals ? 'animate-pulse text-rec' : 'text-muted'}`} />
             <span>{isGeneratingVisuals ? t.card.generatingVisuals : t.card.generateVisuals}</span>
+          </button>
+
+          {/* Gem hele scriptet som ét træningseksempel, ikke delt op i hook, body og CTA */}
+          <button
+            onClick={() =>
+              handleSaveElementToAiTraining('script', wholeScriptText, 'whole-script', script.title || t.card.scriptFallbackTitle)
+            }
+            className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+            data-active={savedTrainingKeys['whole-script'] ? 'true' : 'false'}
+            title={t.card.starScriptTitle}
+          >
+            <Star
+              className={`w-3.5 h-3.5 ${savedTrainingKeys['whole-script'] ? 'fill-rec text-rec' : 'text-muted'}`}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span>{savedTrainingKeys['whole-script'] ? t.card.starredScript : t.card.starScript}</span>
           </button>
 
           {/* Regenerate Full Script Button */}

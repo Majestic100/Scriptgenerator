@@ -12,7 +12,8 @@ import {
   Search,
   Sparkles,
   Info,
-  Loader2
+  Loader2,
+  ScrollText
 } from 'lucide-react';
 import { AiTrainingItem, AiTrainingType } from '../types';
 import { useLang, dateLocale } from '../i18n';
@@ -40,7 +41,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
   const handleAdd = onAddItem || onAdd;
   const handleDelete = onDeleteItem || onDelete;
 
-  const [activeFilter, setActiveFilter] = useState<'all' | 'hook' | 'body' | 'cta'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'hook' | 'body' | 'cta' | 'script'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
   const hookCount = items.filter(i => i.type === 'hook').length;
   const bodyCount = items.filter(i => i.type === 'body').length;
   const ctaCount = items.filter(i => i.type === 'cta').length;
+  const scriptCount = items.filter(i => i.type === 'script').length;
 
   const filteredItems = items.filter(item => {
     const matchesType = activeFilter === 'all' || item.type === activeFilter;
@@ -127,6 +129,13 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
           <span className="inline-flex items-center gap-1 text-sm font-extrabold uppercase px-2 py-0.5 rounded bg-rec-soft text-ink border border-rec/40">
             <Target className="w-3 h-3 text-rec" />
             {t.aiT.badgeCta}
+          </span>
+        );
+      case 'script':
+        return (
+          <span className="inline-flex items-center gap-1 text-sm font-extrabold uppercase px-2 py-0.5 rounded bg-ink text-white border border-slate-800">
+            <ScrollText className="w-3 h-3 text-slate-300" />
+            {t.aiT.badgeScript}
           </span>
         );
     }
@@ -224,6 +233,17 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
               >
                 {t.aiT.filterCtas(ctaCount)}
               </button>
+
+              <button
+                onClick={() => setActiveFilter('script')}
+                className={`px-3 py-1.5 rounded-[var(--radius-control)] text-base font-bold transition-all cursor-pointer border ${
+                  activeFilter === 'script'
+                    ? 'bg-ink text-white border-slate-900 shadow-xs'
+                    : 'bg-surface hover:bg-sunken text-ink border-line'
+                }`}
+              >
+                {t.aiT.filterScripts(scriptCount)}
+              </button>
             </div>
 
             {/* Manual Add Toggle Button */}
@@ -276,6 +296,7 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                     <option value="hook">{t.aiT.typeHook}</option>
                     <option value="body">{t.aiT.typeBody}</option>
                     <option value="cta">{t.aiT.typeCta}</option>
+                    <option value="script">{t.aiT.typeScript}</option>
                   </select>
                 </div>
 
@@ -307,19 +328,24 @@ export const AiTrainingModal: React.FC<AiTrainingModalProps> = ({
                   {t.aiT.textLabel}
                 </label>
                 <textarea
-                  rows={3}
+                  rows={newType === 'script' ? 10 : 3}
                   placeholder={
                     newType === 'hook'
                       ? t.aiT.textPlaceholderHook
                       : newType === 'body'
                       ? t.aiT.textPlaceholderBody
-                      : t.aiT.textPlaceholderCta
+                      : newType === 'cta'
+                      ? t.aiT.textPlaceholderCta
+                      : t.aiT.textPlaceholderScript
                   }
                   value={newText}
                   onChange={(e) => setNewText(e.target.value)}
                   className="w-full bg-sunken border border-line rounded-[var(--radius-control)] p-2.5 text-base outline-none focus:border-rec focus:bg-surface"
                   required
                 />
+                {newType === 'script' && (
+                  <p className="field-hint mt-1.5">{t.aiT.scriptHint}</p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
