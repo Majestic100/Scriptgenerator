@@ -21,6 +21,7 @@ import { formatScriptToHtml, formatScriptToPlainText, copyFormattedToClipboard, 
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from '../utils/exportUtils';
 import { AnalogyModal, AnalogyTargetContext } from './AnalogyModal';
 import { useLang } from '../i18n';
+import { ScriptDocumentModal } from './ScriptDocumentModal';
 
 interface ScriptCardProps {
   script: GeneratedScript;
@@ -40,6 +41,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   onSaveToAiTraining
 }) => {
   const { t } = useLang();
+  const [isDocOpen, setIsDocOpen] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isStrategyOpen, setIsStrategyOpen] = useState(true);
@@ -263,14 +265,27 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
     onUpdateScript?.({ ...script, hooks: updatedHooks });
   };
 
+  /**
+   * Bodyen vises som én sammenhængende tekst på tværs af alle scener. Den rettede
+   * tekst lægges derfor i første scene, og de øvrige sceners replik tømmes: ellers
+   * ville den gamle tekst fra scene to og frem hænge ved bag den nye. Tidskoder,
+   * visuals og sektioner bevares, så det stadig er til at filme efter.
+   */
   const handleUpdateBodyText = (newBodyText: string) => {
     let updatedScenes = [...(script.scenes || [])];
     if (updatedScenes.length === 0) {
       updatedScenes = [{ sceneNumber: 1, audioDialogue: newBodyText, visualDirection: '', textOnScreen: '', estimatedDurationSec: 15 }];
     } else {
-      updatedScenes = updatedScenes.map((sc, i) =>
-        i === 0 ? { ...sc, audioDialogue: newBodyText } : sc
-      );
+      let isFirstBodyScene = true;
+      updatedScenes = updatedScenes.map((sc: any) => {
+        const isCta = sc.section && ['cta', 'cta & offer', 'cta and offer'].includes(String(sc.section).toLowerCase());
+        if (isCta) return sc;
+        if (isFirstBodyScene) {
+          isFirstBodyScene = false;
+          return { ...sc, audioDialogue: newBodyText };
+        }
+        return { ...sc, audioDialogue: '' };
+      });
     }
     onUpdateScript?.({ ...script, scenes: updatedScenes });
   };
@@ -497,6 +512,16 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           >
             <Clapperboard className={`w-3.5 h-3.5 ${isGeneratingVisuals ? 'animate-pulse text-rec' : 'text-muted'}`} />
             <span>{isGeneratingVisuals ? t.card.generatingVisuals : t.card.generateVisuals}</span>
+          </button>
+
+          {/* Dokumentvisning: hele scriptet som ét tekstfelt */}
+          <button
+            onClick={() => setIsDocOpen(true)}
+            className="px-3 py-2 bg-surface hover:bg-sunken border border-line-strong text-ink rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+            title={t.doc.openTitle}
+          >
+            <FileText className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+            <span>{t.doc.open}</span>
           </button>
 
           {/* Gem hele scriptet som ét træningseksempel, ikke delt op i hook, body og CTA */}
@@ -1064,6 +1089,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
         companyName={script.companyName}
         productName={script.productName}
       />
+
+      {isDocOpen && (
+        <ScriptDocumentModal
+          script={script}
+          onClose={() => setIsDocOpen(false)}
+          onSave={(updated) => onUpdateScript?.(updated)}
+        />
+      )}
     </div>
   );
 };

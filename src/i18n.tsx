@@ -529,6 +529,19 @@ const da = {
     close: 'Luk'
   },
 
+  doc: {
+    title: 'Dokumentvisning',
+    open: 'Åbn som dokument',
+    openTitle: 'Se og ret hele scriptet som ét dokument',
+    save: 'Gem ændringer',
+    saved: 'Gemt',
+    unsaved: 'ikke gemt endnu',
+    reset: 'Fortryd alt',
+    resetTitle: 'Sæt teksten tilbage til den, du åbnede med',
+    close: 'Luk',
+    wordCount: (n: number) => `${n} ord`,
+    hint: 'Overskrifterne HOOK 1, MANUSKRIPT og CTA bestemmer, hvor teksten havner i scriptet. Lad dem stå, så bliver visuals, tidskoder og strategi bevaret. Sletter du et hook-afsnit, ryger det hook med.'
+  },
   analogy: {
     title: 'Analogier & Billedsprog',
     hookCtx: (n: number) => `Hook ${n}`,
@@ -1101,6 +1114,19 @@ const en: typeof da = {
     close: 'Close'
   },
 
+  doc: {
+    title: 'Document view',
+    open: 'Open as document',
+    openTitle: 'Read and edit the whole script as one document',
+    save: 'Save changes',
+    saved: 'Saved',
+    unsaved: 'not saved yet',
+    reset: 'Undo everything',
+    resetTitle: 'Put the text back to what you opened with',
+    close: 'Close',
+    wordCount: (n: number) => `${n} words`,
+    hint: 'The headings HOOK 1, MANUSKRIPT and CTA decide where the text lands in the script. Leave them in place and visuals, timecodes and strategy are kept. Delete a hook section and that hook goes with it.'
+  },
   analogy: {
     title: 'Analogies & Imagery',
     hookCtx: (n: number) => `Hook ${n}`,
