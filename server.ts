@@ -405,8 +405,22 @@ function buildPlaybookGenerationSection(options: {
     if (marketContent) parts.push(marketContent);
   }
 
+  // Skrivestilen gælder hvert eneste script uanset stadie og forretningsmodel
+  const styleContent = readPlaybookFile("skrivestil.md");
+  if (styleContent) parts.push(styleContent);
+
   if (parts.length === 0) return "";
-  return `\n\n📘 AWARENESS-PLAYBOOK (BINDENDE VIDENSGRUNDLAG FOR DE VALGTE STADIER):\n"""\n${parts.join("\n\n---\n\n")}\n"""\n`;
+  return `\n\nAWARENESS-PLAYBOOK (BINDENDE VIDENSGRUNDLAG FOR DE VALGTE STADIER):\n"""\n${parts.join("\n\n---\n\n")}\n"""\n`;
+}
+
+/**
+ * Skrivestils-reglerne alene. Bruges ved regenerering af enkeltdele, hvor hele
+ * playbooken ville fylde for meget, men et nyt hook stadig skal lyde menneskeskrevet.
+ */
+function buildWritingStyleSection(): string {
+  const style = readPlaybookFile("skrivestil.md");
+  if (!style) return "";
+  return `\n\nSKRIVESTIL (BINDENDE):\n"""\n${style}\n"""\n`;
 }
 
 /**
@@ -914,7 +928,7 @@ REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
 - FASTE HOOK-REGLER:
   * Maks 25 ord totalt pr. hook (under 3 sekunder taletid).
   * Mundtligt dansk talesprog som en dansker taler.
-  * STRENGT FORBUDTE ORD OG ANGULICISMER: "gamechanger", "game changer", "game-changer" (brug i stedet "kæmpe forskel", "revolutionerende løsning"), "det handler om at", "lad os dykke ned i".
+  * STRENGT FORBUDTE ORD OG ANGULICISMER: "gamechanger", "game changer", "game-changer", "det handler om at", "lad os dykke ned i". Erstat dem ikke med reklamefyld som "revolutionerende" eller "banebrydende" (se skrivestils-reglerne); sig i stedet konkret hvad produktet gør.
   * STRENGT FORBUDTE ÅBNINGER: "Hej med jer", "Er du træt af", "Lad mig fortælle dig", "Du vil ikke tro", "Stop op", "I dagens video", "POV: du".
   * SKRIV ALDRIG MED KUN STORE BOGSTAVER (ALL CAPS): Brug altid almindelig dansk retskrivning med kun stort begyndelsesbogstav og små bogstaver for at gøre teksten naturlig og letlæselig.
   * INGEN tankestreger (-) i talte linjer eller overlays.
@@ -1087,6 +1101,7 @@ app.post("/api/regenerate-element", async (req, res) => {
 
     const promptLanguage = language === "en" ? "English" : "Danish";
     const strategyContext = buildStrategyContextForRegeneration(script);
+    const writingStyle = buildWritingStyleSection();
 
     if (elementType === "hook") {
       const existingHook = script.hooks && script.hooks[hookIndex] ? script.hooks[hookIndex] : null;
@@ -1098,7 +1113,7 @@ app.post("/api/regenerate-element", async (req, res) => {
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, frisk, højkonverterende video-hook til en Meta video-annonce på ${promptLanguage}.
-${strategyContext}
+${strategyContext}${writingStyle}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -1175,7 +1190,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, stærk og overbevisende Call To Action (CTA) replik til en Meta video-annonce på ${promptLanguage}.
-${strategyContext}
+${strategyContext}${writingStyle}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -1224,7 +1239,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér NYE, friske body-scener / manuskript for denne Meta video-annonce på ${promptLanguage}.
-${strategyContext}
+${strategyContext}${writingStyle}
 ${scriptTypeGuide}
 VIRKSOMHED & PRODUKT DETALJER:
 - Virksomhedsnavn: "${companyName || script.companyName || ''}"
@@ -1358,7 +1373,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér et HELT NYT komplet Meta Ads video-script (hooks, body scener og CTA) for ${companyName || script.companyName || 'Virksomheden'}.
-${strategyContext}
+${strategyContext}${writingStyle}
 ${scriptTypeGuide}
 VIRKSOMHED & PRODUKT DETALJER:
 - Virksomhedsnavn: "${companyName || script.companyName || ''}"

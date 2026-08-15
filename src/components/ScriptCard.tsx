@@ -125,12 +125,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
       return cleanAnalogy + '.';
     }
 
-    // Weave analogy seamlessly into the hook grammatically
-    let lowerFirstChar = cleanExisting.charAt(0).toLowerCase() + cleanExisting.slice(1);
-    lowerFirstChar = lowerFirstChar.replace(/^(vidste du at|mange|derfor|hvorfor)\s+/i, '');
+    // Flet analogien ind foran hooket. Punktum frem for tankestreg: tankestreger er
+    // et af de tydeligste AI-tegn og bliver alligevel ikke hørt i en talt replik.
+    const rest = cleanExisting.replace(/^(vidste du at|mange|derfor|hvorfor)\s+/i, '');
+    const restSentence = rest.charAt(0).toUpperCase() + rest.slice(1);
 
-    let combined = `${cleanAnalogy} – ${lowerFirstChar}`;
-    
+    let combined = `${cleanAnalogy}. ${restSentence}`;
+
     // Ensure max ~15 words for ~4-5 second speaking speed
     const words = combined.split(/\s+/);
     if (words.length > 15) {
