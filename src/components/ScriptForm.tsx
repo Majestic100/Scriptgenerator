@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus,
   X,
@@ -359,9 +359,17 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  /** Filtyper vi kan læse tekst ud af. Nogle browsere sender tom mimetype, så endelsen tæller også. */
+  const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.md'];
+
+  const isAcceptedFile = (file: File) =>
+    ACCEPTED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext));
+
+  const readAnalysisFile = (file: File) => {
+    if (!isAcceptedFile(file)) {
+      setAnalysisError(t.form.unsupportedFile(file.name));
+      return;
+    }
 
     setIsReadingDoc(true);
     setAnalysisError(null);
@@ -394,6 +402,62 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     };
 
     reader.readAsDataURL(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) readAnalysisFile(file);
+  };
+
+  /**
+   * Træk og slip. Tælleren er nødvendig, fordi dragleave også fyrer, når musen
+   * går fra feltet ind over et element inden i det: uden den ville rammen blinke.
+   */
+  const dragDepth = useRef(0);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  // Uden det her åbner browseren filen i stedet, hvis man rammer ved siden af feltet.
+  useEffect(() => {
+    const swallow = (e: DragEvent) => {
+      if (Array.from(e.dataTransfer?.types || []).includes('Files')) e.preventDefault();
+    };
+    window.addEventListener('dragover', swallow);
+    window.addEventListener('drop', swallow);
+    return () => {
+      window.removeEventListener('dragover', swallow);
+      window.removeEventListener('drop', swallow);
+    };
+  }, []);
+
+  const hasFiles = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer?.types || []).includes('Files');
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setIsDraggingFile(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) readAnalysisFile(file);
   };
 
   const handleFillExampleData = () => {
@@ -820,11 +884,22 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             label={t.form.analysisLabel}
             hint={t.form.analysisHint}
           >
+            <div
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
             {!analysisDoc ? (
+              <>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full border border-dashed border-line-strong hover:border-ink/40 bg-sunken hover:bg-line/40 rounded-[var(--radius-control)] px-4 py-5 flex items-center justify-center gap-3 transition-colors cursor-pointer"
+                className={`w-full border border-dashed rounded-[var(--radius-control)] px-4 py-5 flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  isDraggingFile
+                    ? 'border-rec bg-rec-soft'
+                    : 'border-line-strong hover:border-ink/40 bg-sunken hover:bg-line/40'
+                }`}
               >
                 <input
                   type="file"
@@ -833,11 +908,31 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                   accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   className="hidden"
                 />
-                <Upload className="w-5 h-5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-                <span className="font-semibold text-[15.5px] text-ink">
-                  {isReadingDoc ? t.form.readingFile : t.form.uploadAnalysis}
+                <span className="flex items-center gap-3">
+                  <Upload
+                    className={`w-5 h-5 ${isDraggingFile ? 'text-rec' : 'text-muted'}`}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  <span className="font-semibold text-[15.5px] text-ink">
+                    {isReadingDoc
+                      ? t.form.readingFile
+                      : isDraggingFile
+                      ? t.form.dropHere
+                      : t.form.uploadAnalysis}
+                  </span>
                 </span>
+                {!isReadingDoc && !isDraggingFile && (
+                  <span className="field-hint">{t.form.dropOrClick}</span>
+                )}
               </button>
+              {analysisError && (
+                <p className="mt-2 flex items-start gap-2 text-[15px] text-rec" aria-live="polite">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                  {analysisError}
+                </p>
+              )}
+              </>
             ) : (
               <div className="border border-line-strong rounded-[var(--radius-control)] overflow-hidden">
                 <div className="flex items-center justify-between gap-3 bg-sunken px-4 py-3">
@@ -961,6 +1056,15 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                 )}
               </div>
             )}
+
+            {/* Slipper man en fil, mens der allerede ligger en, bytter den ud */}
+            {analysisDoc && isDraggingFile && (
+              <p className="mt-2 flex items-center gap-2 text-[15px] text-rec font-semibold">
+                <Upload className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                {t.form.dropToReplace}
+              </p>
+            )}
+            </div>
           </Field>
         </div>
 
