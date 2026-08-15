@@ -432,6 +432,10 @@ async function classifyScriptStrategies(input: {
   const core = readPlaybookFile("core.md");
   if (!core) return null;
 
+  // Strategiblokken læses i grænsefladen, så prosaen skal skrives på brugerens sprog.
+  // Kun de kanoniske begreber (stadie-navne, Schwartz-processer) bliver på engelsk.
+  const outputLanguageName = input.language === "en" ? "English" : "Danish";
+
   const configLines = input.scriptConfigs.map((cfg: any, i: number) => {
     return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic "${cfg.trafficType || "cold"}"${cfg.retargetingNotes ? ` (retargeting notes: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
   }).join("\n");
@@ -465,7 +469,21 @@ RULES FOR THIS STEP:
 - Follow the mandatory reasoning sequence and the classification guardrails from the playbook.
 - classificationEvidence must cite concrete supplied material (analysis wording, website content, product facts) — never invented insight.
 - unsupportedClaimsExcluded: list claims the script must NOT make because no supplied fact supports them (e.g. discounts, review counts, guarantees, urgency not present in the facts). Empty array if none.
-- Use canonical English terminology throughout this step.`;
+
+OUTPUT LANGUAGE — READ CAREFULLY:
+Reason in English, but WRITE every prose field in ${outputLanguageName}. The operator reads this panel in ${outputLanguageName}; a half-English strategy block is unusable.
+- Keep ONLY these as canonical English: awarenessState ("Unaware" / "Problem Aware" / "Solution Aware" / "Product Aware" / "Most Aware"), suggestedStage, and the process NAME inside schwartzProcess ("Intensification", "Identification", "Gradualization", "Redefinition", "Mechanization", "Concentration", "Camouflage", "Verification").
+- Everything else — sophisticationNote, massDesire, currentBelief, requiredBeliefShift, primaryAngle, mechanism, proofType, cta, classificationEvidence, unsupportedClaimsExcluded — must be written in ${outputLanguageName}. Quotes lifted from the analysis stay in their original wording.
+
+LENGTH — the panel must be scannable, not an essay:
+- massDesire: a noun phrase, max 8 words. Not a quote, not a sentence.
+- currentBelief / requiredBeliefShift: ONE short sentence each, max 15 words.
+- primaryAngle: ONE sentence, max 20 words.
+- schwartzProcess: the canonical name, optionally two, nothing more (e.g. "Intensification + Gradualization").
+- mechanism / proofType / cta: ONE sentence each, max 20 words.
+- sophisticationNote: max 12 words explaining the level.
+- classificationEvidence: max 2 sentences.
+Write plainly. No headings, no bullet lists, no markdown inside the fields.`;
 
   const strategySchema = {
     type: Type.OBJECT,

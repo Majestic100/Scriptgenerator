@@ -569,7 +569,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               <Compass className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />
               <span className="font-semibold text-[15.5px] text-ink">{t.strategyP.title}</span>
               <span className="text-[14px] text-muted truncate hidden sm:inline">
-                {script.strategy.massDesire} · {script.strategy.primaryAngle}
+                {script.strategy.awarenessState} · {script.strategy.massDesire}
               </span>
               {script.strategy.stageMatch === 'evidence-suggests-other' && (
                 <AlertTriangle className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />
@@ -583,79 +583,122 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
           </button>
 
           {isStrategyOpen && (
-            <div className="px-5 pb-5 pt-1 bg-surface space-y-4 animate-fadeIn">
-              <p className="field-hint">{t.strategyP.subtitle}</p>
+            <div className="px-5 pb-5 bg-surface animate-fadeIn">
+
+              {/* Nøgletal som chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pb-4">
+                <span className="strategy-chip">
+                  <span className="text-muted">{t.strategyP.awareness}</span>
+                  <span className="font-semibold text-ink">{script.strategy.awarenessState}</span>
+                </span>
+                <span className="strategy-chip">
+                  <span className="text-muted">{t.strategyP.sophistication}</span>
+                  <span className="font-semibold text-ink tabular-nums">
+                    {script.strategy.marketSophistication}/5
+                  </span>
+                </span>
+                <span className="strategy-chip">
+                  <span className="text-muted">{t.strategyP.confidence}</span>
+                  <span className="font-semibold text-ink">
+                    {t.strategyP.confidenceLabels[script.strategy.confidence] || script.strategy.confidence}
+                  </span>
+                </span>
+              </div>
 
               {script.strategy.stageMatch === 'evidence-suggests-other' && script.strategy.suggestedStage && (
-                <p className="flex items-start gap-2 text-[15px] text-ink bg-rec-soft border border-rec/30 rounded-[var(--radius-control)] px-3.5 py-2.5">
+                <p className="flex items-start gap-2 text-[15px] text-ink bg-rec-soft border border-rec/30 rounded-[var(--radius-control)] px-3.5 py-2.5 mb-4">
                   <AlertTriangle className="w-4 h-4 text-rec shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
                   {t.strategyP.stageMismatch(script.strategy.suggestedStage)}
                 </p>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-[15px]">
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.awareness}</span>
-                  <p className="text-ink">{script.strategy.awarenessState}</p>
+              {/* Kernen: den overbevisning scriptet skal flytte */}
+              <div className="border border-line-strong rounded-[var(--radius-control)] overflow-hidden mb-4">
+                <div className="px-4 py-2 bg-sunken border-b border-line">
+                  <span className="field-label mb-0">{t.strategyP.beliefShift}</span>
                 </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.sophistication}</span>
-                  <p className="text-ink">{t.strategyP.level(script.strategy.marketSophistication)}{script.strategy.sophisticationNote ? ` · ${script.strategy.sophisticationNote}` : ''}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.massDesire}</span>
-                  <p className="text-ink">{script.strategy.massDesire}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.angle}</span>
-                  <p className="text-ink">{script.strategy.primaryAngle}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.process}</span>
-                  <p className="text-ink">{script.strategy.schwartzProcess}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.mechanism}</span>
-                  <p className="text-ink">{script.strategy.mechanism}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.proof}</span>
-                  <p className="text-ink">{script.strategy.proofType}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.cta}</span>
-                  <p className="text-ink">{script.strategy.cta}</p>
-                </div>
-                <div>
-                  <span className="field-label mb-0.5">{t.strategyP.confidence}</span>
-                  <p className="text-ink">{t.strategyP.confidenceLabels[script.strategy.confidence] || script.strategy.confidence}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-2 px-4 py-3.5">
+                  <p className="text-[15.5px] text-muted leading-snug">
+                    <span className="block font-mono text-[11px] uppercase tracking-wider text-muted mb-1">
+                      {t.strategyP.beliefFrom}
+                    </span>
+                    {script.strategy.currentBelief}
+                  </p>
+                  <span className="hidden sm:block text-line-strong text-[20px] leading-none" aria-hidden="true">→</span>
+                  <p className="text-[15.5px] text-ink font-medium leading-snug">
+                    <span className="block font-mono text-[11px] uppercase tracking-wider text-rec mb-1">
+                      {t.strategyP.beliefTo}
+                    </span>
+                    {script.strategy.requiredBeliefShift}
+                  </p>
                 </div>
               </div>
 
-              <div className="border-t border-line pt-3">
-                <span className="field-label mb-0.5">{t.strategyP.beliefShift}</span>
-                <p className="text-[15px] text-ink">
-                  <span className="font-semibold">{t.strategyP.beliefFrom}</span> "{script.strategy.currentBelief}"
-                  <span className="mx-2 text-line-strong" aria-hidden="true">→</span>
-                  <span className="font-semibold">{t.strategyP.beliefTo}</span> "{script.strategy.requiredBeliefShift}"
-                </p>
-              </div>
-
-              {script.strategy.classificationEvidence && (
+              {/* Sådan flyttes den */}
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5 text-[15px]">
                 <div>
-                  <span className="field-label mb-0.5">{t.strategyP.evidence}</span>
-                  <p className="text-[15px] text-muted leading-relaxed">{script.strategy.classificationEvidence}</p>
+                  <dt className="field-label mb-0.5">{t.strategyP.massDesire}</dt>
+                  <dd className="text-ink">{script.strategy.massDesire}</dd>
                 </div>
-              )}
-
-              {Array.isArray(script.strategy.unsupportedClaimsExcluded) && script.strategy.unsupportedClaimsExcluded.length > 0 && (
                 <div>
-                  <span className="field-label mb-0.5">{t.strategyP.excluded}</span>
-                  <ul className="text-[15px] text-muted list-disc pl-5 space-y-0.5">
-                    {script.strategy.unsupportedClaimsExcluded.map((claim, ci) => (
-                      <li key={ci}>{claim}</li>
-                    ))}
-                  </ul>
+                  <dt className="field-label mb-0.5">{t.strategyP.angle}</dt>
+                  <dd className="text-ink">{script.strategy.primaryAngle}</dd>
+                </div>
+                <div>
+                  <dt className="field-label mb-0.5">{t.strategyP.mechanism}</dt>
+                  <dd className="text-ink">{script.strategy.mechanism}</dd>
+                </div>
+                <div>
+                  <dt className="field-label mb-0.5">{t.strategyP.proof}</dt>
+                  <dd className="text-ink">{script.strategy.proofType}</dd>
+                </div>
+                <div>
+                  <dt className="field-label mb-0.5">{t.strategyP.cta}</dt>
+                  <dd className="text-ink">{script.strategy.cta}</dd>
+                </div>
+                <div>
+                  <dt className="field-label mb-0.5">{t.strategyP.process}</dt>
+                  <dd className="text-ink">{script.strategy.schwartzProcess}</dd>
+                </div>
+              </dl>
+
+              {/* Belæg og udeladelser */}
+              {(script.strategy.classificationEvidence ||
+                (Array.isArray(script.strategy.unsupportedClaimsExcluded) &&
+                  script.strategy.unsupportedClaimsExcluded.length > 0)) && (
+                <div className="border-t border-line mt-4 pt-4 space-y-3">
+                  {script.strategy.classificationEvidence && (
+                    <div>
+                      <span className="field-label mb-0.5">{t.strategyP.evidence}</span>
+                      <p className="text-[15px] text-muted leading-relaxed">
+                        {script.strategy.classificationEvidence}
+                      </p>
+                      {script.strategy.sophisticationNote && (
+                        <p className="text-[15px] text-muted leading-relaxed mt-1">
+                          {t.strategyP.level(script.strategy.marketSophistication)}: {script.strategy.sophisticationNote}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {Array.isArray(script.strategy.unsupportedClaimsExcluded) &&
+                    script.strategy.unsupportedClaimsExcluded.length > 0 && (
+                      <div>
+                        <span className="field-label mb-1">{t.strategyP.excluded}</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {script.strategy.unsupportedClaimsExcluded.map((claim, ci) => (
+                            <span
+                              key={ci}
+                              className="text-[14px] text-muted bg-sunken border border-line rounded px-2 py-0.5"
+                            >
+                              {claim}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  <p className="field-hint">{t.strategyP.subtitle}</p>
                 </div>
               )}
             </div>
