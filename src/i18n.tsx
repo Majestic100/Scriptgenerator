@@ -128,6 +128,7 @@ const da = {
     scriptTab: (n: number) => `Script ${n}`,
     copyToAll: 'Kopiér til alle scripts',
     duration: 'Varighed',
+    durationHint: 'Samlet længde for hook, body og CTA. Scriptet må lande hvor som helst i intervallet.',
     numHooks: 'Antal hooks',
     hookCount: (n: number) => `${n} ${n === 1 ? 'hook' : 'hooks'}`,
     styleLabel: 'Stil og vinkel',
@@ -688,6 +689,7 @@ const en: typeof da = {
     scriptTab: (n: number) => `Script ${n}`,
     copyToAll: 'Copy to all scripts',
     duration: 'Duration',
+    durationHint: 'Total length for hook, body and CTA. The script can land anywhere inside the range.',
     numHooks: 'Number of hooks',
     hookCount: (n: number) => `${n} ${n === 1 ? 'hook' : 'hooks'}`,
     styleLabel: 'Style and angle',
@@ -1130,7 +1132,7 @@ const en: typeof da = {
 
 export const translations: Record<Lang, typeof da> = { da, en };
 
-/** Viser en gemt varighed ('30 sekunder') på det aktive sprog uden at ændre værdien. */
+/** Viser en gemt varighed ('30-40 sekunder') på det aktive sprog uden at ændre værdien. */
 export const formatDuration = (duration: string | undefined, lang: Lang): string => {
   if (!duration) return '';
   return lang === 'en' ? duration.replace('sekunder', 'seconds') : duration;
