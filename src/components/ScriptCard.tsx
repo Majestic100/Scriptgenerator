@@ -42,7 +42,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   const { t } = useLang();
   const [copiedText, setCopiedText] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isStrategyOpen, setIsStrategyOpen] = useState(false);
+  const [isStrategyOpen, setIsStrategyOpen] = useState(true);
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
 
   // Regeneration states

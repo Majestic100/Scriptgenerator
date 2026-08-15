@@ -212,44 +212,33 @@ const da = {
       title: '1. Unaware (Ubevidst)',
       badge: 'Koldest',
       desc: 'Kender hverken til problemet eller løsningen.',
-      focus: 'Væk nysgerrighed, stop scrollen og afslør en uopdaget ulempe eller smerte.',
-      widthLabel: 'Bredest rækkevidde'
+      focus: 'Væk nysgerrighed, stop scrollen og afslør en uopdaget ulempe eller smerte.'
     },
     'Problem Aware': {
       title: '2. Problem Aware (Problembevidst)',
       badge: 'Middel kold',
       desc: 'Mærker problemet og frustreres i hverdagen.',
-      focus: 'Spejl smerten stærkt, skab empati og introducer løsningskategorien.',
-      widthLabel: 'Høj smerte'
+      focus: 'Spejl smerten stærkt, skab empati og introducer løsningskategorien.'
     },
     'Solution Aware': {
       title: '3. Solution Aware (Løsningsbevidst)',
       badge: 'Middel varm',
       desc: 'Kender til løsninger, men søger den bedste mulighed.',
-      focus: 'Fremhæv mekanismen og hvorfor dit produkt virker bedre end alternativer.',
-      widthLabel: 'Søger løsning'
+      focus: 'Fremhæv mekanismen og hvorfor dit produkt virker bedre end alternativer.'
     },
     'Product Aware': {
       title: '4. Product Aware (Produktbevidst)',
       badge: 'Varm',
       desc: 'Kender dit produkt, men har tvivl eller indvendinger.',
-      focus: 'Fjern købsmodstand, vis social proof, kunders anmeldelser og demo.',
-      widthLabel: 'Overvejer dig'
+      focus: 'Fjern købsmodstand, vis social proof, kunders anmeldelser og demo.'
     },
     'Most Aware': {
       title: '5. Most Aware (Købsklar)',
       badge: 'Hot',
       desc: 'Klar til køb, mangler kun et uimodståeligt tilbud.',
-      focus: 'Fokusér stærkt på tilbuddet, rabat eller bonus, garanti, urgency og CTA.',
-      widthLabel: 'Købsklar'
+      focus: 'Fokusér stærkt på tilbuddet, rabat eller bonus, garanti, urgency og CTA.'
     }
-  } as Record<string, { title: string; badge: string; desc: string; focus: string; widthLabel: string }>,
-
-  funnel: {
-    header: 'AWARENESS FUNNEL (DE 5 BEVIDSTHEDSSTADIER)',
-    active: 'Aktiv:',
-    strategicFocus: 'Strategisk Fokus:'
-  },
+  } as Record<string, { title: string; badge: string; desc: string; focus: string }>,
 
   traffic: {
     cold: {
@@ -776,44 +765,33 @@ const en: typeof da = {
       title: '1. Unaware',
       badge: 'Coldest',
       desc: 'Knows about neither the problem nor the solution.',
-      focus: 'Spark curiosity, stop the scroll and reveal an undiscovered downside or pain.',
-      widthLabel: 'Widest reach'
+      focus: 'Spark curiosity, stop the scroll and reveal an undiscovered downside or pain.'
     },
     'Problem Aware': {
       title: '2. Problem Aware',
       badge: 'Fairly cold',
       desc: 'Feels the problem and is frustrated by it every day.',
-      focus: 'Mirror the pain strongly, build empathy and introduce the solution category.',
-      widthLabel: 'High pain'
+      focus: 'Mirror the pain strongly, build empathy and introduce the solution category.'
     },
     'Solution Aware': {
       title: '3. Solution Aware',
       badge: 'Fairly warm',
       desc: 'Knows solutions exist, but is looking for the best option.',
-      focus: 'Highlight the mechanism and why your product works better than the alternatives.',
-      widthLabel: 'Seeking a solution'
+      focus: 'Highlight the mechanism and why your product works better than the alternatives.'
     },
     'Product Aware': {
       title: '4. Product Aware',
       badge: 'Warm',
       desc: 'Knows your product, but has doubts or objections.',
-      focus: 'Remove buying resistance, show social proof, customer reviews and a demo.',
-      widthLabel: 'Considering you'
+      focus: 'Remove buying resistance, show social proof, customer reviews and a demo.'
     },
     'Most Aware': {
       title: '5. Most Aware (Ready to buy)',
       badge: 'Hot',
       desc: 'Ready to buy, only missing an irresistible offer.',
-      focus: 'Focus hard on the offer, discount or bonus, guarantee, urgency and CTA.',
-      widthLabel: 'Ready to buy'
+      focus: 'Focus hard on the offer, discount or bonus, guarantee, urgency and CTA.'
     }
-  } as Record<string, { title: string; badge: string; desc: string; focus: string; widthLabel: string }>,
-
-  funnel: {
-    header: 'AWARENESS FUNNEL (THE 5 STAGES OF AWARENESS)',
-    active: 'Active:',
-    strategicFocus: 'Strategic Focus:'
-  },
+  } as Record<string, { title: string; badge: string; desc: string; focus: string }>,
 
   traffic: {
     cold: {

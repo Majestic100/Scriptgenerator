@@ -14,7 +14,6 @@ import {
   Undo2
 } from 'lucide-react';
 import { ScriptRequest, ScriptType, AnalysisDocument } from '../types';
-import { AwarenessFunnelFigure } from './AwarenessFunnelFigure';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
 import { FlagDK, FlagGB } from './ui/flags';
@@ -982,10 +981,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           {/* Awareness */}
           <Disclosure title={t.form.awarenessTitle} summary={activeStageId}>
             <div className="space-y-4">
-              <AwarenessFunnelFigure
-                currentStage={currentCfg.awarenessStage || 'Problem Aware'}
-                onSelectStage={(stId) => updateCurrentScriptConfig('awarenessStage', stId)}
-              />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                 {AWARENESS_STAGE_IDS.map((id) => (
                   <ChoiceButton

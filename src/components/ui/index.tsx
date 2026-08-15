@@ -74,13 +74,13 @@ export const Field: React.FC<{
   </div>
 );
 
-/** Foldbart underafsnit. Holder de tunge valg ude af syne til de skal bruges. */
+/** Foldbart underafsnit. Står åbent som udgangspunkt, så alle felter er synlige uden ekstra klik. */
 export const Disclosure: React.FC<{
   title: string;
   summary?: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
-}> = ({ title, summary, defaultOpen = false, children }) => {
+}> = ({ title, summary, defaultOpen = true, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
 
