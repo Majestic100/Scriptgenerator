@@ -18,7 +18,7 @@ import { useLang } from './i18n';
 export default function App() {
   const { t } = useLang();
   const [generatedScripts, setGeneratedScripts] = useState<GeneratedScript[]>([]);
-  const [documentTitle, setDocumentTitle] = useState('JP Køl og Klima - Script 2');
+  const [documentTitle, setDocumentTitle] = useState('');
   const [aiTrainingItems, setAiTrainingItems] = useState<AiTrainingItem[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(false);

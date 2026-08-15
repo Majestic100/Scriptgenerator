@@ -166,6 +166,17 @@ const SAMPLE_EXAMPLE_DATA = {
   ]
 };
 
+/**
+ * Opsætning pr. script når formularen er tom. Samme spredning af typer, varigheder
+ * og stadier som eksemplet, men uden en linje kundetekst: intet "Skal med i script"
+ * og ingen retargeting-noter, så en anden kundes tilbud aldrig kan slippe med ind
+ * i manuskripterne. Formularen starter tom ved hver indlæsning.
+ */
+const BLANK_SCRIPT_CONFIGS = SAMPLE_EXAMPLE_DATA.scriptConfigs.map((cfg: any) => {
+  const { mustInclude, retargetingNotes, ...setup } = cfg;
+  return { ...setup, mustInclude: '' };
+});
+
 export const ScriptForm: React.FC<ScriptFormProps> = ({
   onSubmit,
   isLoading,
@@ -174,26 +185,24 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 }) => {
   const { t, lang, setLang } = useLang();
 
-  const [companyName, setCompanyName] = useState(initialData?.companyName || SAMPLE_EXAMPLE_DATA.companyName);
+  const [companyName, setCompanyName] = useState(initialData?.companyName || '');
   const [documentTitle, setDocumentTitle] = useState(
-    initialData?.documentTitle || (initialData?.companyName ? `${initialData.companyName} - Script 2` : 'JP Køl og Klima - Script 2')
+    initialData?.documentTitle || (initialData?.companyName ? `${initialData.companyName} - Script 2` : '')
   );
-  const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || SAMPLE_EXAMPLE_DATA.companyWebsite);
+  const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || '');
   const [analysisDoc, setAnalysisDoc] = useState<AnalysisDocument | null>(initialData?.analysisDocument || null);
   const [toneOfVoice, setToneOfVoice] = useState(initialData?.toneOfVoice || '');
   const [explainHookPsychology, setExplainHookPsychology] = useState(!!initialData?.explainHookPsychology);
   const [isReadingDoc, setIsReadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [productName, setProductName] = useState(initialData?.productName || SAMPLE_EXAMPLE_DATA.productName);
+  const [productName, setProductName] = useState(initialData?.productName || '');
   const [competitorInput, setCompetitorInput] = useState('');
-  const [competitors, setCompetitors] = useState<string[]>(
-    initialData?.competitors || SAMPLE_EXAMPLE_DATA.competitors
-  );
-  const [numScripts, setNumScripts] = useState<number>(initialData?.numScripts || SAMPLE_EXAMPLE_DATA.numScripts);
+  const [competitors, setCompetitors] = useState<string[]>(initialData?.competitors || []);
+  const [numScripts, setNumScripts] = useState<number>(initialData?.numScripts || 2);
   const [activeTab, setActiveTab] = useState<number>(0);
 
-  const defaultPresets = SAMPLE_EXAMPLE_DATA.scriptConfigs;
+  const defaultPresets = BLANK_SCRIPT_CONFIGS;
 
   const [scriptConfigs, setScriptConfigs] = useState(() => {
     if (initialData?.scriptConfigs && initialData.scriptConfigs.length > 0) {
@@ -206,11 +215,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     return defaultPresets;
   });
 
-  const [productDescription, setProductDescription] = useState(initialData?.productDescription || SAMPLE_EXAMPLE_DATA.productDescription);
-  const [targetAudience, setTargetAudience] = useState(initialData?.targetAudience || SAMPLE_EXAMPLE_DATA.targetAudience);
-  const [demographics, setDemographics] = useState(initialData?.demographics || SAMPLE_EXAMPLE_DATA.demographics);
-  const [offerOrCta, setOfferOrCta] = useState(initialData?.offerOrCta || SAMPLE_EXAMPLE_DATA.offerOrCta);
-  const [scriptFocus, setScriptFocus] = useState<'product' | 'lead'>(initialData?.scriptFocus || SAMPLE_EXAMPLE_DATA.scriptFocus);
+  const [productDescription, setProductDescription] = useState(initialData?.productDescription || '');
+  const [targetAudience, setTargetAudience] = useState(initialData?.targetAudience || '');
+  const [demographics, setDemographics] = useState(initialData?.demographics || '');
+  const [offerOrCta, setOfferOrCta] = useState(initialData?.offerOrCta || '');
+  const [scriptFocus, setScriptFocus] = useState<'product' | 'lead'>(initialData?.scriptFocus || 'product');
 
   // Automatisk udfyldning ud fra den uploadede analyse
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -380,7 +389,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const handleFillExampleData = () => {
     setAnalysisNotice(null);
     setCompanyName(SAMPLE_EXAMPLE_DATA.companyName);
-    setDocumentTitle('JP Køl og Klima - Script 2');
+    setDocumentTitle(`${SAMPLE_EXAMPLE_DATA.companyName} - Script 2`);
     setCompanyWebsite(SAMPLE_EXAMPLE_DATA.companyWebsite);
     setProductName(SAMPLE_EXAMPLE_DATA.productName);
     setCompetitors(SAMPLE_EXAMPLE_DATA.competitors);
