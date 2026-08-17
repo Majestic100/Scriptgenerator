@@ -698,73 +698,23 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                 </div>
               </div>
 
-              {/* Sådan flyttes den */}
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3.5 text-[15px]">
-                <div>
-                  <dt className="field-label mb-0.5">{t.strategyP.massDesire}</dt>
-                  <dd className="text-ink">{script.strategy.massDesire}</dd>
-                </div>
-                <div>
-                  <dt className="field-label mb-0.5">{t.strategyP.angle}</dt>
-                  <dd className="text-ink">{script.strategy.primaryAngle}</dd>
-                </div>
-                <div>
-                  <dt className="field-label mb-0.5">{t.strategyP.mechanism}</dt>
-                  <dd className="text-ink">{script.strategy.mechanism}</dd>
-                </div>
-                <div>
-                  <dt className="field-label mb-0.5">{t.strategyP.proof}</dt>
-                  <dd className="text-ink">{script.strategy.proofType}</dd>
-                </div>
-                <div>
-                  <dt className="field-label mb-0.5">{t.strategyP.cta}</dt>
-                  <dd className="text-ink">{script.strategy.cta}</dd>
-                </div>
-                <div>
-                  <dt className="field-label mb-0.5">{t.strategyP.process}</dt>
-                  <dd className="text-ink">{script.strategy.schwartzProcess}</dd>
-                </div>
-              </dl>
-
-              {/* Belæg og udeladelser */}
-              {(script.strategy.classificationEvidence ||
-                (Array.isArray(script.strategy.unsupportedClaimsExcluded) &&
-                  script.strategy.unsupportedClaimsExcluded.length > 0)) && (
-                <div className="border-t border-line mt-4 pt-4 space-y-3">
-                  {script.strategy.classificationEvidence && (
-                    <div>
-                      <span className="field-label mb-0.5">{t.strategyP.evidence}</span>
-                      <p className="text-[15px] text-muted leading-relaxed">
-                        {script.strategy.classificationEvidence}
-                      </p>
-                      {script.strategy.sophisticationNote && (
-                        <p className="text-[15px] text-muted leading-relaxed mt-1">
-                          {t.strategyP.level(script.strategy.marketSophistication)}: {script.strategy.sophisticationNote}
-                        </p>
-                      )}
+              {/* Udeladelser: hvilke påstande der bevidst ikke er brugt */}
+              {Array.isArray(script.strategy.unsupportedClaimsExcluded) &&
+                script.strategy.unsupportedClaimsExcluded.length > 0 && (
+                  <div className="border-t border-line mt-4 pt-4">
+                    <span className="field-label mb-1">{t.strategyP.excluded}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {script.strategy.unsupportedClaimsExcluded.map((claim, ci) => (
+                        <span
+                          key={ci}
+                          className="text-[14px] text-muted bg-sunken border border-line rounded px-2 py-0.5"
+                        >
+                          {claim}
+                        </span>
+                      ))}
                     </div>
-                  )}
-
-                  {Array.isArray(script.strategy.unsupportedClaimsExcluded) &&
-                    script.strategy.unsupportedClaimsExcluded.length > 0 && (
-                      <div>
-                        <span className="field-label mb-1">{t.strategyP.excluded}</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {script.strategy.unsupportedClaimsExcluded.map((claim, ci) => (
-                            <span
-                              key={ci}
-                              className="text-[14px] text-muted bg-sunken border border-line rounded px-2 py-0.5"
-                            >
-                              {claim}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  <p className="field-hint">{t.strategyP.subtitle}</p>
-                </div>
-              )}
+                  </div>
+                )}
             </div>
         </div>
       )}
@@ -789,7 +739,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                   {isHookAudioEditing ? (
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between text-base font-bold text-black">
-                        <span>{t.card.hook} {globalHookNumber} {hook.angleType ? `(${hook.angleType})` : ''}:</span>
+                        <span>{t.card.hook} {globalHookNumber}:</span>
                         <span className="text-sm text-rec font-semibold">{t.card.autoSaved}</span>
                       </div>
                       <textarea
@@ -818,13 +768,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                       {hook.psychology && (
                         <span className="block mt-1.5 text-base text-ink bg-sunken border border-line rounded px-2.5 py-1.5">
                           <strong className="font-semibold">{t.card.psychology}</strong> {hook.psychology}
-                        </span>
-                      )}
-                      {(hook.angleType || hook.mechanic || hook.verbalType || hook.frame) && (
-                        <span className="text-[9pt] text-muted font-normal ml-2 italic">
-                          ({[hook.angleType, hook.mechanic, hook.verbalType, hook.frame ? t.card.frames[hook.frame] : '']
-                            .filter(Boolean)
-                            .join(' · ')})
                         </span>
                       )}
                       <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/hook:opacity-100 transition-opacity text-sm font-normal">
@@ -891,24 +834,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     </button>
                   </div>
                 </div>
-
-                {/* Opråb og værdiløfte: de to dele et hook skal have for at virke */}
-                {(hook.callOut || hook.promise) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {hook.callOut && (
-                      <div className="rounded-[var(--radius-control)] border border-line bg-surface px-2.5 py-2">
-                        <span className="field-label mb-0.5">{t.card.callOut}</span>
-                        <p className="text-[15px] text-ink leading-snug m-0">{hook.callOut}</p>
-                      </div>
-                    )}
-                    {hook.promise && (
-                      <div className="rounded-[var(--radius-control)] border border-line bg-surface px-2.5 py-2">
-                        <span className="field-label mb-0.5">{t.card.promise}</span>
-                        <p className="text-[15px] text-ink leading-snug m-0">{hook.promise}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* VISUAL FILMING IDEA BOX */}
                 {(isVisualOpen || isHookVisEditing) && (
