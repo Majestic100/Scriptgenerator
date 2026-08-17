@@ -27,7 +27,6 @@ import { ScriptDocumentModal } from './ScriptDocumentModal';
 interface ScriptCardProps {
   script: GeneratedScript;
   scriptIndex: number;
-  startHookNumber?: number;
   onUpdateScript?: (updatedScript: GeneratedScript) => void;
   onSaveToProject?: (script: GeneratedScript) => void;
   onSaveToAiTraining?: (type: 'hook' | 'body' | 'cta' | 'script', text: string, title?: string, brandContext?: string) => void;
@@ -36,7 +35,6 @@ interface ScriptCardProps {
 export const ScriptCard: React.FC<ScriptCardProps> = ({
   script,
   scriptIndex,
-  startHookNumber = 0,
   onUpdateScript,
   onSaveToProject,
   onSaveToAiTraining
@@ -249,8 +247,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   };
 
   const handleCopyText = async () => {
-    const htmlContent = formatScriptToHtml(script, scriptIndex, startHookNumber);
-    const plainTextContent = formatScriptToPlainText(script, scriptIndex, startHookNumber);
+    const htmlContent = formatScriptToHtml(script, scriptIndex);
+    const plainTextContent = formatScriptToPlainText(script, scriptIndex);
     await copyFormattedToClipboard(htmlContent, plainTextContent);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2500);
@@ -725,7 +723,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
         {/* HOOKS */}
         <div className="space-y-3 mb-4">
           {script.hooks.map((hook, i) => {
-            const globalHookNumber = (startHookNumber || 0) + i + 1;
+            // Hvert script er sit eget: hooks nummereres altid fra 1.
+            const globalHookNumber = i + 1;
             const isThisHookLoading = regeneratingHookIndex === i;
             const isVisualLoading = !!loadingVisualHooks[i];
             const isVisualOpen = !!openVisualHooks[i];

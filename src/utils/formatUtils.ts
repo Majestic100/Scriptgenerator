@@ -18,7 +18,7 @@ export function getScriptTitleHeader(script: GeneratedScript, scriptIndex: numbe
   return `Script ${scriptIndex + 1} - ${stType} - ${stAware} - ${stTraffic}`;
 }
 
-export function formatScriptToHtml(script: GeneratedScript, scriptIndex: number, startHookNumber = 0): string {
+export function formatScriptToHtml(script: GeneratedScript, scriptIndex: number): string {
   const bodyText = script.scenes
     .map((sc) => (sc.audioDialogue ? sc.audioDialogue.trim() : ''))
     .filter(Boolean)
@@ -30,7 +30,7 @@ export function formatScriptToHtml(script: GeneratedScript, scriptIndex: number,
   html += `<p style="font-family: Arial, sans-serif; font-size: 12pt; font-weight: bold; margin: 0 0 14pt 0;">${escapeHtml(titleHeader)}</p>`;
 
   script.hooks.forEach((hook, i) => {
-    const hookNum = startHookNumber + i + 1;
+    const hookNum = i + 1;
     html += `<p style="font-family: Arial, sans-serif; font-size: 11pt; margin: 0 0 12pt 0;"><strong style="font-weight: bold;">Hook ${hookNum} -</strong> ${escapeHtml(hook.audioDialogue)}</p>`;
   });
 
@@ -40,7 +40,7 @@ export function formatScriptToHtml(script: GeneratedScript, scriptIndex: number,
   return html;
 }
 
-export function formatScriptToPlainText(script: GeneratedScript, scriptIndex: number, startHookNumber = 0): string {
+export function formatScriptToPlainText(script: GeneratedScript, scriptIndex: number): string {
   const bodyText = script.scenes
     .map((sc) => (sc.audioDialogue ? sc.audioDialogue.trim() : ''))
     .filter(Boolean)
@@ -52,7 +52,7 @@ export function formatScriptToPlainText(script: GeneratedScript, scriptIndex: nu
   lines.push(`${titleHeader}\n`);
 
   script.hooks.forEach((hook, i) => {
-    const hookNum = startHookNumber + i + 1;
+    const hookNum = i + 1;
     lines.push(`Hook ${hookNum} - ${hook.audioDialogue}`);
     lines.push('');
   });
@@ -65,24 +65,14 @@ export function formatScriptToPlainText(script: GeneratedScript, scriptIndex: nu
 }
 
 export function formatAllScriptsToHtml(scripts: GeneratedScript[]): string {
-  let accumulatedHooks = 0;
   return scripts
-    .map((s, idx) => {
-      const html = formatScriptToHtml(s, idx, accumulatedHooks);
-      accumulatedHooks += (s.hooks?.length || 0);
-      return html;
-    })
+    .map((s, idx) => formatScriptToHtml(s, idx))
     .join('<br><hr style="border:0; border-top:1px solid #ccc; margin: 20pt 0;" /><br>');
 }
 
 export function formatAllScriptsToPlainText(scripts: GeneratedScript[]): string {
-  let accumulatedHooks = 0;
   return scripts
-    .map((s, idx) => {
-      const text = formatScriptToPlainText(s, idx, accumulatedHooks);
-      accumulatedHooks += (s.hooks?.length || 0);
-      return text;
-    })
+    .map((s, idx) => formatScriptToPlainText(s, idx))
     .join('\n\n----------------------------------------\n\n');
 }
 

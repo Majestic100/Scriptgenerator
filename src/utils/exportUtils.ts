@@ -49,7 +49,6 @@ export async function downloadScriptsAsDocx(
   const logoBuffer = logoDataUrl ? dataURLToUint8Array(logoDataUrl) : null;
 
   const children: Paragraph[] = [];
-  let accumulatedHooks = 0;
 
   scripts.forEach((script, idx) => {
     // Top Document Title on Page 1
@@ -91,7 +90,7 @@ export async function downloadScriptsAsDocx(
 
     // Hooks (accumulated numbering across scripts)
     script.hooks?.forEach((hook, hIdx) => {
-      const hookNum = accumulatedHooks + hIdx + 1;
+      const hookNum = hIdx + 1;
       children.push(
         new Paragraph({
           alignment: AlignmentType.LEFT,
@@ -114,7 +113,6 @@ export async function downloadScriptsAsDocx(
         })
       );
     });
-    accumulatedHooks += script.hooks?.length || 0;
 
     // Body
     const bodyDialogue = script.scenes
@@ -248,7 +246,6 @@ export async function downloadScriptsAsPdf(
   const marginX = 20;
   const contentWidth = pageWidth - marginX * 2; // 170mm
 
-  let accumulatedHooks = 0;
 
   scripts.forEach((script, idx) => {
     if (idx > 0) {
@@ -310,10 +307,9 @@ export async function downloadScriptsAsPdf(
 
     // Print Hooks
     script.hooks?.forEach((hook, hIdx) => {
-      const hookNum = accumulatedHooks + hIdx + 1;
+      const hookNum = hIdx + 1;
       printLabeledParagraph(`Hook ${hookNum} - `, hook.audioDialogue || '');
     });
-    accumulatedHooks += script.hooks?.length || 0;
 
     // Print Body
     const bodyDialogue = script.scenes
