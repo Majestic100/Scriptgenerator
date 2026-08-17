@@ -586,6 +586,13 @@ function buildHookSection(): string {
   return `\n\nHOOK-OPBYGNING OG HOOK-BIBLIOTEK (BINDENDE):\n"""\n${parts.join("\n\n---\n\n")}\n"""\n`;
 }
 
+/** CTA-playbook: de 5 elementer, én handling, kongruens og belægskrav. */
+function buildCtaSection(): string {
+  const cta = readPlaybookFile("cta.md");
+  if (!cta) return "";
+  return `\n\nCTA-OPBYGNING (BINDENDE):\n"""\n${cta}\n"""\n`;
+}
+
 /**
  * Skridt 1 af 2: klassificér strategien for hvert script FØR der skrives copy.
  * Kører på engelsk (kanonisk terminologi) jf. playbookens driftsspecifikation.
@@ -1176,6 +1183,7 @@ REGLER FOR BODY SCENES (Manuskriptet):
 - Opdel kropsstykket af scriptet i strukturerede scener med præcise tidskoder tilpasset den angivne varighed for det script.
 - KRITISK REGEL FOR BODY: Body-scenerne SKAL KUN indeholde historien, problemløsningen, produktfordelene, B-roll og social proof. Body-scenerne må ALDRIG indeholde den afsluttende Call To Action, rabatkoder (f.eks. 'Spar 20%', 'Brug koden SCANDI20'), eller købsopfordringer! Alt tilbud og Call To Action placeres UDELUKKENDE i 'callToAction'.
 - KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
+${buildCtaSection()}
 - Hver scene skal have:
   1. timecode (f.eks. "0:03 - 0:08")
   2. section (en af: 'Problem/Pain', 'Solution/Demo', 'Social Proof', 'Value Prop')
@@ -1503,6 +1511,7 @@ DEN EKSISTERENDE CTA DER SKAL UDSKIFTES:
 Generér en ny, skarp og handlingsanvisende CTA replik.
 
 KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
+${buildCtaSection()}
 
 Returnér UDELUKKENDE et JSON-objekt:
 {
@@ -1706,6 +1715,7 @@ Returnér et komplet JSON-objekt:
 }
 
 KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
+${buildCtaSection()}
 `;
 
       const responseSchema = {
@@ -2338,6 +2348,7 @@ Returnér et komplet JSON-objekt med følgende struktur:
 }
 
 KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende TALTE replik, ordret som den siges. Ingen tidskoder ("0:26, 0:30"), ingen scene- eller kamerabeskrivelser ("End card med logo", "app-skærmbillede vises"), ingen overlay-anvisninger ("Overlay: ..."), ingen regi-noter om tone eller stemme ("Voiceover i rolig business-tone") og ingen forklaring af, hvad klikket fører til. Kun replikken. Alt visuelt hentes separat bagefter, når brugeren beder om det.
+${buildCtaSection()}
 `;
 
     const response = await generateContentJson({
@@ -2979,7 +2990,8 @@ KRAV:
 1. For HVER hook: en konkret visuel optage-idé for sekund 0-3 (hvad skuespilleren/kameraet præcist gør, lokation, energi, kropssprog).
 2. For HVER scene: en konkret visuel beskrivelse (kameravinkel, B-roll, handling, props, klipperytme) der matcher replikken 1:1.
 3. Alt skal kunne filmes med en telefon og 1-2 personer. Vær specifik og inspirerende, aldrig generisk.
-4. Returnér præcis ${(script.hooks || []).length} hook-visuals og ${(script.scenes || []).length} scene-visuals i samme rækkefølge som ovenfor.
+4. CTA'en skal VISES, ikke bare siges: I den sidste scene demonstreres næste trin konkret - skærmen efter klikket, formularen der udfyldes, fingeren der trykker på knappen. Når det, seeren ser i annoncen, matcher det, de møder efter klikket, følger flere igennem (CTA: "${script.callToAction || ''}").
+5. Returnér præcis ${(script.hooks || []).length} hook-visuals og ${(script.scenes || []).length} scene-visuals i samme rækkefølge som ovenfor.
 `;
 
     const schema = {
