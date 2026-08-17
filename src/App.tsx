@@ -47,6 +47,7 @@ export default function App() {
    */
   const [showVisualsHint, setShowVisualsHint] = useState(false);
   const [websiteStatus, setWebsiteStatus] = useState<null | 'read' | 'failed'>(null);
+  const [lastRequest, setLastRequest] = useState<ScriptRequest | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
   const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
@@ -229,6 +230,9 @@ export default function App() {
   const handleGenerateScripts = async (request: ScriptRequest) => {
     setIsLoading(true);
     setErrorMessage(null);
+    // Gemmes, så "Prøv igen" kan sende præcis den samme bestilling. De fleste
+    // fejl her er forbigående: overbelastning, for mange kald, timeout.
+    setLastRequest(request);
 
     if (request.documentTitle) {
       setDocumentTitle(request.documentTitle);
@@ -265,6 +269,11 @@ export default function App() {
     } catch (err: any) {
       console.error('Genereringsfejl:', err);
       setErrorMessage(err.message || t.app.serverConnError);
+      // Fejlfeltet ligger under hele formularen. Uden det her står beskeden langt
+      // nede uden for skærmen, og så ser det ud som om der intet skete.
+      setTimeout(() => {
+        document.getElementById('generation-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     } finally {
       setIsLoading(false);
     }
@@ -365,7 +374,7 @@ export default function App() {
       />
 
       {/* Hero / Main Area */}
-      <main className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-8 space-y-5">
+      <main className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-10 py-8 pb-32 space-y-5">
 
         <div className="pb-1">
           <h1 className="font-display text-[30px] sm:text-[34px] leading-tight text-ink">
@@ -387,11 +396,32 @@ export default function App() {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-4 bg-rec-soft border border-rec/40 rounded-[var(--radius-card)] flex items-start gap-3 animate-fadeIn" role="alert">
+          <div
+            id="generation-error"
+            className="scroll-mt-24 scroll-mb-32 p-4 bg-rec-soft border border-rec/40 rounded-[var(--radius-card)] flex items-start gap-3 animate-fadeIn"
+            role="alert"
+          >
             <AlertCircle className="w-5 h-5 text-rec shrink-0 mt-0.5" strokeWidth={1.75} aria-hidden="true" />
-            <div>
+            <div className="min-w-0 flex-1">
               <span className="font-semibold block text-[16px] text-ink">{t.app.errorTitle}</span>
-              <p className="field-hint mt-0.5">{errorMessage}</p>
+              <p className="mt-1 text-[15px] text-ink leading-relaxed whitespace-pre-wrap break-words">
+                {errorMessage}
+              </p>
+              {lastRequest && (
+                <button
+                  type="button"
+                  onClick={() => handleGenerateScripts(lastRequest)}
+                  disabled={isLoading}
+                  className="mt-3 chip-btn"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 text-muted ${isLoading ? 'animate-spin' : ''}`}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  {isLoading ? t.app.retrying : t.app.retry}
+                </button>
+              )}
             </div>
           </div>
         )}
