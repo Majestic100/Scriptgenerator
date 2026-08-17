@@ -810,9 +810,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                           <strong className="font-semibold">{t.card.psychology}</strong> {hook.psychology}
                         </span>
                       )}
-                      {hook.angleType && (
+                      {(hook.angleType || hook.verbalType) && (
                         <span className="text-[9pt] text-muted font-normal ml-2 italic">
-                          ({hook.angleType})
+                          ({[hook.angleType, hook.verbalType].filter(Boolean).join(' · ')})
                         </span>
                       )}
                       <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/hook:opacity-100 transition-opacity text-sm font-normal">
@@ -879,6 +879,24 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {/* Opråb og værdiløfte: de to dele et hook skal have for at virke */}
+                {(hook.callOut || hook.promise) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {hook.callOut && (
+                      <div className="rounded-[var(--radius-control)] border border-line bg-surface px-2.5 py-2">
+                        <span className="field-label mb-0.5">{t.card.callOut}</span>
+                        <p className="text-[15px] text-ink leading-snug m-0">{hook.callOut}</p>
+                      </div>
+                    )}
+                    {hook.promise && (
+                      <div className="rounded-[var(--radius-control)] border border-line bg-surface px-2.5 py-2">
+                        <span className="field-label mb-0.5">{t.card.promise}</span>
+                        <p className="text-[15px] text-ink leading-snug m-0">{hook.promise}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* VISUAL FILMING IDEA BOX */}
                 {(isVisualOpen || isHookVisEditing) && (

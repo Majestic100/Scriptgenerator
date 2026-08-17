@@ -249,6 +249,9 @@ function sanitizeScript(script: any): any {
     clone.hooks = clone.hooks.map((h: any) => ({
       ...h,
       angleType: sanitizeText(h.angleType || ""),
+      verbalType: sanitizeText(h.verbalType || ""),
+      callOut: sanitizeText(h.callOut || ""),
+      promise: sanitizeText(h.promise || ""),
       visualDirection: sanitizeText(h.visualDirection || ""),
       textOnScreen: sanitizeText(h.textOnScreen || ""),
       audioDialogue: sanitizeText(h.audioDialogue || "")
@@ -444,9 +447,12 @@ function buildPlaybookGenerationSection(options: {
     if (marketContent) parts.push(marketContent);
   }
 
-  // Trafik-temperatur og skrivestil gælder hvert eneste script uanset stadie
+  // Trafik-temperatur, hook-opbygning og skrivestil gælder hvert eneste script uanset stadie
   const trafficContent = readPlaybookFile("trafik-temperatur.md");
   if (trafficContent) parts.push(trafficContent);
+
+  const hookContent = readPlaybookFile("hooks.md");
+  if (hookContent) parts.push(hookContent);
 
   const styleContent = readPlaybookFile("skrivestil.md");
   if (styleContent) parts.push(styleContent);
@@ -463,6 +469,16 @@ function buildWritingStyleSection(): string {
   const style = readPlaybookFile("skrivestil.md");
   if (!style) return "";
   return `\n\nSKRIVESTIL (BINDENDE):\n"""\n${style}\n"""\n`;
+}
+
+/**
+ * Hook-opbygningen alene: opråb, værdiløfte og de otte former. Bruges når et
+ * enkelt hook genskabes, hvor hele playbooken ville fylde for meget.
+ */
+function buildHookSection(): string {
+  const hooks = readPlaybookFile("hooks.md");
+  if (!hooks) return "";
+  return `\n\nHOOK-OPBYGNING (BINDENDE):\n"""\n${hooks}\n"""\n`;
 }
 
 /**
@@ -955,6 +971,12 @@ KRITISK REGEL FOR VARIGHED, TALEHASTIGHED OG REPLIKLÆNGDE (SAMLET TID FOR HELE 
 REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
 - Generer det præcise antal hooks der er angivet for det pågældende script. Alle hooks til et script skal kunne klippes ind foran samme body.
 - KRITISK REGEL FOR HOOK-VINKLER: Der er angivet nøjagtig 1 specifik vinkel pr. hook i specifikationerne (f.eks. Hook #1 Vinkel, Hook #2 Vinkel, Hook #3 Vinkel). Hook #1 SKAL skabes 100% ud fra 'Hook #1 Vinkel', Hook #2 SKAL skabes ud fra 'Hook #2 Vinkel', Hook #3 ud fra 'Hook #3 Vinkel' osv.
+- DE TO DELE ETHVERT HOOK SKAL HAVE (jf. hook-opbygningen i playbooken):
+  1. OPRÅB: noget der får præcis denne målgruppe til at tænke "det her er til mig" inden for det første sekund. En etiket de bruger om sig selv, situationen de står i, identiteten eller et tal de genkender som deres eget. Opråbet må ligge i replikken, i billedet eller begge steder.
+  2. VÆRDILØFTE: hvad seeren får ud af at blive hængende. Udtalt ("se de næste tredive sekunder, så slipper du for X") eller underforstået (billedet viser resultatet, replikken siger "sådan gjorde jeg"). Ved kold trafik og lavt awareness-stadie skal løftet som regel være underforstået: et løfte råbt for højt i første sekund læses som reklame.
+  Et hook uden begge dele er ikke et hook. Skriv det om.
+- HOOK-FORM: vælg én af de otte former pr. hook og skriv den i feltet 'verbalType': Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud. Formen er grammatikken, vinklen er psykologien; de er to forskellige valg. Brug FORSKELLIGE former på tværs af hooksene til samme script. Tre spørgsmål i træk læses som én og samme annonce.
+- IKKE-VERBALT HOOK: den fysiske handling i sekund 0 er et hook i sig selv, ikke pynt. Den skal pege samme vej som replikken, ikke vise noget andet.
 - opbygning af HVER HOOK REPLIK (Tre-delt opbygning i løbet af sek. 0-3):
   1. CONTEXT (sekund 0): Navngiver emnet med en flad konstaterende sætning på 3-8 ord i nutid/datid. INGEN hilsen ("Hej med jer"), INTET spørgsmål ("Er du træt af"), INGEN optakt.
   2. PULL (sekund 1-2): Lad fælden med præcis én af følgende typer:
@@ -981,10 +1003,13 @@ REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
   * Nævn aldrig konkurrenter ved navn i talte replikker eller overlay.
 - Hver hook skal indeholde:
   1. angleType (f.eks. "Pattern Interrupt", "Indvendingsknuser", "Contradiction", osv.)
-  2. visualDirection (hvad skuespilleren/kameraet fysisk gør i sekund 0-3)
-  3. textOnScreen (3-7 ord stor tekst-overlay til skærmen uden lyd)
-  4. audioDialogue (den talte replik opbygget med Context + Pull + Whiplash)
-  5. estimatedDurationSec (typisk 3 sekunder)
+  2. verbalType (én af: Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud)
+  3. callOut (én sætning: hvem hooket råber op til, og hvad i replikken eller billedet der får dem til at føle sig ramt)
+  4. promise (én sætning: hvad seeren får ud af at blive hængende, og om løftet er udtalt eller underforstået)
+  5. visualDirection (hvad skuespilleren/kameraet fysisk gør i sekund 0-3)
+  6. textOnScreen (3-7 ord stor tekst-overlay til skærmen uden lyd)
+  7. audioDialogue (den talte replik opbygget med Context + Pull + Whiplash)
+  8. estimatedDurationSec (typisk 3 sekunder)
 
 REGLER FOR BODY SCENES (Manuskriptet):
 - Opdel kropsstykket af scriptet i strukturerede scener med præcise tidskoder tilpasset den angivne varighed for det script.
@@ -1030,12 +1055,15 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
                     id: { type: Type.STRING },
                     hookNumber: { type: Type.INTEGER },
                     angleType: { type: Type.STRING },
+                    verbalType: { type: Type.STRING },
+                    callOut: { type: Type.STRING },
+                    promise: { type: Type.STRING },
                     visualDirection: { type: Type.STRING },
                     textOnScreen: { type: Type.STRING },
                     audioDialogue: { type: Type.STRING },
                     estimatedDurationSec: { type: Type.INTEGER }
                   },
-                  required: ["hookNumber", "angleType", "visualDirection", "textOnScreen", "audioDialogue"]
+                  required: ["hookNumber", "angleType", "verbalType", "callOut", "promise", "visualDirection", "textOnScreen", "audioDialogue"]
                 }
               },
               scenes: {
@@ -1161,7 +1189,7 @@ app.post("/api/regenerate-element", async (req, res) => {
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, frisk, højkonverterende video-hook til en Meta video-annonce på ${promptLanguage}.
-${strategyContext}${writingStyle}
+${strategyContext}${writingStyle}${buildHookSection()}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -1175,17 +1203,28 @@ DEN NUVÆRENDE HOOK SKAL UDSKIFTES:
 ANDRE HOOKS I DETTE SCRIPT (Undgå at gentage disse vinkler eller ordlyd):
 ${otherHooksText || 'Ingen andre hooks'}
 
-REGLER FOR DET NYE HOOK (3-DELT OPBYGNING: CONTEXT -> PULL -> WHIPLASH):
-1. CONTEXT (sek. 0): 3-8 ord flad konstatering der navngiver emnet på 1 sekund. Ingen "Hej med jer", intet spørgsmål, ingen optakt.
+REGLER FOR DET NYE HOOK:
+DE TO DELE, DER SKAL VÆRE DER:
+1. OPRÅB: noget der får præcis denne målgruppe til at tænke "det her er til mig" inden for det første sekund. En etiket de bruger om sig selv, situationen de står i, identiteten eller et tal de genkender. Må ligge i replikken, i billedet eller begge steder.
+2. VÆRDILØFTE: hvad seeren får ud af at blive hængende. Udtalt eller underforstået. Ved kold trafik som regel underforstået.
+Et hook uden begge dele er ikke et hook.
+
+FORM: vælg én af de otte og skriv den i 'verbalType': Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud. Vælg en ANDEN form end de øvrige hooks i scriptet.
+
+OPBYGNING AF REPLIKKEN (CONTEXT -> PULL -> WHIPLASH):
+1. CONTEXT (sek. 0): 3-8 ord flad konstatering der navngiver emnet på 1 sekund. Ingen "Hej med jer", ingen optakt.
 2. PULL (sek. 1-2): Vælg præcis 1: Taboo, Dark, Contradiction, eller Proof.
 3. WHIPLASH (sek. 2-3): Ryk linen stik modsat af hvad optakten fik dem til at forvente.
 4. SPOR / STIL: Flydende dansk talesprog. Max 25 ord i alt (max 3 sekunder taletid).
 5. SKÆRM OVERLAY: 3-7 iøjnefaldende ord til visning uden lyd.
-6. VISUEL HANDLING: Konkret hvad skuespiller/kamera gør i sekund 0.
+6. VISUEL HANDLING: Konkret hvad skuespiller/kamera gør i sekund 0. Den skal pege samme vej som replikken.
 
 Returnér UDELUKKENDE et JSON-objekt:
 {
   "angleType": "f.eks. Pattern Interrupt / Loss Aversion / Specificitet / Status / Curiosity gap / Identity / Authority / Future pacing / Kontrast",
+  "verbalType": "Etiket / Spørgsmål / Betingelse / Kommando / Udsagn / Liste eller trin / Fortælling / Udbrud",
+  "callOut": "Én sætning: hvem hooket råber op til, og hvad der får dem til at føle sig ramt",
+  "promise": "Én sætning: hvad seeren får ud af at blive hængende, og om løftet er udtalt eller underforstået",
   "visualDirection": "Kort beskrivelse af hvad skuespiller/kamera gør i de første 3 sekunder",
   "textOnScreen": "Iøjnefaldende tekst-overlay til skærmen",
   "audioDialogue": "Den nye talte replik / speak",
@@ -1199,12 +1238,15 @@ Returnér UDELUKKENDE et JSON-objekt:
             type: Type.OBJECT,
             properties: {
               angleType: { type: Type.STRING },
+              verbalType: { type: Type.STRING },
+              callOut: { type: Type.STRING },
+              promise: { type: Type.STRING },
               visualDirection: { type: Type.STRING },
               textOnScreen: { type: Type.STRING },
               audioDialogue: { type: Type.STRING },
               estimatedDurationSec: { type: Type.INTEGER }
             },
-            required: ["angleType", "visualDirection", "textOnScreen", "audioDialogue"]
+            required: ["angleType", "verbalType", "callOut", "promise", "visualDirection", "textOnScreen", "audioDialogue"]
           }
       });
 
@@ -1216,6 +1258,9 @@ Returnér UDELUKKENDE et JSON-objekt:
         id: `hook-${Date.now()}-${targetIdx}`,
         hookNumber: targetIdx + 1,
         angleType: newHookData.angleType || "Frisk Vinkel",
+        verbalType: newHookData.verbalType || "",
+        callOut: newHookData.callOut || "",
+        promise: newHookData.promise || "",
         visualDirection: newHookData.visualDirection || "",
         textOnScreen: newHookData.textOnScreen || "",
         audioDialogue: newHookData.audioDialogue || "",
@@ -1470,12 +1515,15 @@ KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende
               type: Type.OBJECT,
               properties: {
                 angleType: { type: Type.STRING },
+                verbalType: { type: Type.STRING },
+                callOut: { type: Type.STRING },
+                promise: { type: Type.STRING },
                 visualDirection: { type: Type.STRING },
                 textOnScreen: { type: Type.STRING },
                 audioDialogue: { type: Type.STRING },
                 estimatedDurationSec: { type: Type.INTEGER }
               },
-              required: ["angleType", "visualDirection", "textOnScreen", "audioDialogue"]
+              required: ["angleType", "verbalType", "callOut", "promise", "visualDirection", "textOnScreen", "audioDialogue"]
             }
           },
           scenes: {
@@ -2025,12 +2073,15 @@ KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende
                       id: { type: Type.STRING },
                       hookNumber: { type: Type.NUMBER },
                       angleType: { type: Type.STRING },
+                      verbalType: { type: Type.STRING },
+                      callOut: { type: Type.STRING },
+                      promise: { type: Type.STRING },
                       visualDirection: { type: Type.STRING },
                       textOnScreen: { type: Type.STRING },
                       audioDialogue: { type: Type.STRING },
                       estimatedDurationSec: { type: Type.NUMBER }
                     },
-                    required: ["id", "hookNumber", "angleType", "visualDirection", "textOnScreen", "audioDialogue", "estimatedDurationSec"]
+                    required: ["id", "hookNumber", "angleType", "verbalType", "callOut", "promise", "visualDirection", "textOnScreen", "audioDialogue", "estimatedDurationSec"]
                   }
                 },
                 scenes: {

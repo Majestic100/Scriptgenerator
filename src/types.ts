@@ -122,10 +122,28 @@ export interface ScriptRequest {
   toneOfVoice?: string;
 }
 
+/** De otte former et hook kan tage. Formen er grammatikken, vinklen er psykologien. */
+export const HOOK_VERBAL_TYPES = [
+  'Etiket',
+  'Spørgsmål',
+  'Betingelse',
+  'Kommando',
+  'Udsagn',
+  'Liste eller trin',
+  'Fortælling',
+  'Udbrud'
+] as const;
+
 export interface HookItem {
   id: string;
   hookNumber: number;
   angleType: string; // e.g. "Pattern Interrupt", "Negative Curiosity", "Direct Callout"
+  /** Formen: Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud. */
+  verbalType?: string;
+  /** Hvem hooket råber op til, og hvad der får dem til at føle sig ramt. */
+  callOut?: string;
+  /** Hvad seeren får ud af at blive hængende, udtalt eller underforstået. */
+  promise?: string;
   visualDirection: string; // What we see on camera
   textOnScreen: string; // Big text overlay / captions
   audioDialogue: string; // Spoken dialogue / voiceover
