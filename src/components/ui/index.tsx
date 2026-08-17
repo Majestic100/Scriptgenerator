@@ -1,5 +1,4 @@
-import React, { useId, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React from 'react';
 
 /**
  * Delte primitiver, så hele appen har samme rytme, radius og typografi.
@@ -75,39 +74,23 @@ export const Field: React.FC<{
 );
 
 /** Foldbart underafsnit. Står åbent som udgangspunkt, så alle felter er synlige uden ekstra klik. */
+/**
+ * Fast gruppe med overskrift. Kan ikke foldes sammen: alle felter skal stå åbne,
+ * så man kan se hele opsætningen uden at klikke sig frem. Rammen og overskriften
+ * er bevaret, så grupperingen stadig er tydelig.
+ */
 export const Disclosure: React.FC<{
   title: string;
   summary?: React.ReactNode;
-  defaultOpen?: boolean;
   children: React.ReactNode;
-}> = ({ title, summary, defaultOpen = true, children }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  const panelId = useId();
-
+}> = ({ title, summary, children }) => {
   return (
     <div className="border border-line rounded-[var(--radius-control)] overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        aria-controls={panelId}
-        className="w-full flex items-center justify-between gap-4 px-4 py-3 bg-sunken hover:bg-line/50 transition-colors cursor-pointer text-left"
-      >
+      <div className="flex items-center justify-between gap-4 px-4 py-3 bg-sunken">
         <span className="font-semibold text-[15.5px] text-ink">{title}</span>
-        <span className="flex items-center gap-2.5 shrink-0">
-          {summary && <span className="text-[14px] text-muted">{summary}</span>}
-          <ChevronDown
-            className={`w-4 h-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
-            strokeWidth={1.75}
-            aria-hidden="true"
-          />
-        </span>
-      </button>
-      {open && (
-        <div id={panelId} className="p-4 border-t border-line bg-surface">
-          {children}
-        </div>
-      )}
+        {summary && <span className="text-[14px] text-muted shrink-0">{summary}</span>}
+      </div>
+      <div className="p-4 border-t border-line bg-surface">{children}</div>
     </div>
   );
 };
