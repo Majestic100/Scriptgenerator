@@ -2714,7 +2714,8 @@ app.post("/api/recommend-angles", async (req, res) => {
       numHooks,
       scriptTypes,
       hookAngles,
-      scriptFocus
+      scriptFocus,
+      chosenScriptType = ""
     } = req.body || {};
 
     if (!Array.isArray(scriptTypes) || scriptTypes.length === 0) {
@@ -2774,7 +2775,10 @@ ${scriptTypes.map((t: string) => `- ${t}`).join("\n")}
 Hook-vinkler:
 ${angleList}
 
-SÅDAN SVARER DU:
+${chosenScriptType ? `BRUGEREN HAR VALGT SCRIPT-STILEN: "${chosenScriptType}".
+- Hook-vinklerne SKAL vælges, så de naturligt åbner et script i netop denne stil. Begrund hver vinkel med både stilen og analysen/briefet.
+- Sæt den valgte stil som nummer 1 i scriptTypes-listen.
+` : ""}SÅDAN SVARER DU:
 - Anbefal præcis 3 script-stile, rangeret med den bedste først.
 - Anbefal præcis ${hooksWanted} hook-vinkler, én pr. hook, rangeret. Vælg forskellige vinkler, medmindre der er en klar grund til at gentage.
 - Hver begrundelse er ÉN sætning på dansk, maks 25 ord, og peger på noget konkret fra analysen eller briefet. Skriv "fordi målgruppen ..." eller "fordi analysen nævner ...", ikke almene råd.
