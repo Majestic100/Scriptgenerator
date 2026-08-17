@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { ScriptForm } from './components/ScriptForm';
 import { ScriptCard } from './components/ScriptCard';
@@ -47,6 +47,8 @@ export default function App() {
    */
   const [showVisualsHint, setShowVisualsHint] = useState(false);
   const [lastRequest, setLastRequest] = useState<ScriptRequest | null>(null);
+  // Gør det muligt at stoppe en igangværende generering, hvis man opdager en fejl.
+  const abortRef = useRef<AbortController | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
   const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
@@ -235,11 +237,15 @@ export default function App() {
       setDocumentTitle(request.documentTitle);
     }
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const response = await fetch('/api/generate-scripts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
+        signal: controller.signal
       });
 
       const data = await response.json();
@@ -259,6 +265,12 @@ export default function App() {
       }, 100);
 
     } catch (err: any) {
+      // Et bevidst stop er ikke en fejl: vis en stille besked med mulighed
+      // for at prøve igen, uden rød fejltone.
+      if (err?.name === 'AbortError') {
+        setErrorMessage(t.app.generationStopped);
+        return;
+      }
       console.error('Genereringsfejl:', err);
       setErrorMessage(err.message || t.app.serverConnError);
       // Fejlfeltet ligger under hele formularen. Uden det her står beskeden langt
@@ -384,6 +396,7 @@ export default function App() {
           onSubmit={handleGenerateScripts}
           isLoading={isLoading}
           onSaveAsCustomer={handleSaveAsCustomer}
+          onStop={() => abortRef.current?.abort()}
         />
 
         {/* Error Alert */}

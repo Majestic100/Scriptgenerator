@@ -348,6 +348,7 @@ async function generateContentJson(options: {
   system?: string;
   maxTokens?: number;
   model?: string;
+  signal?: AbortSignal;
 }): Promise<{ text: string }> {
   const client = getAnthropicClient();
   const model = normalizeModel(options.model);
@@ -366,7 +367,7 @@ async function generateContentJson(options: {
     ...(options.system ? { system: options.system } : {}),
     output_config: { format: { type: "json_schema", schema: toStrictSchema(options.schema) } },
     messages: [{ role: "user", content: options.prompt }],
-  });
+  }, options.signal ? { signal: options.signal } : undefined);
   const response: any = await stream.finalMessage();
 
   if (response.stop_reason === "refusal") {
@@ -562,6 +563,7 @@ async function classifyScriptStrategies(input: {
   toneOfVoice?: string;
   scriptConfigs: any[];
   model?: string;
+  signal?: AbortSignal;
 }): Promise<any[] | null> {
   const core = readPlaybookFile("core.md");
   if (!core) return null;
@@ -663,7 +665,8 @@ Write plainly. No headings, no bullet lists, no markdown inside the fields.`;
       system: "You are a direct-response advertising strategist working from Eugene Schwartz's Breakthrough Advertising framework. You classify strategy before any copy is written. You never fabricate customer insight, proof or urgency.",
       schema: strategySchema,
       maxTokens: 6000,
-      model: input.model
+      model: input.model,
+      signal: input.signal
     });
     const parsed = JSON.parse(response.text || "{}");
     if (Array.isArray(parsed.strategies) && parsed.strategies.length > 0) {
@@ -671,6 +674,8 @@ Write plainly. No headings, no bullet lists, no markdown inside the fields.`;
     }
     return null;
   } catch (err) {
+    // Et brugerstop er ikke en klassificeringsfejl - lad endpointet håndtere det.
+    if (input.signal?.aborted) throw err;
     console.error("Strategiklassificering fejlede — fortsætter uden strategiblok:", err);
     return null;
   }
@@ -837,6 +842,13 @@ async function scrapeWebsiteContent(urlStr: string): Promise<string> {
 
 // API Endpoint for generating Meta Ads scripts
 app.post("/api/generate-scripts", async (req, res) => {
+  // Stopper AI-kaldet, når brugeren afbryder genereringen i browseren. Ellers
+  // ville modellen skrive færdig ud i det tomme rum - og koste penge for det.
+  const clientGone = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) clientGone.abort();
+  });
+
   try {
     const {
       companyName,
@@ -967,7 +979,8 @@ CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til DIREKTE 
       websiteAnalysisText,
       toneOfVoice,
       scriptConfigs: effectiveConfigs,
-      model: aiModel
+      model: aiModel,
+      signal: clientGone.signal
     });
 
     const strategyInstruction = buildStrategyInstruction(strategies);
@@ -1188,7 +1201,8 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       system: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
       schema: responseSchema,
       maxTokens,
-      model: aiModel
+      model: aiModel,
+      signal: clientGone.signal
     });
 
     const rawText = response.text || "{}";
@@ -1255,6 +1269,8 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
 
     return res.json({ success: true, scripts, websiteRead, websiteRequested: Boolean(companyWebsite && companyWebsite.trim()) });
   } catch (error: any) {
+    // Stoppede brugeren selv? Så er der ingen at svare, og intet at logge som fejl.
+    if (clientGone.signal.aborted) return;
     console.error("Error generating scripts:", error);
     return res.status(500).json({ success: false, error: describeGenerationError(error) });
   }

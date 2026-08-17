@@ -40,6 +40,7 @@ const da = {
     retry: 'Prøv igen',
     retrying: 'Prøver igen...',
     serverConnError: 'Der kunne ikke oprettes forbindelse til serveren.',
+    generationStopped: 'Genereringen blev stoppet.',
     docTitle: 'Dokumenttitel',
     docTitlePlaceholder: 'f.eks. JP Køl og Klima - Script 2',
     docTitleHint: 'Vises øverst på eksporteret PDF og Docs.',
@@ -181,6 +182,7 @@ const da = {
     ],
 
     generating: (n: number) => `Genererer ${n} scripts`,
+    stopGeneration: 'Stop',
     generate: (n: number) => `Generér ${n} ${n === 1 ? 'script' : 'scripts'}`,
     hooksWord: 'hooks'
   },
@@ -685,6 +687,7 @@ const en: typeof da = {
     retry: 'Try again',
     retrying: 'Trying again...',
     serverConnError: 'Could not connect to the server.',
+    generationStopped: 'Generation was stopped.',
     docTitle: 'Document title',
     docTitlePlaceholder: 'e.g. JP Køl og Klima - Script 2',
     docTitleHint: 'Shown at the top of exported PDF and Docs.',
@@ -826,6 +829,7 @@ const en: typeof da = {
     ],
 
     generating: (n: number) => `Generating ${n} scripts`,
+    stopGeneration: 'Stop',
     generate: (n: number) => `Generate ${n} ${n === 1 ? 'script' : 'scripts'}`,
     hooksWord: 'hooks'
   },
