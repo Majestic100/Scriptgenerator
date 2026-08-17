@@ -311,7 +311,9 @@ const getAnthropicClient = () => {
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY miljøvariabel er ikke konfigureret. Tilføj den i en .env fil i projektets rod.");
   }
-  return new Anthropic({ apiKey });
+  // 30 minutters timeout: SDK'ets standard er 10, og en stor bestilling med
+  // meget thinking kan tage længere. 4 forsøg mod forbigående fejl (429/5xx).
+  return new Anthropic({ apiKey, timeout: 30 * 60 * 1000, maxRetries: 3 });
 };
 
 // JSON Schema type-navne (samme form som @google/genai's Type-enum, så schemaerne nedenfor er standard JSON Schema)
@@ -398,6 +400,33 @@ async function generateContentJson(options: {
 
   const text = response.content?.find((block: any) => block.type === "text")?.text ?? "{}";
   return { text };
+}
+
+/**
+ * Holder forbindelsen i live under lange AI-kald: proxyen dræber svar uden
+ * bytes efter ~100 sekunder. Whitespace foran JSON-objektet er gyldigt, så
+ * der sendes et mellemrum hvert 15. sekund, indtil svaret er klar. Prisen er,
+ * at statuskoden låses til 200, når arbejdet er startet - fejl meldes derefter
+ * via success: false i kroppen.
+ */
+function keepAliveJson(res: any) {
+  let hb: NodeJS.Timeout | null = null;
+  const stop = () => { if (hb) { clearInterval(hb); hb = null; } };
+  res.on("close", stop);
+  return {
+    start() {
+      if (hb || res.headersSent) return;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.write(" ");
+      hb = setInterval(() => { if (!res.writableEnded) res.write(" "); }, 15000);
+    },
+    send(status: number, payload: any) {
+      stop();
+      if (res.writableEnded) return;
+      if (res.headersSent) { res.end(JSON.stringify(payload)); }
+      else { res.status(status).json(payload); }
+    }
+  };
 }
 
 /**
@@ -1317,6 +1346,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
 
 // API Endpoint for regenerating individual elements (hook, cta, or full script)
 app.post("/api/regenerate-element", async (req, res) => {
+  const ka = keepAliveJson(res);
   try {
     const {
       elementType, // 'hook' | 'cta' | 'script'
@@ -1334,6 +1364,8 @@ app.post("/api/regenerate-element", async (req, res) => {
     if (!elementType || !script) {
       return res.status(400).json({ success: false, error: "Manglende parametre til re-generering." });
     }
+
+    ka.start();
 
     const promptLanguage = language === "en" ? "English" : "Danish";
     const strategyContext = buildStrategyContextForRegeneration(script);
@@ -1444,7 +1476,7 @@ Returnér UDELUKKENDE et JSON-objekt:
         hooks: updatedHooks
       };
 
-      return res.json({ success: true, script: sanitizeScript(updatedScript) });
+      return ka.send(200, { success: true, script: sanitizeScript(updatedScript) });
 
     } else if (elementType === "cta") {
       const bodySummary = (script.scenes || [])
@@ -1496,7 +1528,7 @@ Returnér UDELUKKENDE et JSON-objekt:
         callToAction: newCtaData.callToAction || script.callToAction
       };
 
-      return res.json({ success: true, script: sanitizeScript(updatedScript) });
+      return ka.send(200, { success: true, script: sanitizeScript(updatedScript) });
 
     } else if (elementType === "body") {
       const scriptType = script.scriptType || "UGC (User Generated Content)";
@@ -1579,7 +1611,7 @@ Returnér UDELUKKENDE et JSON-objekt:
         }))
       };
 
-      return res.json({ success: true, script: sanitizeScript(updatedScript) });
+      return ka.send(200, { success: true, script: sanitizeScript(updatedScript) });
 
     } else if (elementType === "hook_visual") {
       const targetIdx = typeof hookIndex === 'number' && hookIndex >= 0 ? hookIndex : 0;
@@ -1632,7 +1664,7 @@ Returnér UDELUKKENDE et JSON-objekt:
         hooks: updatedHooks
       };
 
-      return res.json({ success: true, script: updatedScript });
+      return ka.send(200, { success: true, script: updatedScript });
 
     } else if (elementType === "script") {
       const numHooks = (script.hooks || []).length || 3;
@@ -1749,13 +1781,13 @@ KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende
         }))
       };
 
-      return res.json({ success: true, script: newScript });
+      return ka.send(200, { success: true, script: newScript });
     }
 
-    return res.status(400).json({ success: false, error: "Ugyldig elementType" });
+    return ka.send(400, { success: false, error: "Ugyldig elementType" });
   } catch (error: any) {
     console.error("Fejl ved re-generering af element:", error);
-    return res.status(500).json({ success: false, error: error.message || "Fejl ved re-generering af element." });
+    return ka.send(500, { success: false, error: describeGenerationError(error) });
   }
 });
 
@@ -2914,11 +2946,14 @@ ${trimmedSite ? `\n--- INDHOLD FRA HJEMMESIDEN ---\n${trimmedSite}\n--- SLUT PÅ
 
 // POST /api/generate-visuals - komplet shot list for alle hooks og scener i et script
 app.post("/api/generate-visuals", async (req, res) => {
+  const ka = keepAliveJson(res);
   try {
     const { script } = req.body;
     if (!script) {
       return res.status(400).json({ success: false, error: "Script mangler." });
     }
+
+    ka.start();
 
     const hooksList = (script.hooks || [])
       .map((h: any, i: number) => `Hook ${i + 1}: "${h.audioDialogue}" (Vinkel: ${h.angleType || 'Ukendt'})`)
@@ -2971,10 +3006,10 @@ KRAV:
       }))
     };
 
-    return res.json({ success: true, script: updatedScript });
+    return ka.send(200, { success: true, script: updatedScript });
   } catch (error: any) {
     console.error("Fejl i /api/generate-visuals:", error);
-    res.status(500).json({ success: false, error: error.message });
+    ka.send(500, { success: false, error: describeGenerationError(error) });
   }
 });
 

@@ -62,6 +62,18 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', resetTitle);
   }, []);
 
+  // Lukker eller genindlæser man fanen midt i en generering, dør bestillingen
+  // med den. Browseren spørger nu først, så det ikke sker ved et uheld.
+  useEffect(() => {
+    if (!isLoading) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isLoading]);
+
   const notifyIfAway = (title: string, body: string) => {
     if (!document.hidden) return;
     document.title = `✓ ${title}`;
