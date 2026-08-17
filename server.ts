@@ -358,8 +358,43 @@ async function generateContentJson(options: {
     throw new Error("AI-modellen afviste forespørgslen. Prøv at omformulere dit input.");
   }
 
+  // Løber svaret tør for plads, kommer JSON'en halv tilbage. Uden det her ville
+  // det ende som "ugyldigt format", og så er årsagen umulig at gætte.
+  if (response.stop_reason === "max_tokens") {
+    throw new Error(
+      "Svaret fra AI-modellen blev for langt og blev afbrudt undervejs. Prøv med færre scripts eller færre hooks pr. script."
+    );
+  }
+
   const text = response.content?.find((block: any) => block.type === "text")?.text ?? "{}";
   return { text };
+}
+
+/**
+ * Oversætter en fejl fra Anthropic-kaldet til en sætning, man kan handle på.
+ * Uden det står der bare et statusnummer og en rå JSON-klump i fejlfeltet.
+ */
+function describeGenerationError(error: any): string {
+  const status = error?.status ?? error?.response?.status;
+  const raw = String(error?.message || "");
+
+  if (status === 401 || status === 403) {
+    return "Serveren blev afvist af AI-tjenesten. API-nøglen mangler eller er udløbet.";
+  }
+  if (status === 429) {
+    return "Der er kaldt for mange gange på kort tid. Vent et minut og prøv igen.";
+  }
+  if (status === 529 || status === 503 || /overload/i.test(raw)) {
+    return "AI-tjenesten er overbelastet lige nu. Prøv igen om et øjeblik.";
+  }
+  if (status === 400 && /too long|max.*token|context/i.test(raw)) {
+    return "Materialet er for stort til ét kald. Prøv med et kortere analysedokument eller færre scripts.";
+  }
+  if (error?.name === "AbortError" || /timeout|ETIMEDOUT|ECONNRESET/i.test(raw)) {
+    return "Kaldet til AI-tjenesten tog for lang tid og blev afbrudt. Prøv igen, eller bed om færre scripts.";
+  }
+  if (raw) return raw;
+  return "Der opstod en fejl under generering af scripts.";
 }
 
 // --- Awareness-playbook (playbook/) ---
@@ -1122,10 +1157,18 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       required: ["scripts"]
     };
 
+    // Hvert script fylder omtrent det samme, og hooks er den dyreste del. Uden at
+    // skalere med bestillingen løb otte scripts tør for plads midt i JSON'en.
+    const hooksTotal = Array.isArray(scriptConfigs) && scriptConfigs.length > 0
+      ? scriptConfigs.slice(0, numScripts).reduce((sum: number, c: any) => sum + (c?.numHooks || numHooksPerScript || 3), 0)
+      : numScripts * (numHooksPerScript || 3);
+    const maxTokens = Math.min(64000, 6000 + numScripts * 3000 + hooksTotal * 900);
+
     const response = await generateContentJson({
       prompt,
-              system: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
-        schema: responseSchema
+      system: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
+      schema: responseSchema,
+      maxTokens
     });
 
     const rawText = response.text || "{}";
@@ -1134,7 +1177,11 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       parsedData = JSON.parse(rawText);
     } catch (e) {
       console.error("Fejl ved parsing af JSON fra AI-modellen:", rawText);
-      return res.status(500).json({ success: false, error: "Ugyldigt format modtaget fra AI modellen." });
+      const excerpt = rawText.trim().slice(0, 200).replace(/\s+/g, " ");
+      return res.status(500).json({
+        success: false,
+        error: `AI-modellen svarede i et format, der ikke kunne læses. Svaret startede med: "${excerpt}"`
+      });
     }
 
     const scripts = (parsedData.scripts || []).map((script: any, idx: number) => {
@@ -1175,13 +1222,19 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       return sanitizeScript(rawScript);
     });
 
+    // Et tomt svar er ikke en succes. Uden det her endte man med en tom side og
+    // ingen forklaring på, hvorfor der ikke skete noget.
+    if (scripts.length === 0) {
+      return res.status(500).json({
+        success: false,
+        error: "AI-modellen returnerede ingen scripts. Prøv igen, eller udfyld flere felter i briefen, så der er mere at skrive ud fra."
+      });
+    }
+
     return res.json({ success: true, scripts, websiteRead, websiteRequested: Boolean(companyWebsite && companyWebsite.trim()) });
   } catch (error: any) {
     console.error("Error generating scripts:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Der opstod en fejl under generering af scripts."
-    });
+    return res.status(500).json({ success: false, error: describeGenerationError(error) });
   }
 });
 
