@@ -220,10 +220,6 @@ export const CustomersModal: React.FC<CustomersModalProps> = ({
                   <input className={inputCls} value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} placeholder={t.customersM.companyPlaceholder} />
                 </div>
                 <div>
-                  <label className={labelCls}>{t.customersM.websiteLabel}</label>
-                  <input className={inputCls} value={form.companyWebsite} onChange={(e) => setForm({ ...form, companyWebsite: e.target.value })} placeholder="https://..." />
-                </div>
-                <div>
                   <label className={labelCls}>{t.customersM.productLabel}</label>
                   <input className={inputCls} value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} />
                 </div>
