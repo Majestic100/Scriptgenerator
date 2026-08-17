@@ -61,6 +61,20 @@ export const normalizeDuration = (value?: string): string => {
   return DURATION_OPTIONS[5];
 };
 
+/**
+ * AI-modeller der kan skrive scripts. Fable 5 er standard; Opus 5 kan vælges
+ * til, fx når den ene model er ustabil, eller man vil sammenligne resultaterne.
+ */
+export type AiModel = 'claude-fable-5' | 'claude-opus-5';
+
+export const DEFAULT_AI_MODEL: AiModel = 'claude-fable-5';
+
+export const AI_MODEL_IDS: AiModel[] = ['claude-fable-5', 'claude-opus-5'];
+
+/** Ukendte eller gamle værdier falder tilbage til standardmodellen. */
+export const normalizeAiModel = (value?: string): AiModel =>
+  (value || '').toLowerCase().includes('opus') ? 'claude-opus-5' : DEFAULT_AI_MODEL;
+
 export type TrafficTemperature = 'cold' | 'warm' | 'hot';
 
 /** Ældre scripts og opsætninger gemte 'retargeting'. Det svarer til 'warm' i den nye model. */
@@ -120,6 +134,8 @@ export interface ScriptRequest {
   language?: 'da' | 'en';
   globalAnalogies?: string[];
   toneOfVoice?: string;
+  /** Hvilken AI-model der skal skrive scriptene. Udeladt = standardmodellen. */
+  aiModel?: AiModel;
 }
 
 /**
@@ -305,6 +321,11 @@ export interface GeneratedScript {
   callToAction: string;
   proTips: string[];
   createdAt: string;
+  /**
+   * Modellen der skrev scriptet. Følger med når et hook eller en scene
+   * regenereres, så samme model retter sin egen tekst.
+   */
+  aiModel?: AiModel;
 }
 
 export interface Project {

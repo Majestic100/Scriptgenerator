@@ -298,8 +298,13 @@ function getScriptTypeGuidelinesPrompt(requestedTypes: string[]): string {
   return `\n\n🎯 REGEL-SÆT OG BEATS FOR VALGTE SCRIPT-TYPER (SKAL OVERHOLDES 100%):\n${sections.join("\n\n")}\n\n`;
 }
 
-// Claude setup
+// Claude setup. Fable 5 er standard; Opus 5 kan vælges pr. bestilling i formularen.
 const CLAUDE_MODEL = "claude-fable-5";
+const OPUS_MODEL = "claude-opus-5";
+
+/** Ukendte eller tomme værdier falder tilbage til standardmodellen. */
+const normalizeModel = (value?: string): string =>
+  String(value || "").toLowerCase().includes("opus") ? OPUS_MODEL : CLAUDE_MODEL;
 
 const getAnthropicClient = () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -334,25 +339,35 @@ function toStrictSchema(node: any): any {
   return node;
 }
 
-// Kalder Claude (Fable 5) og returnerer svaret som JSON-tekst jf. det angivne schema.
-// Fable 5 styrer selv sin thinking (ingen thinking-config) og accepterer ikke temperature.
+// Kalder Claude og returnerer svaret som JSON-tekst jf. det angivne schema.
+// Begge modeller styrer selv deres thinking (ingen thinking-config) og accepterer ikke temperature.
 // fallbacks: "default" gør at et evt. sikkerhedsafslag automatisk besvares af en fallback-model.
 async function generateContentJson(options: {
   prompt: string;
   schema: Record<string, any>;
   system?: string;
   maxTokens?: number;
+  model?: string;
 }): Promise<{ text: string }> {
   const client = getAnthropicClient();
-  const response: any = await (client.beta.messages.create as any)({
-    model: CLAUDE_MODEL,
-    max_tokens: options.maxTokens ?? 16000,
+  const model = normalizeModel(options.model);
+  const baseTokens = options.maxTokens ?? 16000;
+  // Thinking tæller med i max_tokens, og Opus 5 tænker mere end Fable 5 på samme
+  // opgave. Uden ekstra plads ville selve svaret blive klippet af midt i JSON'en.
+  const maxTokens = model === OPUS_MODEL ? Math.min(100000, baseTokens + 12000) : baseTokens;
+  // Streames, fordi SDK'et afviser store max_tokens uden streaming ("Streaming is
+  // required for operations that may take longer than 10 minutes"). Uden streaming
+  // fejlede store bestillinger før kaldet overhovedet blev sendt afsted.
+  const stream = (client.beta.messages.stream as any)({
+    model,
+    max_tokens: maxTokens,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     ...(options.system ? { system: options.system } : {}),
     output_config: { format: { type: "json_schema", schema: toStrictSchema(options.schema) } },
     messages: [{ role: "user", content: options.prompt }],
   });
+  const response: any = await stream.finalMessage();
 
   if (response.stop_reason === "refusal") {
     throw new Error("AI-modellen afviste forespørgslen. Prøv at omformulere dit input.");
@@ -546,6 +561,7 @@ async function classifyScriptStrategies(input: {
   websiteAnalysisText?: string;
   toneOfVoice?: string;
   scriptConfigs: any[];
+  model?: string;
 }): Promise<any[] | null> {
   const core = readPlaybookFile("core.md");
   if (!core) return null;
@@ -646,7 +662,8 @@ Write plainly. No headings, no bullet lists, no markdown inside the fields.`;
       prompt,
       system: "You are a direct-response advertising strategist working from Eugene Schwartz's Breakthrough Advertising framework. You classify strategy before any copy is written. You never fabricate customer insight, proof or urgency.",
       schema: strategySchema,
-      maxTokens: 6000
+      maxTokens: 6000,
+      model: input.model
     });
     const parsed = JSON.parse(response.text || "{}");
     if (Array.isArray(parsed.strategies) && parsed.strategies.length > 0) {
@@ -840,6 +857,7 @@ app.post("/api/generate-scripts", async (req, res) => {
       language = "da",
       globalAnalogies = [],
       toneOfVoice = "",
+      aiModel = "",
     } = req.body;
 
     if (!companyName) {
@@ -948,7 +966,8 @@ CRITICAL: Alle ${numScripts} scripts skal tilpasses og vinkles 100% til DIREKTE 
       analysisDocText,
       websiteAnalysisText,
       toneOfVoice,
-      scriptConfigs: effectiveConfigs
+      scriptConfigs: effectiveConfigs,
+      model: aiModel
     });
 
     const strategyInstruction = buildStrategyInstruction(strategies);
@@ -1168,7 +1187,8 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       prompt,
       system: "Du er en prisvindende Meta Ads video script strateg og copywriter.",
       schema: responseSchema,
-      maxTokens
+      maxTokens,
+      model: aiModel
     });
 
     const rawText = response.text || "{}";
@@ -1206,6 +1226,8 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
         awarenessStage: effectiveAwareness,
         trafficType: effectiveTrafficType,
         strategy: strategies?.[idx] || undefined,
+        // Gemmes på scriptet, så regenerering af hooks og scener bruger samme model.
+        aiModel: normalizeModel(aiModel),
         createdAt: new Date().toISOString(),
         hooks: (script.hooks || []).map((h: any, hIdx: number) => ({
           ...h,
@@ -1324,6 +1346,7 @@ Returnér UDELUKKENDE et JSON-objekt:
 
       const response = await generateContentJson({
         prompt,
+        model: script.aiModel,
                   schema: {
             type: Type.OBJECT,
             properties: {
@@ -1402,6 +1425,7 @@ Returnér UDELUKKENDE et JSON-objekt:
 
       const response = await generateContentJson({
         prompt,
+        model: script.aiModel,
                   schema: {
             type: Type.OBJECT,
             properties: {
@@ -1467,6 +1491,7 @@ Returnér UDELUKKENDE et JSON-objekt:
 
       const response = await generateContentJson({
         prompt,
+        model: script.aiModel,
                   schema: {
             type: Type.OBJECT,
             properties: {
@@ -1528,6 +1553,7 @@ Returnér UDELUKKENDE et JSON-objekt:
 
       const response = await generateContentJson({
         prompt,
+        model: script.aiModel,
                   schema: {
             type: Type.OBJECT,
             properties: {
@@ -1644,6 +1670,7 @@ KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende
 
       const response = await generateContentJson({
         prompt,
+        model: script.aiModel,
                   schema: responseSchema
       });
 
@@ -2779,7 +2806,7 @@ KRAV:
       required: ["hookVisuals", "sceneVisuals"]
     };
 
-    const response = await generateContentJson({ prompt, schema, maxTokens: 8000 });
+    const response = await generateContentJson({ prompt, schema, maxTokens: 8000, model: script.aiModel });
     const parsed = JSON.parse(response.text || "{}");
 
     const updatedScript = {

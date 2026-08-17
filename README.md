@@ -1,6 +1,6 @@
 # Jalal Visuals MetaScript Generator
 
-Script-generator til Meta (Facebook/Instagram) video-annoncer — hooks, body-scener og CTA'er på dansk. Kører på **Claude Fable 5** via Anthropic API.
+Script-generator til Meta (Facebook/Instagram) video-annoncer — hooks, body-scener og CTA'er på dansk. Kører på **Claude Fable 5** via Anthropic API, med **Claude Opus 5** som valgbar model pr. bestilling.
 
 ## Kom i gang
 
@@ -60,7 +60,8 @@ Bemærk: På gratis-planen "sover" appen efter inaktivitet (første besøg tager
 ## Sådan virker det
 
 - Frontenden (React/Vite) er uændret fra den oprindelige app.
-- Backend (`server.ts`) kalder Claude Fable 5 med **structured outputs** (JSON Schema), så alle scripts kommer tilbage i præcis det format, appen forventer.
-- Modellen styrer selv sin reasoning (Fable 5 har altid thinking slået til), og et evt. sikkerhedsafslag besvares automatisk af en fallback-model (`fallbacks: "default"`).
-- Modellen skiftes ét sted: konstanten `CLAUDE_MODEL` i `server.ts`.
+- Backend (`server.ts`) kalder Claude med **structured outputs** (JSON Schema), så alle scripts kommer tilbage i præcis det format, appen forventer. Svaret streames, så store bestillinger ikke rammer SDK'ets grænse for ikke-streamede kald.
+- Modellen vælges i formularen: **Fable 5** er standard, **Opus 5** kan vælges pr. bestilling. Valget følger med scriptet, så regenerering af hooks/scener og visuals bruger samme model.
+- Begge modeller styrer selv deres reasoning (thinking er altid slået til), og et evt. sikkerhedsafslag besvares automatisk af en fallback-model (`fallbacks: "default"`).
+- Standardmodellen skiftes ét sted: konstanten `CLAUDE_MODEL` i `server.ts`.
 - Projekter og AI-træningseksempler gemmes lokalt i `data/` (oprettes automatisk, ikke i git).

@@ -26,7 +26,10 @@ import {
   DEFAULT_DURATION,
   HOOK_ANGLES,
   HOOK_ANGLE_IDS,
-  HOOK_CATEGORIES
+  HOOK_CATEGORIES,
+  AiModel,
+  DEFAULT_AI_MODEL,
+  normalizeAiModel
 } from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
@@ -196,6 +199,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [competitorInput, setCompetitorInput] = useState('');
   const [competitors, setCompetitors] = useState<string[]>(initialData?.competitors || []);
   const [numScripts, setNumScripts] = useState<number>(initialData?.numScripts || 2);
+  const [aiModel, setAiModel] = useState<AiModel>(normalizeAiModel(initialData?.aiModel));
   const [activeTab, setActiveTab] = useState<number>(0);
 
   const defaultPresets = BLANK_SCRIPT_CONFIGS;
@@ -486,6 +490,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       competitorInput,
       competitors,
       numScripts,
+      aiModel,
       activeTab,
       scriptConfigs,
       productDescription,
@@ -505,6 +510,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     setCompetitorInput('');
     setCompetitors([]);
     setNumScripts(2);
+    setAiModel(DEFAULT_AI_MODEL);
     setActiveTab(0);
     setScriptConfigs(BLANK_SCRIPT_CONFIGS);
     setProductDescription('');
@@ -528,6 +534,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       setCompetitorInput(snapshot.competitorInput);
       setCompetitors(snapshot.competitors);
       setNumScripts(snapshot.numScripts);
+      setAiModel(snapshot.aiModel);
       setActiveTab(snapshot.activeTab);
       setScriptConfigs(snapshot.scriptConfigs);
       setProductDescription(snapshot.productDescription);
@@ -600,7 +607,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
       offerOrCta: offerOrCta.trim(),
       scriptFocus,
       language: lang,
-      toneOfVoice: toneOfVoice.trim() || undefined
+      toneOfVoice: toneOfVoice.trim() || undefined,
+      aiModel
     });
   };
 
@@ -1167,6 +1175,19 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             />
             <span className="font-mono text-[20px] font-medium text-ink w-8 text-right tabular-nums">{numScripts}</span>
           </div>
+        </Field>
+
+        <Field label={t.form.aiModelLabel} hint={t.form.aiModelHint} htmlFor="ai-model">
+          <select
+            id="ai-model"
+            value={aiModel}
+            onChange={(e) => setAiModel(normalizeAiModel(e.target.value))}
+            className="control"
+            aria-label={t.form.aiModelLabel}
+          >
+            <option value="claude-fable-5">{t.form.aiModelFable}</option>
+            <option value="claude-opus-5">{t.form.aiModelOpus}</option>
+          </select>
         </Field>
 
         {/* Faneblade pr. script */}
