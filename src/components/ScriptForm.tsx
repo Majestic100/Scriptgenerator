@@ -25,14 +25,14 @@ import {
   normalizeHookAngle,
   DURATION_OPTIONS,
   DEFAULT_DURATION,
-  HOOK_ANGLES,
   HOOK_ANGLE_IDS,
-  HOOK_CATEGORIES,
+  AUTO_HOOK_ANGLE,
   AiModel,
   DEFAULT_AI_MODEL,
   normalizeAiModel
 } from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
+import { HookAnglePickerModal } from './HookAnglePickerModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
 import { FlagDK, FlagGB } from './ui/flags';
 import { useLang, formatDuration } from '../i18n';
@@ -175,8 +175,9 @@ const SAMPLE_EXAMPLE_DATA = {
  * i manuskripterne. Formularen starter tom ved hver indlæsning.
  */
 const BLANK_SCRIPT_CONFIGS = SAMPLE_EXAMPLE_DATA.scriptConfigs.map((cfg: any) => {
-  const { mustInclude, retargetingNotes, ...setup } = cfg;
-  return { ...setup, mustInclude: '' };
+  const { mustInclude, retargetingNotes, preferredHookTypes, ...setup } = cfg;
+  // Ingen faste vinkler som udgangspunkt: AI'en vælger selv (automatisk).
+  return { ...setup, mustInclude: '', preferredHookTypes: [] };
 });
 
 export const ScriptForm: React.FC<ScriptFormProps> = ({
@@ -249,6 +250,8 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
   // Forslag til stil og hook-vinkler
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
+  // Hvilket hook der er ved at få valgt vinkel i kort-galleriet (null = lukket)
+  const [anglePickerHookIdx, setAnglePickerHookIdx] = useState<number | null>(null);
 
   /** Sat efter "Ryd alle felter", så indholdet kan hentes tilbage med ét klik. */
   const [clearedSnapshot, setClearedSnapshot] = useState<null | (() => void)>(null);
@@ -578,7 +581,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     const currentHooks = [...(cfg.preferredHookTypes || [])];
 
     for (let i = 0; i < hooks; i++) {
-      if (!currentHooks[i]) currentHooks[i] = HOOK_ANGLE_IDS[i % HOOK_ANGLE_IDS.length];
+      if (!currentHooks[i]) currentHooks[i] = AUTO_HOOK_ANGLE;
     }
 
     currentHooks[hookIndex] = angleId;
@@ -1358,31 +1361,35 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: currentCfg.numHooks || 3 }).map((_, hookIdx) => {
                 const currentHooksList = currentCfg.preferredHookTypes || [];
-                const selectedAngleId = normalizeHookAngle(
-                  currentHooksList[hookIdx] || HOOK_ANGLE_IDS[hookIdx % HOOK_ANGLE_IDS.length]
-                );
-                const selectedAngle = t.hookAngles[selectedAngleId] || t.hookAngles[HOOK_ANGLE_IDS[0]];
+                const rawChoice = currentHooksList[hookIdx] || AUTO_HOOK_ANGLE;
+                const isAuto = rawChoice === AUTO_HOOK_ANGLE;
+                const selectedAngleId = isAuto ? AUTO_HOOK_ANGLE : normalizeHookAngle(rawChoice);
+                const angleInfo = isAuto ? null : t.hookAngles[selectedAngleId];
 
                 return (
-                  <Field key={hookIdx} label={t.form.hookN(hookIdx + 1)}>
-                    <select
-                      value={selectedAngleId}
-                      onChange={(e) => setHookAngleForHookIndex(hookIdx, e.target.value)}
-                      className="control"
-                      aria-label={t.form.hookAngleAria(hookIdx + 1)}
-                    >
-                      {HOOK_CATEGORIES.map((category) => (
-                        <optgroup key={category} label={t.hookCategories[category] || category}>
-                          {HOOK_ANGLES.filter((a) => a.category === category).map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.id} ({t.hookAngles[a.id]?.desc})
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
-                    <p className="field-hint mt-1.5 italic">{selectedAngle?.example}</p>
-                  </Field>
+                  <div key={hookIdx} className="rounded-[var(--radius-control)] border border-line bg-surface px-4 py-3.5 flex flex-col">
+                    <span className="field-label mb-0.5">{t.form.hookN(hookIdx + 1)}</span>
+                    <p className="font-semibold text-ink text-[15.5px] m-0 flex items-center gap-1.5">
+                      {isAuto && <Sparkles className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />}
+                      {isAuto ? t.form.hookAngleAuto : selectedAngleId}
+                    </p>
+                    <p className="field-hint mt-0.5 flex-1">
+                      {isAuto ? t.form.hookAngleAutoDesc : angleInfo?.desc}
+                      {!isAuto && angleInfo?.example ? (
+                        <span className="block italic mt-1">"{angleInfo.example}"</span>
+                      ) : null}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      <button type="button" className="chip-btn" onClick={() => setAnglePickerHookIdx(hookIdx)}>
+                        {t.form.hookAngleChange}
+                      </button>
+                      {!isAuto && (
+                        <button type="button" className="chip-btn" onClick={() => setHookAngleForHookIndex(hookIdx, AUTO_HOOK_ANGLE)}>
+                          {t.form.hookAngleReset}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -1494,6 +1501,15 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </div>
         </div>
       </div>
+
+      {anglePickerHookIdx !== null && (
+        <HookAnglePickerModal
+          hookNumber={anglePickerHookIdx + 1}
+          selectedId={(currentCfg.preferredHookTypes || [])[anglePickerHookIdx] || AUTO_HOOK_ANGLE}
+          onSelect={(id) => setHookAngleForHookIndex(anglePickerHookIdx, id)}
+          onClose={() => setAnglePickerHookIdx(null)}
+        />
+      )}
 
       <AngleAdvisorModal
         isOpen={isAdvisorOpen}

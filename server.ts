@@ -623,7 +623,7 @@ async function classifyScriptStrategies(input: {
   const outputLanguageName = input.language === "en" ? "English" : "Danish";
 
   const configLines = input.scriptConfigs.map((cfg: any, i: number) => {
-    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic temperature "${normalizeTraffic(cfg.trafficType)}"${cfg.retargetingNotes ? ` (what the viewer has already seen: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30-40 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.join(", ")}` : ""}`;
+    return `SCRIPT #${i + 1}: script type "${cfg.scriptType || "UGC"}", operator-chosen awareness stage "${cfg.awarenessStage || "Problem Aware"}", traffic temperature "${normalizeTraffic(cfg.trafficType)}"${cfg.retargetingNotes ? ` (what the viewer has already seen: "${cfg.retargetingNotes}")` : ""}, duration ${cfg.bodyDuration || "30-40 sekunder"}, ${cfg.numHooks || 3} hooks${cfg.mustInclude ? `, must include: "${cfg.mustInclude}"` : ""}${Array.isArray(cfg.preferredHookTypes) && cfg.preferredHookTypes.filter((v: string) => v && v !== "auto").length > 0 ? `, requested hook angles: ${cfg.preferredHookTypes.filter((v: string) => v && v !== "auto").join(", ")}` : ""}`;
   }).join("\n");
 
   const prompt = `You are classifying advertising strategy BEFORE any copy is written, following the playbook below. Do not write any script copy in this step.
@@ -996,8 +996,15 @@ app.post("/api/generate-scripts", async (req, res) => {
         if (scriptTargetAud) extraDetails.push(`Ideelle kunde: "${scriptTargetAud}"`);
         if (scriptDemographics) extraDetails.push(`Hvor i landet / Geografi: "${scriptDemographics}"`);
         if (scriptOfferCta) extraDetails.push(`Tilbud/CTA: "${scriptOfferCta}"`);
-        if (scriptHookTypes && scriptHookTypes.length > 0) {
-          const perHookFormatted = scriptHookTypes.slice(0, cfg.numHooks || 3).map((v: string, hIdx: number) => `Hook #${hIdx + 1} Vinkel: "${v}"`);
+        // 'auto' betyder: modellen vælger selv vinklen fra hook-biblioteket ud fra
+        // strategien. Kun eksplicitte valg sendes som krav.
+        const hasExplicitAngle = scriptHookTypes && scriptHookTypes.some((v: string) => v && v !== "auto");
+        if (scriptHookTypes && hasExplicitAngle) {
+          const perHookFormatted = scriptHookTypes.slice(0, cfg.numHooks || 3).map((v: string, hIdx: number) =>
+            !v || v === "auto"
+              ? `Hook #${hIdx + 1} Vinkel: frit valg (vælg selv den stærkeste fra hook-biblioteket ud fra strategien)`
+              : `Hook #${hIdx + 1} Vinkel: "${v}"`
+          );
           extraDetails.push(`Ønskede hook-vinkler (1 specifik vinkel pr. hook): [ ${perHookFormatted.join(" | ")} ]`);
         }
         if (scriptMustInclude) extraDetails.push(`SKAL INKLUDERES (specifikke punkter/elementer): "${scriptMustInclude}"`);
