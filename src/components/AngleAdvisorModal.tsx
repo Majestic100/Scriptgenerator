@@ -36,11 +36,37 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AngleRecommendation | null>(null);
   const [appliedAngles, setAppliedAngles] = useState(false);
+  // To-trins-flow: vælger man en stil, hentes vinklerne igen målrettet den stil.
+  const [hookLoadingFor, setHookLoadingFor] = useState<string | null>(null);
+  const [anglesStyle, setAnglesStyle] = useState<string | null>(null);
+
+  const chooseStyle = async (type: string) => {
+    onApplyScriptType(type);
+    setAppliedAngles(false);
+    setHookLoadingFor(type);
+    try {
+      const res = await fetch('/api/recommend-angles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, chosenScriptType: type })
+      });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.hookAngles) && json.hookAngles.length > 0) {
+        setData((prev) => (prev ? { ...prev, hookAngles: json.hookAngles } : json));
+        setAnglesStyle(type);
+      }
+    } catch (err) {
+      console.error('Kunne ikke hente vinkler til stilen:', err);
+    } finally {
+      setHookLoadingFor(null);
+    }
+  };
 
   const fetchRecommendation = async () => {
     setIsLoading(true);
     setError(null);
     setAppliedAngles(false);
+    setAnglesStyle(null);
     try {
       const res = await fetch('/api/recommend-angles', {
         method: 'POST',
@@ -85,7 +111,9 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
 
   const applyEverything = () => {
     if (!data) return;
-    if (data.scriptTypes[0]) onApplyScriptType(data.scriptTypes[0].type);
+    // Har brugeren selv valgt en stil, er det den, der gælder - ikke nummer 1.
+    const styleToApply = anglesStyle || data.scriptTypes[0]?.type;
+    if (styleToApply) onApplyScriptType(styleToApply);
     if (data.hookAngles.length > 0) onApplyHookAngles(data.hookAngles.map((h) => h.id));
     onClose();
   };
@@ -182,12 +210,17 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
                         </div>
                         <button
                           type="button"
-                          onClick={() => onApplyScriptType(s.type)}
-                          disabled={isCurrent}
+                          onClick={() => chooseStyle(s.type)}
+                          disabled={isCurrent || hookLoadingFor !== null}
                           className="chip-btn shrink-0"
                           data-active={isCurrent ? 'true' : 'false'}
                         >
-                          {isCurrent ? (
+                          {hookLoadingFor === s.type ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-muted" strokeWidth={1.75} aria-hidden="true" />
+                              {t.advisor.findingAngles}
+                            </>
+                          ) : isCurrent ? (
                             <>
                               <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
                               {t.advisor.chosen}
@@ -206,7 +239,12 @@ export const AngleAdvisorModal: React.FC<AngleAdvisorModalProps> = ({
               {data.hookAngles.length > 0 && (
                 <section>
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="field-label">{t.advisor.hookAngles}</h3>
+                    <h3 className="field-label">
+                      {t.advisor.hookAngles}
+                      {anglesStyle && (
+                        <span className="ml-2 normal-case font-normal text-muted">{t.advisor.anglesForStyle(anglesStyle)}</span>
+                      )}
+                    </h3>
                     <button
                       type="button"
                       onClick={() => {
