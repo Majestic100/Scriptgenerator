@@ -49,6 +49,31 @@ export default function App() {
   const [lastRequest, setLastRequest] = useState<ScriptRequest | null>(null);
   // Gør det muligt at stoppe en igangværende generering, hvis man opdager en fejl.
   const abortRef = useRef<AbortController | null>(null);
+
+  // Notifikation når genereringen er færdig, hvis man er skiftet til en anden
+  // fane eller app imens. Fanetitlen markeres altid; browser-notifikationen
+  // kommer oveni, hvis der er givet lov. Titlen ryddes, når man vender tilbage.
+  const baseTitleRef = useRef(typeof document !== 'undefined' ? document.title : '');
+  useEffect(() => {
+    const resetTitle = () => {
+      if (!document.hidden) document.title = baseTitleRef.current;
+    };
+    document.addEventListener('visibilitychange', resetTitle);
+    return () => document.removeEventListener('visibilitychange', resetTitle);
+  }, []);
+
+  const notifyIfAway = (title: string, body: string) => {
+    if (!document.hidden) return;
+    document.title = `✓ ${title}`;
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const n = new Notification(title, { body });
+        n.onclick = () => window.focus();
+      } catch {
+        // Nogle browsere (bl.a. på mobil) kaster ved direkte Notification-kald.
+      }
+    }
+  };
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
   const [authState, setAuthState] = useState<'loading' | 'login' | 'ready'>('loading');
@@ -237,6 +262,12 @@ export default function App() {
       setDocumentTitle(request.documentTitle);
     }
 
+    // Spørg om lov til notifikationer nu, mens klikket stadig tæller som en
+    // brugerhandling. Svaret bruges først, når genereringen er færdig.
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -255,6 +286,10 @@ export default function App() {
       }
 
       setGeneratedScripts(data.scripts || []);
+      notifyIfAway(
+        t.app.notifyDoneTitle,
+        t.app.notifyDoneBody(data.scripts?.length || 0, request.companyName)
+      );
 
       // Scroll smoothly down to results
       setTimeout(() => {
@@ -273,6 +308,7 @@ export default function App() {
       }
       console.error('Genereringsfejl:', err);
       setErrorMessage(err.message || t.app.serverConnError);
+      notifyIfAway(t.app.notifyFailTitle, err.message || t.app.serverConnError);
       // Fejlfeltet ligger under hele formularen. Uden det her står beskeden langt
       // nede uden for skærmen, og så ser det ud som om der intet skete.
       setTimeout(() => {
