@@ -279,7 +279,14 @@ export default function App() {
         signal: controller.signal
       });
 
-      const data = await response.json();
+      // Svarer serveren med en HTML-fejlside (genstart, afbrudt forbindelse),
+      // ville JSON-parsingen fejle med en kryptisk "Unexpected token"-besked.
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(t.app.invalidServerResponse);
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || t.app.genericGenError);
