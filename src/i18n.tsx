@@ -372,7 +372,15 @@ const da = {
     ctaWord: 'CTA',
     ctaPlaceholder: 'Skriv Call to Action her...',
     ctaFallbackTitle: 'Tilbud',
-    regenCtaTitle: 'Gen-generér CTA'
+    regenCtaTitle: 'Gen-generér CTA',
+    feedbackQuestion: 'Hvordan var scriptet?',
+    feedbackGood: 'Godt',
+    feedbackBad: 'Dårligt',
+    feedbackNoteBadPlaceholder: 'Hvad var dårligt? F.eks. "hooket er for tamt" eller "CTA\'en lyder som reklame"...',
+    feedbackNoteGoodPlaceholder: 'Hvad gjorde det godt? (valgfrit)',
+    feedbackSend: 'Send feedback',
+    feedbackSending: 'Sender...',
+    feedbackThanks: 'Tak! Feedbacken bruges ved næste generering.'
   },
 
   strategyP: {
@@ -1008,7 +1016,15 @@ const en: typeof da = {
     ctaWord: 'CTA',
     ctaPlaceholder: 'Write the Call to Action here...',
     ctaFallbackTitle: 'Offer',
-    regenCtaTitle: 'Regenerate CTA'
+    regenCtaTitle: 'Regenerate CTA',
+    feedbackQuestion: 'How was the script?',
+    feedbackGood: 'Good',
+    feedbackBad: 'Bad',
+    feedbackNoteBadPlaceholder: 'What was bad? E.g. "the hook is too tame" or "the CTA sounds like an ad"...',
+    feedbackNoteGoodPlaceholder: 'What made it good? (optional)',
+    feedbackSend: 'Send feedback',
+    feedbackSending: 'Sending...',
+    feedbackThanks: 'Thanks! The feedback is used in the next generation.'
   },
 
   strategyP: {

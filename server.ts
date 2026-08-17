@@ -1107,7 +1107,7 @@ REGLER FOR BODY SCENES (Manuskriptet):
 
 DIFFERENTIERING MOD KONKURRENTER:
 - Hvis der er konkurrenter (${filteredCompetitors.join(", ")}), skal scriptet explicit fremhæve hvorfor ${companyName} er bedre eller anderledes (f.eks. "Hvorfor folk skifter fra ${filteredCompetitors[0] || 'andre'}...", "I modsætning til [Konkurrent] som er...", osv.).
-${buildAiTrainingPromptSnippet()}
+${buildAiTrainingPromptSnippet()}${buildFeedbackPromptSnippet()}
 Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne JSON schema.
 `;
 
@@ -1294,7 +1294,7 @@ app.post("/api/regenerate-element", async (req, res) => {
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, frisk, højkonverterende video-hook til en Meta video-annonce på ${promptLanguage}.
-${strategyContext}${writingStyle}${buildHookSection()}
+${strategyContext}${writingStyle}${buildFeedbackPromptSnippet()}${buildHookSection()}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -1400,7 +1400,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér 1 NY, stærk og overbevisende Call To Action (CTA) replik til en Meta video-annonce på ${promptLanguage}.
-${strategyContext}${writingStyle}
+${strategyContext}${writingStyle}${buildFeedbackPromptSnippet()}
 VIRKSOMHED / PRODUKT DETALJER:
 - Navn: "${companyName || script.companyName || ''}"
 ${productName || script.productName ? `- Produkt: "${productName || script.productName}"` : ''}
@@ -1452,7 +1452,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér NYE, friske body-scener / manuskript for denne Meta video-annonce på ${promptLanguage}.
-${strategyContext}${writingStyle}
+${strategyContext}${writingStyle}${buildFeedbackPromptSnippet()}
 ${scriptTypeGuide}
 VIRKSOMHED & PRODUKT DETALJER:
 - Virksomhedsnavn: "${companyName || script.companyName || ''}"
@@ -1588,7 +1588,7 @@ Returnér UDELUKKENDE et JSON-objekt:
       const prompt = `
 Du er en verdensklasse Meta Ads copywriter.
 Opgave: Generér et HELT NYT komplet Meta Ads video-script (hooks, body scener og CTA) for ${companyName || script.companyName || 'Virksomheden'}.
-${strategyContext}${writingStyle}
+${strategyContext}${writingStyle}${buildFeedbackPromptSnippet()}
 ${scriptTypeGuide}
 VIRKSOMHED & PRODUKT DETALJER:
 - Virksomhedsnavn: "${companyName || script.companyName || ''}"
@@ -1834,6 +1834,101 @@ app.delete("/api/ai-training/:id", (req, res) => {
     let items = getAiTrainingData();
     items = items.filter((item: any) => item.id !== id);
     saveAiTrainingData(items);
+    res.json({ success: true, items });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- Script-feedback: god/dårlig-vurdering pr. genereret script ---
+// Vurderingerne flettes ind i genererings-prompten, så det der blev dømt
+// dårligt aktivt undgås næste gang, og det der blev rost, bliver der mere af.
+const FEEDBACK_FILE = path.join(process.cwd(), "data", "script_feedback.json");
+
+function getFeedbackData(): any[] {
+  try {
+    if (!fs.existsSync(FEEDBACK_FILE)) return [];
+    return JSON.parse(fs.readFileSync(FEEDBACK_FILE, "utf-8"));
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveFeedbackData(items: any[]) {
+  const dir = path.dirname(FEEDBACK_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(items, null, 2), "utf-8");
+}
+
+function buildFeedbackPromptSnippet(): string {
+  const items = getFeedbackData();
+  if (!items || items.length === 0) return "";
+
+  // Noterne er det brugbare: en vurdering uden note siger ikke hvad der skal
+  // ændres. Nyeste først, og flest dårlige — det er dem, der retter kursen.
+  const bad = items.filter((i: any) => i.rating === "bad" && i.note).slice(0, 10);
+  const good = items.filter((i: any) => i.rating === "good" && i.note).slice(0, 6);
+  if (bad.length === 0 && good.length === 0) return "";
+
+  const line = (i: any) => {
+    const ctx = [i.scriptTitle ? `script: "${i.scriptTitle}"` : "", i.companyName || ""].filter(Boolean).join(", ");
+    const excerpt = i.hookText ? ` Hooket lød: "${i.hookText}"` : "";
+    return `- ${i.note}${ctx ? ` (${ctx})` : ""}${excerpt}`;
+  };
+
+  let snippet = `\n\n🔁 BRUGERENS FEEDBACK PÅ TIDLIGERE GENEREREDE SCRIPTS (RET IND EFTER DETTE):\n`;
+  if (bad.length > 0) {
+    snippet += `DØMT DÅRLIGT — undgå det her fremover:\n` + bad.map(line).join("\n") + `\n`;
+  }
+  if (good.length > 0) {
+    snippet += `DØMT GODT — gør mere af det her:\n` + good.map(line).join("\n") + `\n`;
+  }
+  snippet += `Feedbacken er brugerens dom over færdige scripts og vejer tungere end generelle stilpræferencer, hvis de er i konflikt.`;
+  return snippet;
+}
+
+app.get("/api/script-feedback", (req, res) => {
+  try {
+    res.json({ success: true, items: getFeedbackData() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/script-feedback", (req, res) => {
+  try {
+    const { rating, note = "", script = {} } = req.body || {};
+    if (rating !== "good" && rating !== "bad") {
+      return res.status(400).json({ success: false, error: "Vurderingen skal være 'good' eller 'bad'." });
+    }
+    const user = getCurrentUser(req);
+    const items = getFeedbackData();
+    const newItem = {
+      id: `feedback-${Date.now()}`,
+      rating,
+      note: String(note || "").trim(),
+      scriptId: script.id || "",
+      scriptTitle: script.title || "",
+      companyName: script.companyName || "",
+      scriptType: script.scriptType || "",
+      // Et kort uddrag, så en note som "hooket er for tamt" kan læses i kontekst.
+      hookText: script.hooks?.[0]?.audioDialogue || "",
+      ctaText: script.callToAction || "",
+      createdBy: user?.name || "",
+      createdAt: new Date().toISOString()
+    };
+    items.unshift(newItem);
+    saveFeedbackData(items);
+    res.json({ success: true, item: newItem, items });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete("/api/script-feedback/:id", (req, res) => {
+  try {
+    const items = getFeedbackData().filter((item: any) => item.id !== req.params.id);
+    saveFeedbackData(items);
     res.json({ success: true, items });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
