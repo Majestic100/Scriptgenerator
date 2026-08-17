@@ -208,16 +208,51 @@ const da = {
   } as Record<string, string>,
 
   hookAngles: {
-    'Pattern interrupt': { desc: 'sig noget uventet', example: '"Stop med at bruge din almindelige pude..."' },
-    'Loss aversion': { desc: 'folk vil hellere undgå at tabe end vinde', example: '"Du smider 500 kr. ud af vinduet hver måned..."' },
-    Specificitet: { desc: '"37.000 kr." føles stærkere end "mange penge"', example: '"14.820 danskere har skiftet..."' },
-    Status: { desc: '"de bedste brands gør..."', example: '"Hvorfor de bedst præsterende bureauer..."' },
-    'Curiosity gap': { desc: 'hjernen vil have svaret', example: '"Der er én hemmelig grund til..."' },
-    Identity: { desc: '"du er ikke typen der..."', example: '"Hvis du er typen der tager dine mål seriøst..."' },
-    Authority: { desc: '"vi ser det igen og igen..."', example: '"Eksperter råber op: De fleste gør denne fejl..."' },
-    'Future pacing': { desc: '"om 6 måneder står du samme sted..."', example: '"Forestil dig hvordan din hverdag ser ud om 30 dage..."' },
-    Kontrast: { desc: '"det er ikke X... det er Y"', example: '"Det er ikke dine evner, det er metoden..."' }
+    'Smertespørgsmålet': { desc: 'et ja-spørgsmål om smerten', example: '"Træt af at vågne med ondt i lænden hver morgen?"' },
+    'Fejl-hooket': { desc: 'de fejl de laver lige nu', example: '"Tre fejl der dræner dit annoncebudget hver uge."' },
+    'Skyldig uden at vide det': { desc: '"gør jeg det?"', example: '"De fleste gør det her hver dag uden at tænke over det."' },
+    'Stop med at': { desc: 'kommando mod en dyr vane', example: '"Stop med at betale fire hundrede for en klipning."' },
+    'Selv-erkendelsen': { desc: 'rammer situationen præcist', example: '"Læser du det her klokken elleve om aftenen, er problemet ikke din søvn-app."' },
+
+    'Den kontroversielle påstand': { desc: 'strider mod det de tror', example: '"Proteinbarer er slik med bedre marketing."' },
+    'Myteaflivningen': { desc: 'fjerner et krav de troede var der', example: '"Nej, du behøver ikke træne fem gange om ugen."' },
+    'Vi tog fejl': { desc: 'sårbarhed skaber troværdighed', example: '"Vi brændte firs tusind af, før vi fandt ud af det her."' },
+    'Den ubehagelige ærlighed': { desc: 'siger svagheden højt', example: '"Vores produkt er dyrere. Her er hvorfor vi ikke sænker prisen."' },
+    'Dis-kvalificeringen': { desc: '"det her er ikke for dig"', example: '"Ikke for dig, hvis du er tilfreds med to i ROAS."' },
+
+    'Tal-chokket': { desc: 'et skævt tal stopper scrollet', example: '"Tolv tusind fire hundrede og sytten solgt på fire måneder."' },
+    'Før og efter': { desc: 'visuelt bevis på forandringen', example: '"Dag et mod dag tres. Samme person, samme kamera."' },
+    'Tidsramme-resultatet': { desc: 'konkret resultat på konkret tid', example: '"Elleve minutter. Så er din bogføring færdig."' },
+    'Testimonial-åbningen': { desc: 'kundens egen stemme først', example: '"Jeg troede ikke på det, før jeg så fakturaen."' },
+    'Regnestykket': { desc: 'de regner selv konklusionen ud', example: '"Fjorten timer om måneden på bilag. Gang det med din timepris."' },
+
+    'Insider-viden': { desc: 'noget branchen ikke fortæller', example: '"Det her fortæller din elektriker dig ikke."' },
+    'Jeg troede X, indtil Y': { desc: 'fra skeptiker til overbevist', example: '"Jeg troede dyr kaffe var snobberi. Så smagte jeg det her."' },
+    'Den uafsluttede sætning': { desc: 'åben løkke hjernen vil lukke', example: '"Grunden til at din hud stadig er tør, er ikke din creme. Det er ..."' },
+    'Den kendte reference': { desc: 'låner et kendt billede', example: '"Det er Netflix, bare til dit regnskab."' },
+    'Listicle-hooket': { desc: 'kendt struktur, ukendt indhold', example: '"Tre ting jeg ville gøre anderledes, hvis jeg startede forfra."' },
+
+    'Den direkte målgruppe-callout': { desc: 'siger målgruppen højt', example: '"Ejer du en webshop med under en halv million om måneden?"' },
+    'Identitets-hooket': { desc: 'beskriver kunden, ikke produktet', example: '"Folk der booker os, har typisk prøvet to andre bureauer."' },
+    'Ekspert-vinklen': { desc: 'autoritet fra første ord', example: '"Fysioterapeut her. Sådan sidder du faktisk korrekt."' },
+
+    'Demo i sekund 1': { desc: 'billedet er hooket, ikke ordene', example: 'Rødvin hældes ud over sofaen. "Rolig. Se her."' },
+    'Urgency og aktualitet': { desc: 'en ægte grund til at handle nu', example: '"Nye regler fra første januar. Det rammer alle med firmabil."' }
   } as Record<string, { desc: string; example: string }>,
+
+  hookCategories: {
+    'Smerte og relevans': 'Smerte og relevans',
+    'Påstand og provokation': 'Påstand og provokation',
+    'Bevis og resultat': 'Bevis og resultat',
+    'Nysgerrighed': 'Nysgerrighed',
+    'Identitet og callout': 'Identitet og callout',
+    'Format og timing': 'Format og timing'
+  } as Record<string, string>,
+
+  hookFrames: {
+    gain: 'Gain frame',
+    loss: 'Loss frame'
+  } as Record<string, string>,
 
   awareness: {
     Unaware: {
@@ -299,6 +334,7 @@ const da = {
     starBodyTitle: "Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede bodies fremover",
     starCtaTitle: "Stjernemarkér: AI'en tager udgangspunkt i dine stjernemarkerede CTA'er fremover",
     callOut: 'Opråb',
+    frames: { gain: 'Gain', loss: 'Loss' } as Record<string, string>,
     promise: 'Værdiløfte',
     starScript: 'Stjernemarkér hele scriptet',
     starredScript: 'Hele scriptet gemt',
@@ -800,16 +836,51 @@ const en: typeof da = {
   } as Record<string, string>,
 
   hookAngles: {
-    'Pattern interrupt': { desc: 'say something unexpected', example: '"Stop using your regular pillow..."' },
-    'Loss aversion': { desc: 'people would rather avoid losing than win', example: '"You throw 500 kr. out the window every month..."' },
-    Specificitet: { desc: '"37,000 kr." feels stronger than "a lot of money"', example: '"14,820 Danes have switched..."' },
-    Status: { desc: '"the best brands do..."', example: '"Why the top-performing agencies..."' },
-    'Curiosity gap': { desc: 'the brain wants the answer', example: '"There is one secret reason why..."' },
-    Identity: { desc: '"you\'re not the type who..."', example: '"If you\'re the type who takes your goals seriously..."' },
-    Authority: { desc: '"we see it again and again..."', example: '"Experts are sounding the alarm: Most people make this mistake..."' },
-    'Future pacing': { desc: '"in 6 months you\'ll be in the same place..."', example: '"Imagine what your everyday looks like in 30 days..."' },
-    Kontrast: { desc: '"it\'s not X... it\'s Y"', example: '"It\'s not your abilities, it\'s the method..."' }
+    'Smertespørgsmålet': { desc: 'a yes-question about the pain', example: '"Tired of waking up with back pain every morning?"' },
+    'Fejl-hooket': { desc: 'the mistakes they are making now', example: '"Three mistakes draining your ad budget every week."' },
+    'Skyldig uden at vide det': { desc: '"am I doing that?"', example: '"Most people do this every day without thinking about it."' },
+    'Stop med at': { desc: 'a command against a costly habit', example: '"Stop paying four hundred kroner for a haircut."' },
+    'Selv-erkendelsen': { desc: 'names the exact situation', example: '"If you are reading this at eleven at night, your sleep app is not the problem."' },
+
+    'Den kontroversielle påstand': { desc: 'contradicts what they believe', example: '"Protein bars are candy with better marketing."' },
+    'Myteaflivningen': { desc: 'removes a requirement they assumed', example: '"No, you do not have to train five times a week."' },
+    'Vi tog fejl': { desc: 'vulnerability builds credibility', example: '"We burned eighty thousand before we figured this out."' },
+    'Den ubehagelige ærlighed': { desc: 'says the weakness out loud', example: '"Our product costs more. Here is why we are not lowering the price."' },
+    'Dis-kvalificeringen': { desc: '"this is not for you"', example: '"Not for you if you are happy with a 2x ROAS."' },
+
+    'Tal-chokket': { desc: 'an odd number stops the scroll', example: '"12,417 sold in four months. No discount code."' },
+    'Før og efter': { desc: 'visual proof of the change', example: '"Day one against day sixty. Same person, same camera."' },
+    'Tidsramme-resultatet': { desc: 'a concrete result in concrete time', example: '"Eleven minutes. Then your bookkeeping is done."' },
+    'Testimonial-åbningen': { desc: 'the customer speaks first', example: '"I did not believe it until I saw the invoice."' },
+    'Regnestykket': { desc: 'they do the maths themselves', example: '"Fourteen hours a month on receipts. Multiply by your hourly rate."' },
+
+    'Insider-viden': { desc: 'something the trade does not tell you', example: '"Your electrician will not tell you this."' },
+    'Jeg troede X, indtil Y': { desc: 'from sceptic to convinced', example: '"I thought expensive coffee was snobbery. Then I tasted this."' },
+    'Den uafsluttede sætning': { desc: 'an open loop the brain wants closed', example: '"The reason your skin is still dry is not your cream. It is ..."' },
+    'Den kendte reference': { desc: 'borrows a familiar picture', example: '"It is Netflix, just for your accounts."' },
+    'Listicle-hooket': { desc: 'known structure, unknown content', example: '"Three things I would do differently if I started over."' },
+
+    'Den direkte målgruppe-callout': { desc: 'says the audience out loud', example: '"Do you run a webshop turning over less than half a million a month?"' },
+    'Identitets-hooket': { desc: 'describes the customer, not the product', example: '"People who book us have usually tried two other agencies."' },
+    'Ekspert-vinklen': { desc: 'authority from the first word', example: '"Physiotherapist here. This is how you actually sit."' },
+
+    'Demo i sekund 1': { desc: 'the image is the hook, not the words', example: 'Red wine poured over the sofa. "Relax. Watch this."' },
+    'Urgency og aktualitet': { desc: 'a real reason to act now', example: '"New rules from January. This hits everyone with a company car."' }
   } as Record<string, { desc: string; example: string }>,
+
+  hookCategories: {
+    'Smerte og relevans': 'Pain and relevance',
+    'Påstand og provokation': 'Claim and provocation',
+    'Bevis og resultat': 'Proof and results',
+    'Nysgerrighed': 'Curiosity',
+    'Identitet og callout': 'Identity and call-out',
+    'Format og timing': 'Format and timing'
+  } as Record<string, string>,
+
+  hookFrames: {
+    gain: 'Gain frame',
+    loss: 'Loss frame'
+  } as Record<string, string>,
 
   awareness: {
     Unaware: {
@@ -891,6 +962,7 @@ const en: typeof da = {
     starBodyTitle: 'Star: the AI will use your starred bodies as its starting point going forward',
     starCtaTitle: 'Star: the AI will use your starred CTAs as its starting point going forward',
     callOut: 'Call out',
+    frames: { gain: 'Gain', loss: 'Loss' } as Record<string, string>,
     promise: 'Promise',
     starScript: 'Star the whole script',
     starredScript: 'Whole script saved',

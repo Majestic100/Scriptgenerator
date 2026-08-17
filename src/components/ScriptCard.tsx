@@ -810,9 +810,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                           <strong className="font-semibold">{t.card.psychology}</strong> {hook.psychology}
                         </span>
                       )}
-                      {(hook.angleType || hook.verbalType) && (
+                      {(hook.angleType || hook.mechanic || hook.verbalType || hook.frame) && (
                         <span className="text-[9pt] text-muted font-normal ml-2 italic">
-                          ({[hook.angleType, hook.verbalType].filter(Boolean).join(' · ')})
+                          ({[hook.angleType, hook.mechanic, hook.verbalType, hook.frame ? t.card.frames[hook.frame] : '']
+                            .filter(Boolean)
+                            .join(' · ')})
                         </span>
                       )}
                       <span className="inline-flex items-center ml-2 text-muted opacity-0 group-hover/hook:opacity-100 transition-opacity text-sm font-normal">

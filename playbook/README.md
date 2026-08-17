@@ -14,6 +14,8 @@ Princippet: **generatoren klassificerer strategien, før den skriver.** Klassifi
 | `ecommerce.md` / `leadgen.md` | I genererings-kaldet efter kampagnefokus (produkt/leads) |
 | `trafik-temperatur.md` | I genererings-kaldet — sprogregler for kold, varm og hot trafik |
 | `hooks.md` | I genererings-kaldet og ved regenerering af et hook — opråb, værdiløfte og de otte former |
+| `hook-bibliotek.md` | Samme steder — de 25 hook-formater med brugssituation og framing-varianter |
+| `hook-mekanik.md` | Samme steder — de 9 mekanikker, kombinationsregler, benchmarks og Meta-politik |
 | `skrivestil.md` | I genererings-kaldet og ved regenerering — reglerne mod AI-klingende tekst |
 | `processes.md` | Reference — stadie-filerne har hver deres relevante processer indlejret |
 

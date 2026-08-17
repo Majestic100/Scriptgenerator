@@ -21,8 +21,12 @@ import {
   AnalysisDocument,
   normalizeTrafficTemperature,
   normalizeDuration,
+  normalizeHookAngle,
   DURATION_OPTIONS,
-  DEFAULT_DURATION
+  DEFAULT_DURATION,
+  HOOK_ANGLES,
+  HOOK_ANGLE_IDS,
+  HOOK_CATEGORIES
 } from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
@@ -66,17 +70,6 @@ const SCRIPT_TYPES: ScriptType[] = [
   'Transparens & Priskalkyle'
 ];
 
-const HOOK_TYPE_IDS = [
-  'Pattern interrupt',
-  'Loss aversion',
-  'Specificitet',
-  'Status',
-  'Curiosity gap',
-  'Identity',
-  'Authority',
-  'Future pacing',
-  'Kontrast'
-];
 
 const AWARENESS_STAGE_IDS = ['Unaware', 'Problem Aware', 'Solution Aware', 'Product Aware', 'Most Aware'];
 
@@ -100,7 +93,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Problem Aware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Pattern Interrupt', 'Loss Aversion', 'Curiosity Gap'],
+      preferredHookTypes: ['Smertespørgsmålet', 'Stop med at', 'Den uafsluttede sætning'],
       mustInclude: "Offer: 'Spar 20% + Gratis fragt', vis flasken og dråberne i nærbillede, fremhæv at den ikke klistrer, og nævn 100 dages tilfredshedsgaranti."
     },
     {
@@ -110,7 +103,7 @@ const SAMPLE_EXAMPLE_DATA = {
       awarenessStage: 'Product Aware',
       trafficType: 'warm' as const,
       retargetingNotes: "Glemte varer i kurven, fremhæv koden 'KOMTILBAGE15' for 15% ekstra rabat og nævn at vi har over 4.800 5-stjernede anmeldelser.",
-      preferredHookTypes: ['Specificitet', 'Authority', 'Status'],
+      preferredHookTypes: ['Testimonial-åbningen', 'Tal-chokket', 'Identitets-hooket'],
       mustInclude: "UGC følelse foran spejlet, 'Jeg var så tæt på at give op...', vis før/efter resultat på huden."
     },
     {
@@ -119,7 +112,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Unaware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Pattern Interrupt', 'Kontrast'],
+      preferredHookTypes: ['Demo i sekund 1', 'Den kontroversielle påstand'],
       mustInclude: "Sammenlign med at hælde fedtet olie i ansigtet vs denne lette konsistens."
     },
     {
@@ -128,7 +121,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Solution Aware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Kontrast', 'Specificitet'],
+      preferredHookTypes: ['Den kontroversielle påstand', 'Regnestykket'],
       mustInclude: "2-kolonne sammenligning vs almindelige serummer: Ingen parfume, 100% vegansk, fremstillet i Danmark."
     },
     {
@@ -137,7 +130,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Problem Aware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Authority', 'Future Pacing'],
+      preferredHookTypes: ['Ekspert-vinklen', 'Myteaflivningen'],
       mustInclude: "Forklar hvorfor løsningen virker bedre på en enkel måde."
     },
     {
@@ -146,7 +139,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Problem Aware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Future Pacing', 'Identity'],
+      preferredHookTypes: ['Jeg troede X, indtil Y', 'Identitets-hooket'],
       mustInclude: "Personlig historie og identifikation med målgruppens situation."
     },
     {
@@ -155,7 +148,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Unaware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Curiosity Gap', 'Pattern Interrupt'],
+      preferredHookTypes: ['Listicle-hooket', 'Insider-viden'],
       mustInclude: "3 hurtige tips hvor produktet indgår som den hemmelige genvej."
     },
     {
@@ -164,7 +157,7 @@ const SAMPLE_EXAMPLE_DATA = {
       numHooks: 3,
       awarenessStage: 'Solution Aware',
       trafficType: 'cold' as const,
-      preferredHookTypes: ['Authority', 'Identity'],
+      preferredHookTypes: ['Vi tog fejl', 'Identitets-hooket'],
       mustInclude: "Autentisk historie fra stifteren om missionen bag virksomheden."
     }
   ]
@@ -571,7 +564,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     const currentHooks = [...(cfg.preferredHookTypes || [])];
 
     for (let i = 0; i < hooks; i++) {
-      if (!currentHooks[i]) currentHooks[i] = HOOK_TYPE_IDS[i % HOOK_TYPE_IDS.length];
+      if (!currentHooks[i]) currentHooks[i] = HOOK_ANGLE_IDS[i % HOOK_ANGLE_IDS.length];
     }
 
     currentHooks[hookIndex] = angleId;
@@ -659,7 +652,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     const next = [...(currentCfg.preferredHookTypes || [])];
     for (let i = 0; i < hooks; i++) {
       if (ids[i]) next[i] = ids[i];
-      else if (!next[i]) next[i] = HOOK_TYPE_IDS[i % HOOK_TYPE_IDS.length];
+      else if (!next[i]) next[i] = HOOK_ANGLE_IDS[i % HOOK_ANGLE_IDS.length];
     }
     updateCurrentScriptConfig('preferredHookTypes', next.slice(0, hooks));
   };
@@ -681,7 +674,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     numHooks: currentCfg.numHooks || 3,
     scriptFocus,
     scriptTypes: SCRIPT_TYPES,
-    hookAngles: HOOK_TYPE_IDS.map((id) => ({ id, label: id, desc: t.hookAngles[id]?.desc || '' }))
+    hookAngles: HOOK_ANGLE_IDS.map((id) => ({ id, label: id, desc: t.hookAngles[id]?.desc || '' }))
   };
   const activeStageId = currentCfg.awarenessStage || 'Problem Aware';
   const activeStage = t.awareness[activeStageId];
@@ -1354,8 +1347,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: currentCfg.numHooks || 3 }).map((_, hookIdx) => {
                 const currentHooksList = currentCfg.preferredHookTypes || [];
-                const selectedAngleId = currentHooksList[hookIdx] || HOOK_TYPE_IDS[hookIdx % HOOK_TYPE_IDS.length];
-                const selectedAngle = t.hookAngles[selectedAngleId] || t.hookAngles[HOOK_TYPE_IDS[0]];
+                const selectedAngleId = normalizeHookAngle(
+                  currentHooksList[hookIdx] || HOOK_ANGLE_IDS[hookIdx % HOOK_ANGLE_IDS.length]
+                );
+                const selectedAngle = t.hookAngles[selectedAngleId] || t.hookAngles[HOOK_ANGLE_IDS[0]];
 
                 return (
                   <Field key={hookIdx} label={t.form.hookN(hookIdx + 1)}>
@@ -1365,10 +1360,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                       className="control"
                       aria-label={t.form.hookAngleAria(hookIdx + 1)}
                     >
-                      {HOOK_TYPE_IDS.map((id) => (
-                        <option key={id} value={id}>
-                          {id} ({t.hookAngles[id]?.desc})
-                        </option>
+                      {HOOK_CATEGORIES.map((category) => (
+                        <optgroup key={category} label={t.hookCategories[category] || category}>
+                          {HOOK_ANGLES.filter((a) => a.category === category).map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.id} ({t.hookAngles[a.id]?.desc})
+                            </option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                     <p className="field-hint mt-1.5 italic">{selectedAngle?.example}</p>

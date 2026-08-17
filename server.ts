@@ -250,6 +250,8 @@ function sanitizeScript(script: any): any {
       ...h,
       angleType: sanitizeText(h.angleType || ""),
       verbalType: sanitizeText(h.verbalType || ""),
+      frame: h.frame === "gain" || h.frame === "loss" ? h.frame : undefined,
+      mechanic: sanitizeText(h.mechanic || ""),
       callOut: sanitizeText(h.callOut || ""),
       promise: sanitizeText(h.promise || ""),
       visualDirection: sanitizeText(h.visualDirection || ""),
@@ -454,6 +456,12 @@ function buildPlaybookGenerationSection(options: {
   const hookContent = readPlaybookFile("hooks.md");
   if (hookContent) parts.push(hookContent);
 
+  const hookLibrary = readPlaybookFile("hook-bibliotek.md");
+  if (hookLibrary) parts.push(hookLibrary);
+
+  const hookMechanics = readPlaybookFile("hook-mekanik.md");
+  if (hookMechanics) parts.push(hookMechanics);
+
   const styleContent = readPlaybookFile("skrivestil.md");
   if (styleContent) parts.push(styleContent);
 
@@ -477,8 +485,11 @@ function buildWritingStyleSection(): string {
  */
 function buildHookSection(): string {
   const hooks = readPlaybookFile("hooks.md");
-  if (!hooks) return "";
-  return `\n\nHOOK-OPBYGNING (BINDENDE):\n"""\n${hooks}\n"""\n`;
+  const library = readPlaybookFile("hook-bibliotek.md");
+  const mechanics = readPlaybookFile("hook-mekanik.md");
+  const parts = [hooks, library, mechanics].filter(Boolean);
+  if (parts.length === 0) return "";
+  return `\n\nHOOK-OPBYGNING OG HOOK-BIBLIOTEK (BINDENDE):\n"""\n${parts.join("\n\n---\n\n")}\n"""\n`;
 }
 
 /**
@@ -975,6 +986,17 @@ REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
   1. OPRÅB: noget der får præcis denne målgruppe til at tænke "det her er til mig" inden for det første sekund. En etiket de bruger om sig selv, situationen de står i, identiteten eller et tal de genkender som deres eget. Opråbet må ligge i replikken, i billedet eller begge steder.
   2. VÆRDILØFTE: hvad seeren får ud af at blive hængende. Udtalt ("se de næste tredive sekunder, så slipper du for X") eller underforstået (billedet viser resultatet, replikken siger "sådan gjorde jeg"). Ved kold trafik og lavt awareness-stadie skal løftet som regel være underforstået: et løfte råbt for højt i første sekund læses som reklame.
   Et hook uden begge dele er ikke et hook. Skriv det om.
+- HOOK-BIBLIOTEKET: den valgte vinkel pr. hook er en af de 25 hooks i biblioteket. Slå den op, og skriv hooket efter dens mekanisme, dens brugssituation og dens regel. Vælg en af dens framing-varianter frem for at opfinde en ny formel.
+- MEKANIK: skriv i feltet 'mechanic' hvilken af de ni mekanikker hooket kører på: Pattern interrupt, Loss aversion, Specificitet, Status, Curiosity gap, Identity, Authority, Future pacing, Kontrast. Hook-typen er formatet, mekanikken er motoren bagved. AWARENESS AFGØR VALGET: Unaware bruger pattern interrupt eller curiosity gap; Problem Aware bruger future pacing, kontrast eller identity; Solution Aware bruger authority, specificitet eller status; Product Aware og Most Aware bruger loss aversion eller specificitet.
+- MEKANIKKER DER KOLLIDERER og ALDRIG må stå i samme hook: loss aversion plus curiosity gap (læses som svindel), identity plus loss aversion (rammer både reaktans og skepsis), status plus vag curiosity gap (brændt genre). Højst to mekanikker i ét hook.
+- SPECIFICITET er ikke et alternativ til de andre, men en kvalitetsstandard oven på dem. Et præcist tal må kun bruges, hvis det står i materialet.
+- IDENTITY: referér til identiteten, definér den ikke. "Til dig der løber uanset vejret" er tilladt; "Rigtige løbere bruger X" og "Du er ikke typen der ..." er ikke.
+- LOSS AVERSION kræver et tab, du kan dokumentere. Kan du ikke det, vælg en anden mekanik. Falsk knaphed er forbudt.
+- FRAMING: skriv i feltet 'frame' om hooket er "gain" (gevinsten forrest) eller "loss" (tabet eller smerten forrest). Har scriptet flere hooks, skal MINDST ét være loss og ét gain, når emnet tillader det. Loss frames stopper typisk scrollet hårdere; gain frames giver typisk bedre indtryk af brandet. Begge skal kunne testes mod hinanden.
+- KOMBINÉR HØJST TO HOOKS pr. hook-replik, f.eks. ekspert-vinklen plus myteaflivningen. Mere end to udvander begge.
+- LUK LØKKEN: åbner hooket en løkke (Insider-viden, Den uafsluttede sætning), SKAL scriptet lukke den med noget, der er setuppet værd. En tam pointe efter et stort setup er værre end intet hook.
+- POLITIK: ingen udpegning med "du" på helbred, økonomi, vægt eller udseende. Brug "de fleste" eller "mange". Ingen resultat- eller indkomstgarantier. Før og efter må ikke bruges til vægttab. Al knaphed og alle tal skal være ægte og have dækning i materialet.
+- LYD FRA: hvert hook skal fungere som tekst på skærmen uden lyd.
 - HOOK-FORM: vælg én af de otte former pr. hook og skriv den i feltet 'verbalType': Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud. Formen er grammatikken, vinklen er psykologien; de er to forskellige valg. Brug FORSKELLIGE former på tværs af hooksene til samme script. Tre spørgsmål i træk læses som én og samme annonce.
 - IKKE-VERBALT HOOK: den fysiske handling i sekund 0 er et hook i sig selv, ikke pynt. Den skal pege samme vej som replikken, ikke vise noget andet.
 - opbygning af HVER HOOK REPLIK (Tre-delt opbygning i løbet af sek. 0-3):
@@ -1004,6 +1026,8 @@ REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
 - Hver hook skal indeholde:
   1. angleType (f.eks. "Pattern Interrupt", "Indvendingsknuser", "Contradiction", osv.)
   2. verbalType (én af: Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud)
+  2b. frame ("gain" eller "loss")
+  2c. mechanic (én af de ni: Pattern interrupt, Loss aversion, Specificitet, Status, Curiosity gap, Identity, Authority, Future pacing, Kontrast)
   3. callOut (én sætning: hvem hooket råber op til, og hvad i replikken eller billedet der får dem til at føle sig ramt)
   4. promise (én sætning: hvad seeren får ud af at blive hængende, og om løftet er udtalt eller underforstået)
   5. visualDirection (hvad skuespilleren/kameraet fysisk gør i sekund 0-3)
@@ -1056,6 +1080,8 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
                     hookNumber: { type: Type.INTEGER },
                     angleType: { type: Type.STRING },
                     verbalType: { type: Type.STRING },
+                    frame: { type: Type.STRING },
+                    mechanic: { type: Type.STRING },
                     callOut: { type: Type.STRING },
                     promise: { type: Type.STRING },
                     visualDirection: { type: Type.STRING },
@@ -1209,6 +1235,11 @@ DE TO DELE, DER SKAL VÆRE DER:
 2. VÆRDILØFTE: hvad seeren får ud af at blive hængende. Udtalt eller underforstået. Ved kold trafik som regel underforstået.
 Et hook uden begge dele er ikke et hook.
 
+BIBLIOTEK: skriv hooket efter mekanismen, brugssituationen og reglen for den valgte vinkel i hook-biblioteket, og brug en af dens framing-varianter.
+MEKANIK: skriv i 'mechanic' hvilken af de ni mekanikker hooket kører på, og vælg den ud fra awareness-stadiet. Kombinér aldrig loss aversion med curiosity gap eller identity med loss aversion.
+FRAMING: skriv i 'frame' om hooket er "gain" eller "loss". Vælg helst den modsatte frame af de øvrige hooks i scriptet, så de kan testes mod hinanden.
+LUK LØKKEN: åbner hooket en løkke, skal scriptet kunne lukke den.
+POLITIK: ingen "du"-udpegning på helbred, økonomi, vægt eller udseende. Ingen resultatgarantier. Al knaphed og alle tal skal være ægte.
 FORM: vælg én af de otte og skriv den i 'verbalType': Etiket, Spørgsmål, Betingelse, Kommando, Udsagn, Liste eller trin, Fortælling, Udbrud. Vælg en ANDEN form end de øvrige hooks i scriptet.
 
 OPBYGNING AF REPLIKKEN (CONTEXT -> PULL -> WHIPLASH):
@@ -1223,6 +1254,8 @@ Returnér UDELUKKENDE et JSON-objekt:
 {
   "angleType": "f.eks. Pattern Interrupt / Loss Aversion / Specificitet / Status / Curiosity gap / Identity / Authority / Future pacing / Kontrast",
   "verbalType": "Etiket / Spørgsmål / Betingelse / Kommando / Udsagn / Liste eller trin / Fortælling / Udbrud",
+  "frame": "gain eller loss",
+  "mechanic": "Pattern interrupt / Loss aversion / Specificitet / Status / Curiosity gap / Identity / Authority / Future pacing / Kontrast",
   "callOut": "Én sætning: hvem hooket råber op til, og hvad der får dem til at føle sig ramt",
   "promise": "Én sætning: hvad seeren får ud af at blive hængende, og om løftet er udtalt eller underforstået",
   "visualDirection": "Kort beskrivelse af hvad skuespiller/kamera gør i de første 3 sekunder",
@@ -1239,6 +1272,8 @@ Returnér UDELUKKENDE et JSON-objekt:
             properties: {
               angleType: { type: Type.STRING },
               verbalType: { type: Type.STRING },
+              frame: { type: Type.STRING },
+              mechanic: { type: Type.STRING },
               callOut: { type: Type.STRING },
               promise: { type: Type.STRING },
               visualDirection: { type: Type.STRING },
@@ -1259,6 +1294,8 @@ Returnér UDELUKKENDE et JSON-objekt:
         hookNumber: targetIdx + 1,
         angleType: newHookData.angleType || "Frisk Vinkel",
         verbalType: newHookData.verbalType || "",
+        frame: newHookData.frame === "gain" || newHookData.frame === "loss" ? newHookData.frame : undefined,
+        mechanic: newHookData.mechanic || "",
         callOut: newHookData.callOut || "",
         promise: newHookData.promise || "",
         visualDirection: newHookData.visualDirection || "",
@@ -1516,6 +1553,8 @@ KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende
               properties: {
                 angleType: { type: Type.STRING },
                 verbalType: { type: Type.STRING },
+                frame: { type: Type.STRING },
+                mechanic: { type: Type.STRING },
                 callOut: { type: Type.STRING },
                 promise: { type: Type.STRING },
                 visualDirection: { type: Type.STRING },
@@ -2074,6 +2113,8 @@ KRITISK REGEL FOR CTA ('callToAction'): Feltet må KUN indeholde den afsluttende
                       hookNumber: { type: Type.NUMBER },
                       angleType: { type: Type.STRING },
                       verbalType: { type: Type.STRING },
+                      frame: { type: Type.STRING },
+                      mechanic: { type: Type.STRING },
                       callOut: { type: Type.STRING },
                       promise: { type: Type.STRING },
                       visualDirection: { type: Type.STRING },
