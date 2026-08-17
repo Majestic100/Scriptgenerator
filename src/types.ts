@@ -122,6 +122,106 @@ export interface ScriptRequest {
   toneOfVoice?: string;
 }
 
+/**
+ * Framing: gain sætter gevinsten forrest, loss sætter tabet eller smerten forrest.
+ * Loss aversion betyder, at folk er stærkere motiveret af at undgå et tab end af
+ * at opnå en gevinst af samme størrelse.
+ */
+export type HookFrame = 'gain' | 'loss';
+
+export interface HookAngle {
+  id: string;
+  category: string;
+}
+
+/** De seks kategorier i hook-biblioteket, i den rækkefølge de vises. */
+export const HOOK_CATEGORIES = [
+  'Smerte og relevans',
+  'Påstand og provokation',
+  'Bevis og resultat',
+  'Nysgerrighed',
+  'Identitet og callout',
+  'Format og timing'
+] as const;
+
+/**
+ * De 25 hooks fra definitionsbiblioteket. Id'erne er faste og oversættes ikke;
+ * beskrivelse og eksempel slås op i oversættelserne.
+ */
+export const HOOK_ANGLES: HookAngle[] = [
+  { id: 'Smertespørgsmålet', category: 'Smerte og relevans' },
+  { id: 'Fejl-hooket', category: 'Smerte og relevans' },
+  { id: 'Skyldig uden at vide det', category: 'Smerte og relevans' },
+  { id: 'Stop med at', category: 'Smerte og relevans' },
+  { id: 'Selv-erkendelsen', category: 'Smerte og relevans' },
+
+  { id: 'Den kontroversielle påstand', category: 'Påstand og provokation' },
+  { id: 'Myteaflivningen', category: 'Påstand og provokation' },
+  { id: 'Vi tog fejl', category: 'Påstand og provokation' },
+  { id: 'Den ubehagelige ærlighed', category: 'Påstand og provokation' },
+  { id: 'Dis-kvalificeringen', category: 'Påstand og provokation' },
+
+  { id: 'Tal-chokket', category: 'Bevis og resultat' },
+  { id: 'Før og efter', category: 'Bevis og resultat' },
+  { id: 'Tidsramme-resultatet', category: 'Bevis og resultat' },
+  { id: 'Testimonial-åbningen', category: 'Bevis og resultat' },
+  { id: 'Regnestykket', category: 'Bevis og resultat' },
+
+  { id: 'Insider-viden', category: 'Nysgerrighed' },
+  { id: 'Jeg troede X, indtil Y', category: 'Nysgerrighed' },
+  { id: 'Den uafsluttede sætning', category: 'Nysgerrighed' },
+  { id: 'Den kendte reference', category: 'Nysgerrighed' },
+  { id: 'Listicle-hooket', category: 'Nysgerrighed' },
+
+  { id: 'Den direkte målgruppe-callout', category: 'Identitet og callout' },
+  { id: 'Identitets-hooket', category: 'Identitet og callout' },
+  { id: 'Ekspert-vinklen', category: 'Identitet og callout' },
+
+  { id: 'Demo i sekund 1', category: 'Format og timing' },
+  { id: 'Urgency og aktualitet', category: 'Format og timing' }
+];
+
+export const HOOK_ANGLE_IDS = HOOK_ANGLES.map((a) => a.id);
+
+/**
+ * De ni mekanikker. Hook-typen i biblioteket er formatet; mekanikken er den
+ * psykologiske motor bagved. Awareness-stadiet afgør, hvilken mekanik der passer,
+ * så generatoren vælger den selv og skriver den på hooket.
+ */
+export const HOOK_MECHANICS = [
+  'Pattern interrupt',
+  'Loss aversion',
+  'Specificitet',
+  'Status',
+  'Curiosity gap',
+  'Identity',
+  'Authority',
+  'Future pacing',
+  'Kontrast'
+] as const;
+
+/**
+ * De ni vinkler fra før biblioteket. Gemte opsætninger kan stadig indeholde dem,
+ * så de læses som den hook i biblioteket, de svarer til.
+ */
+const LEGACY_ANGLE_MAP: Record<string, string> = {
+  'pattern interrupt': 'Demo i sekund 1',
+  'loss aversion': 'Stop med at',
+  'specificitet': 'Tal-chokket',
+  'status': 'Identitets-hooket',
+  'curiosity gap': 'Den uafsluttede sætning',
+  'identity': 'Identitets-hooket',
+  'authority': 'Ekspert-vinklen',
+  'future pacing': 'Urgency og aktualitet',
+  'kontrast': 'Den kontroversielle påstand'
+};
+
+export const normalizeHookAngle = (value?: string): string => {
+  if (!value) return HOOK_ANGLE_IDS[0];
+  if (HOOK_ANGLE_IDS.includes(value)) return value;
+  return LEGACY_ANGLE_MAP[value.trim().toLowerCase()] || HOOK_ANGLE_IDS[0];
+};
+
 /** De otte former et hook kan tage. Formen er grammatikken, vinklen er psykologien. */
 export const HOOK_VERBAL_TYPES = [
   'Etiket',
@@ -144,6 +244,10 @@ export interface HookItem {
   callOut?: string;
   /** Hvad seeren får ud af at blive hængende, udtalt eller underforstået. */
   promise?: string;
+  /** Om hooket sætter gevinsten eller tabet forrest. */
+  frame?: HookFrame;
+  /** Den psykologiske mekanik bag hooket, en af de ni. */
+  mechanic?: string;
   visualDirection: string; // What we see on camera
   textOnScreen: string; // Big text overlay / captions
   audioDialogue: string; // Spoken dialogue / voiceover
