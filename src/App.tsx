@@ -10,7 +10,7 @@ import { CustomersModal } from './components/CustomersModal';
 import { LoginScreen } from './components/LoginScreen';
 import { buttonStyles } from './components/ui';
 import { GeneratedScript, ScriptRequest, Project, AiTrainingItem, AiTrainingType, Customer, AppUserInfo } from './types';
-import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown, Video, Globe } from 'lucide-react';
+import { AlertCircle, RefreshCw, CheckCircle2, Copy, Check, FileText, FileDown, Video } from 'lucide-react';
 import { formatAllScriptsToHtml, formatAllScriptsToPlainText, copyFormattedToClipboard } from './utils/formatUtils';
 import { downloadScriptsAsDocx, downloadScriptsAsPdf } from './utils/exportUtils';
 import { useLang } from './i18n';
@@ -46,7 +46,6 @@ export default function App() {
    * eksporteret eller kopieret, altså når man har fundet det script, man vil bruge.
    */
   const [showVisualsHint, setShowVisualsHint] = useState(false);
-  const [websiteStatus, setWebsiteStatus] = useState<null | 'read' | 'failed'>(null);
   const [lastRequest, setLastRequest] = useState<ScriptRequest | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCustomersModalOpen, setIsCustomersModalOpen] = useState(false);
@@ -145,7 +144,6 @@ export default function App() {
     loadForm({
       documentTitle: `${customer.companyName || customer.name} - Scripts`,
       companyName: customer.companyName || customer.name,
-      companyWebsite: customer.companyWebsite || '',
       productName: customer.productName || '',
       productDescription: customer.productDescription || '',
       targetAudience: customer.targetAudience || '',
@@ -174,7 +172,6 @@ export default function App() {
         body: JSON.stringify({
           name: data.companyName,
           companyName: data.companyName,
-          companyWebsite: data.companyWebsite,
           productName: data.productName,
           productDescription: data.productDescription,
           targetAudience: data.targetAudience,
@@ -252,12 +249,7 @@ export default function App() {
       }
 
       setGeneratedScripts(data.scripts || []);
-      // Blev hjemmesiden faktisk hentet? Ellers er scriptet skrevet uden den, og
-      // det skal siges, i stedet for at man tror den er brugt.
-      setWebsiteStatus(
-        data.websiteRequested ? (data.websiteRead ? 'read' : 'failed') : null
-      );
-      
+
       // Scroll smoothly down to results
       setTimeout(() => {
         const resultsEl = document.getElementById('generated-results');
@@ -505,17 +497,6 @@ export default function App() {
               </div>
 
               <p className="field-hint mt-2">{t.app.docTitleHint}</p>
-
-              {websiteStatus && (
-                <p
-                  className={`mt-2 flex items-start gap-2 text-[15px] ${
-                    websiteStatus === 'read' ? 'text-muted' : 'text-rec'
-                  }`}
-                >
-                  <Globe className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-                  {websiteStatus === 'read' ? t.app.websiteRead : t.app.websiteFailed}
-                </p>
-              )}
 
               {showVisualsHint && (
                 <div className="mt-4 flex items-start justify-between gap-3 rounded-[10px] border border-line bg-sunken px-4 py-3">

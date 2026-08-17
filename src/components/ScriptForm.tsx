@@ -80,7 +80,6 @@ const TRAFFIC_TYPE_IDS = ['cold', 'warm', 'hot'] as const;
 
 const SAMPLE_EXAMPLE_DATA = {
   companyName: 'GlowSkin Scandinavia',
-  companyWebsite: 'https://jpkoelogklima.dk',
   productName: 'HydraBoost C-Serum',
   competitors: ['Ordinary C-Serum', 'Ole Henriksen Truth Serum'],
   numScripts: 2,
@@ -189,7 +188,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [documentTitle, setDocumentTitle] = useState(
     initialData?.documentTitle || (initialData?.companyName ? `${initialData.companyName} - Script 2` : '')
   );
-  const [companyWebsite, setCompanyWebsite] = useState(initialData?.companyWebsite || '');
   const [analysisDoc, setAnalysisDoc] = useState<AnalysisDocument | null>(initialData?.analysisDocument || null);
   const [toneOfVoice, setToneOfVoice] = useState(initialData?.toneOfVoice || '');
   const [isReadingDoc, setIsReadingDoc] = useState(false);
@@ -324,7 +322,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysisDocument: doc,
-          companyWebsite: companyWebsite.trim(),
           scriptFocus
         })
       });
@@ -462,7 +459,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     setClearedSnapshot(null);
     setCompanyName(SAMPLE_EXAMPLE_DATA.companyName);
     setDocumentTitle(`${SAMPLE_EXAMPLE_DATA.companyName} - Script 2`);
-    setCompanyWebsite(SAMPLE_EXAMPLE_DATA.companyWebsite);
     setProductName(SAMPLE_EXAMPLE_DATA.productName);
     setCompetitors(SAMPLE_EXAMPLE_DATA.competitors);
     setNumScripts(SAMPLE_EXAMPLE_DATA.numScripts);
@@ -483,7 +479,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     const snapshot = {
       companyName,
       documentTitle,
-      companyWebsite,
       analysisDoc,
       toneOfVoice,
       productName,
@@ -503,7 +498,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
     setCompanyName('');
     setDocumentTitle('');
-    setCompanyWebsite('');
     setAnalysisDoc(null);
     setToneOfVoice('');
     setProductName('');
@@ -527,7 +521,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     setClearedSnapshot(() => () => {
       setCompanyName(snapshot.companyName);
       setDocumentTitle(snapshot.documentTitle);
-      setCompanyWebsite(snapshot.companyWebsite);
       setAnalysisDoc(snapshot.analysisDoc);
       setToneOfVoice(snapshot.toneOfVoice);
       setProductName(snapshot.productName);
@@ -592,7 +585,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
     onSubmit({
       documentTitle: documentTitle.trim() || `${companyName.trim()} - Script 2`,
       companyName: companyName.trim(),
-      companyWebsite: companyWebsite.trim(),
       analysisDocument: analysisDoc || undefined,
       productName: productName.trim(),
       competitors,
@@ -614,7 +606,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
 
   const collectCustomerData = (): Partial<ScriptRequest> => ({
     companyName: companyName.trim(),
-    companyWebsite: companyWebsite.trim(),
     productName: productName.trim(),
     productDescription: productDescription.trim(),
     targetAudience: targetAudience.trim(),
@@ -695,7 +686,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
    */
   const hasContent = Boolean(
     companyName.trim() ||
-      companyWebsite.trim() ||
       productName.trim() ||
       productDescription.trim() ||
       targetAudience.trim() ||
@@ -767,7 +757,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </div>
         }
       >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Field label={t.form.companyName} required htmlFor="companyName">
             <input
               id="companyName"
@@ -780,18 +770,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
               }}
               placeholder={t.form.companyPlaceholder}
               className="control"
-            />
-          </Field>
-
-          <Field label={t.form.website} hint={t.form.websiteHint} htmlFor="companyWebsite">
-            <input
-              id="companyWebsite"
-              type="text"
-              inputMode="url"
-              value={companyWebsite}
-              onChange={(e) => setCompanyWebsite(e.target.value)}
-              placeholder="firma.dk"
-              className="control font-mono text-[15px]"
             />
           </Field>
 
@@ -1049,9 +1027,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
                           </p>
                         )}
 
-                        {analysisNotice.usedWebsite && (
-                          <p className="field-hint">{t.form.websiteUsed}</p>
-                        )}
                       </div>
                     )}
                   </div>
