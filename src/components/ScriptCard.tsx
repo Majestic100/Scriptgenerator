@@ -13,7 +13,9 @@ import {
   FileText,
   FileDown,
   Compass,
-  AlertTriangle
+  AlertTriangle,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import { GeneratedScript, normalizeTrafficTemperature } from '../types';
 import { formatScriptToHtml, formatScriptToPlainText, copyFormattedToClipboard, weaveBodyWithAnalogy } from '../utils/formatUtils';
@@ -52,6 +54,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   const [isRegeneratingBody, setIsRegeneratingBody] = useState(false);
   const [isRegeneratingCta, setIsRegeneratingCta] = useState(false);
   
+  // Feedback: god/dårlig-dom over hele scriptet, med valgfri note. Sendes til
+  // serveren og flettes ind i prompten ved næste generering.
+  const [feedbackRating, setFeedbackRating] = useState<'good' | 'bad' | null>(null);
+  const [feedbackNote, setFeedbackNote] = useState('');
+  const [feedbackStatus, setFeedbackStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+
   // Analogy Modal states
   const [isAnalogyModalOpen, setIsAnalogyModalOpen] = useState(false);
   const [analogyTargetContext, setAnalogyTargetContext] = useState<AnalogyTargetContext>({ type: 'hook', hookIndex: 0 });
@@ -294,6 +302,22 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
 
   const handleUpdateTitle = (newTitle: string) => {
     onUpdateScript?.({ ...script, title: newTitle });
+  };
+
+  const handleSendFeedback = async (rating: 'good' | 'bad') => {
+    setFeedbackStatus('sending');
+    try {
+      const res = await fetch('/api/script-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, note: feedbackNote.trim(), script })
+      });
+      const data = await res.json();
+      setFeedbackStatus(data.success ? 'sent' : 'idle');
+    } catch (err) {
+      console.error('Fejl ved afsendelse af feedback:', err);
+      setFeedbackStatus('idle');
+    }
   };
 
   const handleRegenerateHook = async (hookIdx: number) => {
@@ -1082,6 +1106,69 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Feedback: dommen gemmes og bruges ved næste generering */}
+        <div className="border-t border-line mt-5 pt-4">
+          {feedbackStatus === 'sent' ? (
+            <p className="text-[15px] text-muted m-0 flex items-center gap-2">
+              <Check className="w-4 h-4 text-green-700" strokeWidth={2} aria-hidden="true" />
+              {t.card.feedbackThanks}
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[15px] font-semibold text-ink">{t.card.feedbackQuestion}</span>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackRating(feedbackRating === 'good' ? null : 'good')}
+                  className="chip-btn"
+                  data-active={feedbackRating === 'good' ? 'true' : 'false'}
+                >
+                  <ThumbsUp
+                    className={`w-3.5 h-3.5 ${feedbackRating === 'good' ? 'fill-rec text-rec' : 'text-muted'}`}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  <span>{t.card.feedbackGood}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackRating(feedbackRating === 'bad' ? null : 'bad')}
+                  className="chip-btn"
+                  data-active={feedbackRating === 'bad' ? 'true' : 'false'}
+                >
+                  <ThumbsDown
+                    className={`w-3.5 h-3.5 ${feedbackRating === 'bad' ? 'fill-rec text-rec' : 'text-muted'}`}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  <span>{t.card.feedbackBad}</span>
+                </button>
+              </div>
+
+              {feedbackRating && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={feedbackNote}
+                    onChange={(e) => setFeedbackNote(e.target.value)}
+                    placeholder={feedbackRating === 'bad' ? t.card.feedbackNoteBadPlaceholder : t.card.feedbackNoteGoodPlaceholder}
+                    className="control flex-1"
+                    aria-label={t.card.feedbackQuestion}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSendFeedback(feedbackRating)}
+                    disabled={feedbackStatus === 'sending'}
+                    className="px-3.5 py-2 bg-ink hover:bg-black text-white rounded-[var(--radius-control)] text-[15px] font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-60 shrink-0"
+                  >
+                    {feedbackStatus === 'sending' ? t.card.feedbackSending : t.card.feedbackSend}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
