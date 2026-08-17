@@ -721,8 +721,10 @@ async function scrapeWebsiteContent(urlStr: string): Promise<string> {
     }
   }
 
+  // Kunne siden ikke hentes, må intet udledes af domænenavnet. Et gæt på hvad
+  // virksomheden sælger ender ordret i manuskriptet og læses som en påstand.
   if (!successfulHtml) {
-    return `Hjemmeside Link: "${rawUrl}" (Domæne: ${cleanDomain}). Brug virksomhedsnavnet og domænenavnet til at udlede deres ydelser, produkter og branche.`;
+    return "";
   }
 
   try {
@@ -813,6 +815,8 @@ app.post("/api/generate-scripts", async (req, res) => {
     if (companyWebsite && companyWebsite.trim().length > 0) {
       websiteAnalysisText = await scrapeWebsiteContent(companyWebsite.trim());
     }
+    // Blev siden læst, eller står der bare et link i formularen? Det skal brugeren kunne se.
+    const websiteRead = websiteAnalysisText.trim().length > 0;
 
     let analysisDocText = "";
     if (analysisDocument) {
@@ -1171,7 +1175,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       return sanitizeScript(rawScript);
     });
 
-    return res.json({ success: true, scripts });
+    return res.json({ success: true, scripts, websiteRead, websiteRequested: Boolean(companyWebsite && companyWebsite.trim()) });
   } catch (error: any) {
     console.error("Error generating scripts:", error);
     return res.status(500).json({
