@@ -859,9 +859,30 @@ app.post("/api/generate-scripts", async (req, res) => {
   // Stopper AI-kaldet, når brugeren afbryder genereringen i browseren. Ellers
   // ville modellen skrive færdig ud i det tomme rum - og koste penge for det.
   const clientGone = new AbortController();
+  let heartbeat: NodeJS.Timeout | null = null;
   res.on("close", () => {
+    if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
     if (!res.writableEnded) clientGone.abort();
   });
+
+  // En lang generering kan tage over 100 sekunder, og Render-proxyen dræber
+  // svar, der ikke har sendt bytes inden da - browseren fik en HTML-fejlside
+  // i stedet for JSON. Derfor sendes der løbende mellemrum, mens der arbejdes;
+  // JSON.parse ignorerer whitespace foran objektet. Prisen er, at statuskoden
+  // låses til 200, så fejl bagefter meldes via success: false i kroppen.
+  const startHeartbeat = () => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(" ");
+    heartbeat = setInterval(() => {
+      if (!res.writableEnded) res.write(" ");
+    }, 15000);
+  };
+  const respond = (status: number, payload: any) => {
+    if (heartbeat) { clearInterval(heartbeat); heartbeat = null; }
+    if (res.writableEnded) return;
+    if (res.headersSent) { res.end(JSON.stringify(payload)); }
+    else { res.status(status).json(payload); }
+  };
 
   try {
     const {
@@ -889,6 +910,8 @@ app.post("/api/generate-scripts", async (req, res) => {
     if (!companyName) {
       return res.status(400).json({ success: false, error: "Virksomhedsnavn er påkrævet." });
     }
+
+    startHeartbeat();
 
     let websiteAnalysisText = "";
     if (companyWebsite && companyWebsite.trim().length > 0) {
@@ -1228,7 +1251,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
     } catch (e) {
       console.error("Fejl ved parsing af JSON fra AI-modellen:", rawText);
       const excerpt = rawText.trim().slice(0, 200).replace(/\s+/g, " ");
-      return res.status(500).json({
+      return respond(500, {
         success: false,
         error: `AI-modellen svarede i et format, der ikke kunne læses. Svaret startede med: "${excerpt}"`
       });
@@ -1277,18 +1300,18 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
     // Et tomt svar er ikke en succes. Uden det her endte man med en tom side og
     // ingen forklaring på, hvorfor der ikke skete noget.
     if (scripts.length === 0) {
-      return res.status(500).json({
+      return respond(500, {
         success: false,
         error: "AI-modellen returnerede ingen scripts. Prøv igen, eller udfyld flere felter i briefen, så der er mere at skrive ud fra."
       });
     }
 
-    return res.json({ success: true, scripts, websiteRead, websiteRequested: Boolean(companyWebsite && companyWebsite.trim()) });
+    return respond(200, { success: true, scripts, websiteRead, websiteRequested: Boolean(companyWebsite && companyWebsite.trim()) });
   } catch (error: any) {
     // Stoppede brugeren selv? Så er der ingen at svare, og intet at logge som fejl.
     if (clientGone.signal.aborted) return;
     console.error("Error generating scripts:", error);
-    return res.status(500).json({ success: false, error: describeGenerationError(error) });
+    return respond(500, { success: false, error: describeGenerationError(error) });
   }
 });
 
