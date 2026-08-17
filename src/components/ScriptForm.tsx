@@ -778,10 +778,11 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           <Field label={t.form.website} hint={t.form.websiteHint} htmlFor="companyWebsite">
             <input
               id="companyWebsite"
-              type="url"
+              type="text"
+              inputMode="url"
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
-              placeholder="https://..."
+              placeholder="firma.dk"
               className="control font-mono text-[15px]"
             />
           </Field>
