@@ -352,33 +352,47 @@ async function generateContentJson(options: {
 }): Promise<{ text: string }> {
   const client = getAnthropicClient();
   const model = normalizeModel(options.model);
-  const baseTokens = options.maxTokens ?? 16000;
-  // Thinking tæller med i max_tokens, og Opus 5 tænker mere end Fable 5 på samme
-  // opgave. Uden ekstra plads ville selve svaret blive klippet af midt i JSON'en.
-  const maxTokens = model === OPUS_MODEL ? Math.min(100000, baseTokens + 12000) : baseTokens;
-  // Streames, fordi SDK'et afviser store max_tokens uden streaming ("Streaming is
-  // required for operations that may take longer than 10 minutes"). Uden streaming
-  // fejlede store bestillinger før kaldet overhovedet blev sendt afsted.
-  const stream = (client.beta.messages.stream as any)({
-    model,
-    max_tokens: maxTokens,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    ...(options.system ? { system: options.system } : {}),
-    output_config: { format: { type: "json_schema", schema: toStrictSchema(options.schema) } },
-    messages: [{ role: "user", content: options.prompt }],
-  }, options.signal ? { signal: options.signal } : undefined);
-  const response: any = await stream.finalMessage();
+  // Modellens thinking tæller med i max_tokens, og hvor meget den tænker, kan
+  // ikke forudsiges. Derfor rundhåndet budget fra start - og loftet er kun et
+  // loft: man betaler for det, der bruges, ikke for det, der reserveres.
+  const hardCap = model === OPUS_MODEL ? 100000 : 64000;
+  const baseTokens = Math.min(hardCap, (options.maxTokens ?? 16000) + (model === OPUS_MODEL ? 12000 : 0));
+
+  const callOnce = async (maxTokens: number): Promise<any> => {
+    // Streames, fordi SDK'et afviser store max_tokens uden streaming ("Streaming is
+    // required for operations that may take longer than 10 minutes"). Uden streaming
+    // fejlede store bestillinger før kaldet overhovedet blev sendt afsted.
+    const stream = (client.beta.messages.stream as any)({
+      model,
+      max_tokens: maxTokens,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      ...(options.system ? { system: options.system } : {}),
+      output_config: { format: { type: "json_schema", schema: toStrictSchema(options.schema) } },
+      messages: [{ role: "user", content: options.prompt }],
+    }, options.signal ? { signal: options.signal } : undefined);
+    return stream.finalMessage();
+  };
+
+  let response: any = await callOnce(baseTokens);
+
+  // Blev svaret klippet af, prøves igen med fordoblet budget i stedet for at
+  // fejle med det samme. Halv JSON kan ikke bruges til noget alligevel.
+  if (response.stop_reason === "max_tokens" && baseTokens < hardCap) {
+    const retryTokens = Math.min(hardCap, baseTokens * 2);
+    console.warn(`Svar afbrudt ved ${baseTokens} tokens - prøver igen med ${retryTokens}.`);
+    response = await callOnce(retryTokens);
+  }
 
   if (response.stop_reason === "refusal") {
     throw new Error("AI-modellen afviste forespørgslen. Prøv at omformulere dit input.");
   }
 
-  // Løber svaret tør for plads, kommer JSON'en halv tilbage. Uden det her ville
-  // det ende som "ugyldigt format", og så er årsagen umulig at gætte.
+  // Løber svaret tør for plads selv efter det store budget, kommer JSON'en halv
+  // tilbage. Uden det her ville det ende som "ugyldigt format".
   if (response.stop_reason === "max_tokens") {
     throw new Error(
-      "Svaret fra AI-modellen blev for langt og blev afbrudt undervejs. Prøv med færre scripts eller færre hooks pr. script."
+      "Svaret fra AI-modellen blev for langt, selv med maksimalt tokenbudget. Prøv med færre scripts eller færre hooks pr. script."
     );
   }
 
@@ -1191,10 +1205,12 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
 
     // Hvert script fylder omtrent det samme, og hooks er den dyreste del. Uden at
     // skalere med bestillingen løb otte scripts tør for plads midt i JSON'en.
+    // Budgettet deles med modellens thinking, så det er sat rundhåndet - loftet
+    // koster ikke noget i sig selv, kun det faktiske forbrug betales.
     const hooksTotal = Array.isArray(scriptConfigs) && scriptConfigs.length > 0
       ? scriptConfigs.slice(0, numScripts).reduce((sum: number, c: any) => sum + (c?.numHooks || numHooksPerScript || 3), 0)
       : numScripts * (numHooksPerScript || 3);
-    const maxTokens = Math.min(64000, 6000 + numScripts * 3000 + hooksTotal * 900);
+    const maxTokens = Math.min(64000, 16000 + numScripts * 4000 + hooksTotal * 1200);
 
     const response = await generateContentJson({
       prompt,
