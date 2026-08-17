@@ -50,6 +50,10 @@ Grundreglen: skriv som et menneske, der taler til et andet menneske. Konkret fre
 
 **Vage kilder.** Ingen "eksperter siger", "undersøgelser viser", "mange håndværkere oplever", medmindre kilden og tallet står i det leverede materiale.
 
+**Talord.** Skriv tal med cifre, ikke bogstaver - i replikker, tekst på skærm og CTA'er. "3 timer", "1 samlet rapport", "30 dage", "2 klik". Cifre læses hurtigere på en skærm, og i en annonce er hvert sekund betalt. Undtagelsen er "en/et" som artikel ("en rapport" = en eller anden rapport) - dér bliver det stående som ord. Er det et antal, er det et ciffer.
+- Nej: "Tilsynet tog en time. Rapporten tog tre."
+- Ja: "Tilsynet tog 1 time. Rapporten tog 3."
+
 ## Sådan lyder det menneskeligt
 
 Varier længden. En kort sætning. Så en længere, der får lov at folde sig ud, inden den lander. Ensartet mellemlang rytme er den tydeligste maskintone der findes.

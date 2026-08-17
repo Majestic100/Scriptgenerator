@@ -569,15 +569,11 @@ export default function App() {
             {/* Render Each Script Card */}
             <div className="space-y-6">
               {generatedScripts.map((script, idx) => {
-                const startHookNumber = generatedScripts
-                  .slice(0, idx)
-                  .reduce((sum, s) => sum + (s.hooks?.length || 0), 0);
                 return (
                   <ScriptCard
                     key={script.id}
                     script={script}
                     scriptIndex={idx}
-                    startHookNumber={startHookNumber}
                     onUpdateScript={(updated) => handleUpdateScript(idx, updated)}
                     onSaveToProject={(s) => {
                       setSelectedScriptForSave(s);
