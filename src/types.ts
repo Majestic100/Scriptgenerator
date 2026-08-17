@@ -232,8 +232,12 @@ const LEGACY_ANGLE_MAP: Record<string, string> = {
   'kontrast': 'Den kontroversielle påstand'
 };
 
+/** 'auto' = AI'en vælger selv vinklen ud fra strategien. Standard for nye scripts. */
+export const AUTO_HOOK_ANGLE = 'auto';
+
 export const normalizeHookAngle = (value?: string): string => {
   if (!value) return HOOK_ANGLE_IDS[0];
+  if (value === AUTO_HOOK_ANGLE) return AUTO_HOOK_ANGLE;
   if (HOOK_ANGLE_IDS.includes(value)) return value;
   return LEGACY_ANGLE_MAP[value.trim().toLowerCase()] || HOOK_ANGLE_IDS[0];
 };
