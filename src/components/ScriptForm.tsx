@@ -4,6 +4,7 @@ import {
   X,
   Check,
   ChevronRight,
+  Square,
   ShoppingBag,
   UserPlus,
   Upload,
@@ -41,6 +42,8 @@ interface ScriptFormProps {
   isLoading: boolean;
   initialData?: Partial<ScriptRequest>;
   onSaveAsCustomer?: (data: Partial<ScriptRequest>) => void;
+  /** Stopper en igangværende generering, hvis man opdager en fejl i opsætningen. */
+  onStop?: () => void;
 }
 
 /** Script-stilene er faste id'er; beskrivelserne slås op i oversættelserne. */
@@ -180,9 +183,20 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   onSubmit,
   isLoading,
   initialData,
-  onSaveAsCustomer
+  onSaveAsCustomer,
+  onStop
 }) => {
   const { t, lang, setLang } = useLang();
+
+  // Sekundtæller ved siden af loadingen, så man kan se at der sker noget,
+  // og hvor længe det har taget.
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!isLoading) return;
+    setElapsedSeconds(0);
+    const interval = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const [companyName, setCompanyName] = useState(initialData?.companyName || '');
   const [documentTitle, setDocumentTitle] = useState(
@@ -1444,25 +1458,40 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             {formatDuration(currentCfg.bodyDuration, lang)}
           </p>
 
-          <button
-            type="submit"
-            disabled={isLoading || !companyName.trim()}
-            className={`${buttonStyles.primary} w-full sm:w-auto px-6 py-3 text-[16px]`}
-          >
-            {isLoading ? (
-              <>
-                <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
-                <span className="font-mono text-[14.5px] tracking-[0.12em] uppercase">
-                  {t.form.generating(numScripts)}
-                </span>
-              </>
-            ) : (
-              <>
-                {t.form.generate(numScripts)}
-                <ChevronRight className="w-4 h-4" strokeWidth={2.25} aria-hidden="true" />
-              </>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {isLoading && onStop && (
+              <button
+                type="button"
+                onClick={onStop}
+                className={`${buttonStyles.ghost} px-5 py-3 text-[16px] shrink-0`}
+              >
+                <Square className="w-3.5 h-3.5 fill-current" strokeWidth={1.75} aria-hidden="true" />
+                {t.form.stopGeneration}
+              </button>
             )}
-          </button>
+            <button
+              type="submit"
+              disabled={isLoading || !companyName.trim()}
+              className={`${buttonStyles.primary} w-full sm:w-auto px-6 py-3 text-[16px]`}
+            >
+              {isLoading ? (
+                <>
+                  <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
+                  <span className="font-mono text-[14.5px] tracking-[0.12em] uppercase">
+                    {t.form.generating(numScripts)}
+                  </span>
+                  <span className="font-mono text-[14.5px] tabular-nums opacity-80">
+                    {elapsedSeconds}s
+                  </span>
+                </>
+              ) : (
+                <>
+                  {t.form.generate(numScripts)}
+                  <ChevronRight className="w-4 h-4" strokeWidth={2.25} aria-hidden="true" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
