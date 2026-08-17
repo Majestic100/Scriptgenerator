@@ -13,7 +13,6 @@ import {
   FileText,
   FileDown,
   Compass,
-  ChevronDown,
   AlertTriangle
 } from 'lucide-react';
 import { GeneratedScript, normalizeTrafficTemperature } from '../types';
@@ -44,7 +43,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
   const [isDocOpen, setIsDocOpen] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isStrategyOpen, setIsStrategyOpen] = useState(true);
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
 
   // Regeneration states
@@ -612,12 +610,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
       {/* STRATEGIBLOK: klassificeret før scriptet blev skrevet */}
       {script.strategy && (
         <div className="border-b border-line">
-          <button
-            type="button"
-            onClick={() => setIsStrategyOpen(!isStrategyOpen)}
-            aria-expanded={isStrategyOpen}
-            className="w-full flex items-center justify-between gap-3 px-5 py-3 bg-surface hover:bg-sunken transition-colors cursor-pointer text-left"
-          >
+          <div className="flex items-center justify-between gap-3 px-5 py-3 bg-surface text-left">
             <span className="flex items-center gap-2.5 min-w-0">
               <Compass className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />
               <span className="font-semibold text-[15.5px] text-ink">{t.strategyP.title}</span>
@@ -628,15 +621,9 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                 <AlertTriangle className="w-4 h-4 text-rec shrink-0" strokeWidth={1.75} aria-hidden="true" />
               )}
             </span>
-            <ChevronDown
-              className={`w-4 h-4 text-muted shrink-0 transition-transform ${isStrategyOpen ? 'rotate-180' : ''}`}
-              strokeWidth={1.75}
-              aria-hidden="true"
-            />
-          </button>
+          </div>
 
-          {isStrategyOpen && (
-            <div className="px-5 pb-5 bg-surface animate-fadeIn">
+            <div className="px-5 pb-5 bg-surface">
 
               {/* Nøgletal som chips */}
               <div className="flex flex-wrap items-center gap-1.5 pb-4">
@@ -755,7 +742,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = ({
                 </div>
               )}
             </div>
-          )}
         </div>
       )}
 
