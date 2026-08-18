@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, RefreshCw, Copy, Upload, AlertTriangle, Star, Quote } from 'lucide-react';
+import { X, Check, RefreshCw, Copy, Upload, AlertTriangle, Star, Quote, Clapperboard } from 'lucide-react';
 import { buttonStyles } from './ui';
 import { useLang } from '../i18n';
 import { AiModel } from '../types';
@@ -13,6 +13,12 @@ interface ScriptReview {
   ctaSuggestion: { issue: string; suggestion: string };
   watchouts: string[];
   languageFixes: { original: string; corrected: string; note?: string }[];
+}
+
+interface ShotListItem {
+  segment: string;
+  visual: string;
+  textOnScreen?: string;
 }
 
 interface ScriptReviewModalProps {
@@ -36,6 +42,9 @@ export const ScriptReviewModal: React.FC<ScriptReviewModalProps> = ({ aiModel, c
   const [review, setReview] = useState<ScriptReview | null>(null);
   const [copied, setCopied] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [visuals, setVisuals] = useState<{ shots: ShotListItem[]; notes: string[] } | null>(null);
+  const [isVisualsLoading, setIsVisualsLoading] = useState(false);
+  const [copiedVisuals, setCopiedVisuals] = useState(false);
 
   const handleFile = (file: File) => {
     const lower = file.name.toLowerCase();
@@ -84,6 +93,59 @@ export const ScriptReviewModal: React.FC<ScriptReviewModalProps> = ({ aiModel, c
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchVisuals = async () => {
+    if (!scriptText.trim() && !pendingDoc) return;
+    setIsVisualsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/review-visuals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scriptText: scriptText.trim(),
+          document: pendingDoc || undefined,
+          companyName: company.trim(),
+          language: lang,
+          aiModel
+        })
+      });
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(t.app.invalidServerResponse);
+      }
+      if (!res.ok || !data.success) throw new Error(data.error || t.review.error);
+      setVisuals({ shots: data.shots || [], notes: data.notes || [] });
+    } catch (err: any) {
+      setError(err.message || t.review.error);
+    } finally {
+      setIsVisualsLoading(false);
+    }
+  };
+
+  const visualsAsText = (): string => {
+    if (!visuals) return '';
+    const lines: string[] = [`${t.review.visualsTitle}:`];
+    visuals.shots.forEach((shot, i) => {
+      lines.push(`${i + 1}. "${shot.segment}"`);
+      lines.push(`   ${shot.visual}`);
+      if (shot.textOnScreen) lines.push(`   ${t.review.visualsOverlay} ${shot.textOnScreen}`);
+    });
+    if (visuals.notes.length) {
+      lines.push('', `${t.review.visualsNotes}:`, ...visuals.notes.map((n) => `- ${n}`));
+    }
+    return lines.join('\n');
+  };
+
+  const copyVisuals = async () => {
+    try {
+      await navigator.clipboard.writeText(visualsAsText());
+      setCopiedVisuals(true);
+      setTimeout(() => setCopiedVisuals(false), 2000);
+    } catch {}
   };
 
   const reviewAsText = (): string => {
@@ -191,21 +253,32 @@ export const ScriptReviewModal: React.FC<ScriptReviewModalProps> = ({ aiModel, c
                 </p>
               )}
 
-              <button
-                type="button"
-                onClick={fetchReview}
-                disabled={isLoading || (!scriptText.trim() && !pendingDoc)}
-                className={`${buttonStyles.primary} w-full sm:w-auto`}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
-                    {t.review.analyzing}
-                  </>
-                ) : (
-                  t.review.analyze
-                )}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={fetchReview}
+                  disabled={isLoading || isVisualsLoading || (!scriptText.trim() && !pendingDoc)}
+                  className={`${buttonStyles.primary} w-full sm:w-auto`}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="rec-dot rec-blink !bg-white" aria-hidden="true" />
+                      {t.review.analyzing}
+                    </>
+                  ) : (
+                    t.review.analyze
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={fetchVisuals}
+                  disabled={isLoading || isVisualsLoading || (!scriptText.trim() && !pendingDoc)}
+                  className={`${buttonStyles.ghost} w-full sm:w-auto`}
+                >
+                  <Clapperboard className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  {isVisualsLoading ? t.review.visualsLoading : t.review.visuals}
+                </button>
+              </div>
             </>
           )}
 
@@ -327,6 +400,15 @@ export const ScriptReviewModal: React.FC<ScriptReviewModalProps> = ({ aiModel, c
                 </button>
                 <button
                   type="button"
+                  onClick={fetchVisuals}
+                  disabled={isVisualsLoading}
+                  className={buttonStyles.ghost}
+                >
+                  <Clapperboard className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                  {isVisualsLoading ? t.review.visualsLoading : t.review.visuals}
+                </button>
+                <button
+                  type="button"
                   onClick={() => { setReview(null); setError(null); }}
                   className={buttonStyles.ghost}
                 >
@@ -337,6 +419,50 @@ export const ScriptReviewModal: React.FC<ScriptReviewModalProps> = ({ aiModel, c
                   {t.review.close}
                 </button>
               </div>
+            </div>
+          )}
+          {visuals && (
+            <div className="space-y-4 border-t border-line pt-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="field-label m-0">{t.review.visualsTitle}</h3>
+                <button type="button" onClick={copyVisuals} className="chip-btn">
+                  {copiedVisuals ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-green-700" strokeWidth={2} aria-hidden="true" />
+                      {t.review.copied}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-muted" strokeWidth={1.75} aria-hidden="true" />
+                      {t.review.copyVisuals}
+                    </>
+                  )}
+                </button>
+              </div>
+              <ol className="m-0 pl-0 list-none space-y-2">
+                {visuals.shots.map((shot, i) => (
+                  <li key={i} className="rounded-[var(--radius-control)] border border-line bg-sunken px-4 py-3">
+                    <p className="text-[14.5px] text-muted italic m-0">
+                      <span className="font-mono not-italic text-[13px] tabular-nums mr-1.5">{i + 1}.</span>
+                      "{shot.segment}"
+                    </p>
+                    <p className="text-[15.5px] text-ink mt-1 m-0">{shot.visual}</p>
+                    {shot.textOnScreen && (
+                      <p className="field-hint mt-1">{t.review.visualsOverlay} {shot.textOnScreen}</p>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              {visuals.notes.length > 0 && (
+                <div>
+                  <h4 className="field-label mb-1">{t.review.visualsNotes}</h4>
+                  <ul className="m-0 pl-0 list-none space-y-1">
+                    {visuals.notes.map((n, i) => (
+                      <li key={i} className="text-[15px] text-muted">- {n}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
