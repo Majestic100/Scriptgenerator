@@ -258,6 +258,12 @@ function sanitizeScript(script: any): any {
       textOnScreen: sanitizeText(h.textOnScreen || ""),
       audioDialogue: sanitizeText(h.audioDialogue || "")
     }));
+    // Et hook uden replik er ikke et hook. Modellen kan finde på at sende et
+    // tomt ekstra med ("Hook 4 -" uden tekst) - det filtreres fra her, så det
+    // aldrig når skærmen, og numrene lukkes sammen bagefter.
+    clone.hooks = clone.hooks
+      .filter((h: any) => String(h.audioDialogue || "").trim().length > 0)
+      .map((h: any, idx: number) => ({ ...h, hookNumber: idx + 1 }));
   }
 
   if (Array.isArray(clone.scenes)) {
@@ -1131,7 +1137,7 @@ KRITISK REGEL FOR VARIGHED, TALEHASTIGHED OG REPLIKLÆNGDE (SAMLET TID FOR HELE 
 - Tidskoderne for Body-scenerne og CTA skal lægges, så de går op med den samlede længde, du har valgt inde i intervallet. Sidste tidskode slutter dér, hvor scriptet reelt slutter.
 
 REGLER FOR HOOKS (SÅDAN SKABES HOOKET: CONTEXT -> PULL -> WHIPLASH):
-- Generer det præcise antal hooks der er angivet for det pågældende script. Alle hooks til et script skal kunne klippes ind foran samme body.
+- Generer PRÆCIS det antal hooks der er angivet for det pågældende script - aldrig flere, aldrig færre, og ALDRIG et hook med tom eller manglende audioDialogue. Alle hooks til et script skal kunne klippes ind foran samme body.
 - KRITISK REGEL FOR HOOK-VINKLER: Der er angivet nøjagtig 1 specifik vinkel pr. hook i specifikationerne (f.eks. Hook #1 Vinkel, Hook #2 Vinkel, Hook #3 Vinkel). Hook #1 SKAL skabes 100% ud fra 'Hook #1 Vinkel', Hook #2 SKAL skabes ud fra 'Hook #2 Vinkel', Hook #3 ud fra 'Hook #3 Vinkel' osv.
 - DE TO DELE ETHVERT HOOK SKAL HAVE (jf. hook-opbygningen i playbooken):
   1. OPRÅB: noget der får præcis denne målgruppe til at tænke "det her er til mig" inden for det første sekund. En etiket de bruger om sig selv, situationen de står i, identiteten eller et tal de genkender som deres eget. Opråbet må ligge i replikken, i billedet eller begge steder.
@@ -1311,6 +1317,7 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
       const effectiveAwareness = cfg?.awarenessStage || script.awarenessStage || "Problem Aware";
       const effectiveTrafficType = normalizeTraffic(cfg?.trafficType || script.trafficType);
 
+      const orderedHooks = cfg?.numHooks || numHooksPerScript || 3;
       const rawScript = {
         ...script,
         id: script.id || `script-${Date.now()}-${idx}`,
@@ -1326,12 +1333,17 @@ Sørg for at svare udelukkende med et struktureret JSON-objekt jf. det angivne J
         // Gemmes på scriptet, så regenerering af hooks og scener bruger samme model.
         aiModel: normalizeModel(aiModel),
         createdAt: new Date().toISOString(),
-        hooks: (script.hooks || []).map((h: any, hIdx: number) => ({
-          ...h,
-          id: h.id || `hook-${idx}-${hIdx}-${Date.now()}`,
-          hookNumber: h.hookNumber || hIdx + 1,
-          estimatedDurationSec: h.estimatedDurationSec || 3
-        })),
+        // Aldrig flere hooks end bestilt, og aldrig et hook uden replik: tomme
+        // filtreres fra, overskydende klippes af, og numrene lukkes sammen.
+        hooks: (script.hooks || [])
+          .filter((h: any) => String(h?.audioDialogue || "").trim().length > 0)
+          .slice(0, orderedHooks)
+          .map((h: any, hIdx: number) => ({
+            ...h,
+            id: h.id || `hook-${idx}-${hIdx}-${Date.now()}`,
+            hookNumber: hIdx + 1,
+            estimatedDurationSec: h.estimatedDurationSec || 3
+          })),
         scenes: (script.scenes || []).map((s: any, sIdx: number) => ({
           ...s,
           id: s.id || `scene-${idx}-${sIdx}-${Date.now()}`
@@ -1798,7 +1810,7 @@ ${buildCtaSection()}
         }))
       };
 
-      return ka.send(200, { success: true, script: newScript });
+      return ka.send(200, { success: true, script: sanitizeScript(newScript) });
     }
 
     return ka.send(400, { success: false, error: "Ugyldig elementType" });
