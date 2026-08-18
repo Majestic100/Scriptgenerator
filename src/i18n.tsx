@@ -417,6 +417,31 @@ const da = {
     excluded: 'Udeladte påstande (intet belæg i materialet)'
   },
 
+  review: {
+    open: 'Forbedr et script',
+    title: 'Forbedr et script',
+    subtitle: 'Indsæt et færdigt script, og få et udkast til forbedringer: stærkere hooks, body-rettelser, en stærkere CTA, opmærksomhedspunkter og sprogfejl. Alt er forslag - der ændres ikke i noget.',
+    placeholder: 'Indsæt hele scriptet her - hooks, body og CTA...',
+    uploadLabel: 'Eller upload som fil (PDF, Word, tekst eller Markdown)',
+    companyLabel: 'Virksomheden bag (valgfrit, giver bedre forslag)',
+    analyze: 'Gennemgå scriptet',
+    analyzing: 'Gennemgår...',
+    error: 'Gennemgangen kunne ikke hentes.',
+    tryAgain: 'Prøv igen',
+    overall: 'Samlet vurdering',
+    strengths: 'Behold det her',
+    hooks: 'Stærkere hooks',
+    replaces: 'Erstatter:',
+    body: 'Body-rettelser',
+    cta: 'Stærkere CTA',
+    watchouts: 'Vær opmærksom på',
+    languageFixes: 'Sprog og stavning',
+    languageClean: 'Sproget er rent - ingen fejl fundet.',
+    copyAll: 'Kopiér hele udkastet',
+    copied: 'Kopieret',
+    newReview: 'Gennemgå igen',
+    close: 'Luk'
+  },
   advisor: {
     title: 'Forslag til stil og vinkler',
     ariaLabel: 'Forslag til stil og vinkler',
@@ -1075,6 +1100,31 @@ const en: typeof da = {
     excluded: 'Excluded claims (no supporting facts supplied)'
   },
 
+  review: {
+    open: 'Improve a script',
+    title: 'Improve a script',
+    subtitle: 'Paste a finished script and get a draft of improvements: stronger hooks, body fixes, a stronger CTA, watchouts and language errors. Everything is a suggestion - nothing is changed.',
+    placeholder: 'Paste the whole script here - hooks, body and CTA...',
+    uploadLabel: 'Or upload as a file (PDF, Word, text or Markdown)',
+    companyLabel: 'The company behind it (optional, improves the suggestions)',
+    analyze: 'Review the script',
+    analyzing: 'Reviewing...',
+    error: 'The review could not be fetched.',
+    tryAgain: 'Try again',
+    overall: 'Overall assessment',
+    strengths: 'Keep this',
+    hooks: 'Stronger hooks',
+    replaces: 'Replaces:',
+    body: 'Body fixes',
+    cta: 'Stronger CTA',
+    watchouts: 'Watch out for',
+    languageFixes: 'Language and spelling',
+    languageClean: 'The language is clean - no errors found.',
+    copyAll: 'Copy the whole draft',
+    copied: 'Copied',
+    newReview: 'Review again',
+    close: 'Close'
+  },
   advisor: {
     title: 'Suggested style and angles',
     ariaLabel: 'Suggested style and angles',

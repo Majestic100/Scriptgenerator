@@ -2715,6 +2715,118 @@ app.delete("/api/customers/:id", (req, res) => {
 // POST /api/recommend-angles - anbefaler script-stil og hook-vinkler til den
 // konkrete kunde ud fra målgruppeanalysen og det udfyldte brief.
 // Modellen må kun vælge fra de lister klienten sender med.
+// Gennemgår et færdigt script og leverer et UDKAST til forbedringer: stærkere
+// hooks, konkrete body-rettelser, en stærkere CTA, opmærksomhedspunkter og
+// sprogrettelser. Alt er forslag - der ændres ikke i noget automatisk.
+app.post("/api/review-script", async (req, res) => {
+  const ka = keepAliveJson(res);
+  try {
+    const { scriptText = "", document, companyName = "", language = "da", aiModel = "" } = req.body || {};
+
+    let text = String(scriptText || "").trim();
+    if (!text && document) {
+      text = (await extractTextFromAnalysisDoc(document)).trim();
+    }
+    if (!text) {
+      return res.status(400).json({ success: false, error: "Indsæt et script eller upload et dokument først." });
+    }
+    if (text.length > 60000) text = text.slice(0, 60000);
+
+    ka.start();
+
+    const writingStyle = readPlaybookFile("skrivestil.md");
+    const ctaGuide = readPlaybookFile("cta.md");
+    const hookGuide = readPlaybookFile("hooks.md");
+    const outputLanguage = language === "en" ? "English" : "dansk";
+
+    const prompt = `
+Du er kvalitetsredaktør og direct response-strateg i et dansk annoncebureau. En kollega har skrevet et Meta Ads video-script og beder om din gennemgang FØR det indspilles.
+
+Din opgave: Levér et UDKAST til forbedringer. Du omskriver ikke scriptet - du kommer med konkrete, brugbare forslag, som kollegaen selv vælger fra.
+
+--- SCRIPTET DER SKAL GENNEMGÅS ---
+${text}
+--- SLUT PÅ SCRIPT ---
+${companyName ? `\nVirksomheden bag: ${companyName}\n` : ""}
+VURDÉR MOD DISSE STANDARDER:
+${hookGuide ? `\nHOOK-OPBYGNING:\n"""\n${hookGuide}\n"""\n` : ""}${ctaGuide ? `\nCTA-OPBYGNING:\n"""\n${ctaGuide}\n"""\n` : ""}${writingStyle ? `\nSKRIVESTIL:\n"""\n${writingStyle}\n"""\n` : ""}
+SÅDAN SVARER DU (alt på ${outputLanguage}, talt sprog, tal som cifre):
+- overallAssessment: 2-3 sætninger. Hvad scriptet gør godt, og hvad der vil løfte det mest. Ærligt, ikke pænt.
+- strengths: 2-4 punkter om det, der SKAL bevares. Én sætning pr. punkt.
+- hookSuggestions: 2-3 forslag til stærkere hooks. original = den nuværende formulering forslaget erstatter eller forbedrer (tom hvis det er et nyt alternativ), suggestion = den færdige replik klar til brug, reason = én sætning om hvorfor den er stærkere.
+- bodySuggestions: 1-3 konkrete rettelser i body. issue = hvad der svækker (citér den svage formulering), suggestion = den konkrete omskrivning eller ændring.
+- ctaSuggestion: issue = hvad CTA'en mangler jf. CTA-opbygningen (handling, mekanik, belønning), suggestion = en færdig, stærkere CTA-replik. Opdigt ALDRIG rabatter, frister eller garantier, der ikke står i scriptet.
+- watchouts: 0-4 opmærksomhedspunkter: påstande uden belæg, formuleringer der kan give afvisning på Meta, AI-tegn jf. skrivestilen, løfter CTA'en ikke kan holde. Tomt array hvis intet.
+- languageFixes: stave-, grammatik- og tegnsætningsfejl. original = den forkerte tekst ordret, corrected = rettelsen. Tomt array hvis sproget er rent. Meld KUN reelle fejl, ikke stilistiske præferencer.
+- Ingen markdown i felterne. Vær konkret: citér scriptets egne ord frem for at tale i generelle vendinger.
+`.trim();
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        overallAssessment: { type: Type.STRING },
+        strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+        hookSuggestions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              original: { type: Type.STRING },
+              suggestion: { type: Type.STRING },
+              reason: { type: Type.STRING }
+            },
+            required: ["suggestion", "reason"]
+          }
+        },
+        bodySuggestions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              issue: { type: Type.STRING },
+              suggestion: { type: Type.STRING }
+            },
+            required: ["issue", "suggestion"]
+          }
+        },
+        ctaSuggestion: {
+          type: Type.OBJECT,
+          properties: {
+            issue: { type: Type.STRING },
+            suggestion: { type: Type.STRING }
+          },
+          required: ["issue", "suggestion"]
+        },
+        watchouts: { type: Type.ARRAY, items: { type: Type.STRING } },
+        languageFixes: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              original: { type: Type.STRING },
+              corrected: { type: Type.STRING },
+              note: { type: Type.STRING }
+            },
+            required: ["original", "corrected"]
+          }
+        }
+      },
+      required: ["overallAssessment", "strengths", "hookSuggestions", "bodySuggestions", "ctaSuggestion", "watchouts", "languageFixes"]
+    };
+
+    const response = await generateContentJson({ prompt, schema, maxTokens: 20000, model: aiModel });
+    const parsed = JSON.parse(response.text || "{}");
+
+    if (!parsed.overallAssessment) {
+      return ka.send(500, { success: false, error: "Gennemgangen kom tom tilbage. Prøv igen." });
+    }
+
+    return ka.send(200, { success: true, review: parsed });
+  } catch (error: any) {
+    return ka.send(500, { success: false, error: describeGenerationError(error) });
+  }
+});
+
 app.post("/api/recommend-angles", async (req, res) => {
   try {
     const {

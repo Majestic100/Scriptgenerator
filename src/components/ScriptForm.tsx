@@ -33,6 +33,7 @@ import {
 } from '../types';
 import { AngleAdvisorModal } from './AngleAdvisorModal';
 import { HookAnglePickerModal } from './HookAnglePickerModal';
+import { ScriptReviewModal } from './ScriptReviewModal';
 import { Section, Field, Disclosure, ChoiceButton, buttonStyles } from './ui';
 import { FlagDK, FlagGB } from './ui/flags';
 import { useLang, formatDuration } from '../i18n';
@@ -252,6 +253,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   // Hvilket hook der er ved at få valgt vinkel i kort-galleriet (null = lukket)
   const [anglePickerHookIdx, setAnglePickerHookIdx] = useState<number | null>(null);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
 
   /** Sat efter "Ryd alle felter", så indholdet kan hentes tilbage med ét klik. */
   const [clearedSnapshot, setClearedSnapshot] = useState<null | (() => void)>(null);
@@ -746,6 +748,10 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
             <button type="button" onClick={handleFillExampleData} className={buttonStyles.ghost}>
               <Sparkles className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
               {t.form.exampleData}
+            </button>
+            <button type="button" onClick={() => setIsReviewOpen(true)} className={buttonStyles.ghost}>
+              <Wand2 className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
+              {t.review.open}
             </button>
             <button type="button" onClick={handleClearAll} className={buttonStyles.ghost}>
               <Eraser className="w-4 h-4 text-muted" strokeWidth={1.75} aria-hidden="true" />
@@ -1501,6 +1507,14 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </div>
         </div>
       </div>
+
+      {isReviewOpen && (
+        <ScriptReviewModal
+          aiModel={aiModel}
+          companyName={companyName.trim()}
+          onClose={() => setIsReviewOpen(false)}
+        />
+      )}
 
       {anglePickerHookIdx !== null && (
         <HookAnglePickerModal
