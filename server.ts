@@ -2827,6 +2827,79 @@ SÅDAN SVARER DU (alt på ${outputLanguage}, talt sprog, tal som cifre):
   }
 });
 
+// Shot list ud fra et frit indsat script (Forbedr et script-vinduet).
+// Teksten behøver ingen struktur: modellen deler den op i segmenter og
+// leverer en konkret, filmbar optagelse pr. segment.
+app.post("/api/review-visuals", async (req, res) => {
+  const ka = keepAliveJson(res);
+  try {
+    const { scriptText = "", document, companyName = "", language = "da", aiModel = "" } = req.body || {};
+
+    let text = String(scriptText || "").trim();
+    if (!text && document) {
+      text = (await extractTextFromAnalysisDoc(document)).trim();
+    }
+    if (!text) {
+      return res.status(400).json({ success: false, error: "Indsæt et script eller upload et dokument først." });
+    }
+    if (text.length > 60000) text = text.slice(0, 60000);
+
+    ka.start();
+
+    const ctaGuide = readPlaybookFile("cta.md");
+    const outputLanguage = language === "en" ? "English" : "dansk";
+
+    const prompt = `
+Du er en prisvindende video-director og content producer for Meta Ads.
+
+Opgave: Lav en komplet, konkret og let-filmbar SHOT LIST på ${outputLanguage} for følgende video-script. Scriptet er skrevet af en kollega og indsat som fri tekst - del det selv op i naturlige segmenter (hook, body-beats, CTA) i den rækkefølge, det læses op.
+
+--- SCRIPTET ---
+${text}
+--- SLUT PÅ SCRIPT ---
+${companyName ? `\nVirksomheden bag: ${companyName}\n` : ""}${ctaGuide ? `\nCTA-VISUALS SKAL FØLGE DENNE STANDARD:\n"""\n${ctaGuide}\n"""\n` : ""}
+KRAV:
+1. Ét shot pr. segment af scriptet, i rækkefølge. segment = replikken eller tekststykket ordret (kortes ved behov, men genkendeligt).
+2. visual = hvad skuespilleren/kameraet præcist gør: lokation, handling, kameravinkel, B-roll, props, energi. Konkret nok til at filme direkte efter.
+3. textOnScreen = forslag til tekst-overlay for det shot. Tal som cifre. Tom streng, hvis intet overlay.
+4. Alt skal kunne filmes med en telefon og 1-2 personer. Vær specifik og inspirerende, aldrig generisk.
+5. CTA'en skal VISES, ikke bare siges: det sidste shot demonstrerer næste trin konkret (skærmen efter klikket, formularen, fingeren på knappen).
+6. notes = 0-3 praktiske produktionsnoter (lys, lyd, klipperytme), kun hvis de gør en reel forskel. Ingen markdown i felterne.
+`.trim();
+
+    const schema = {
+      type: Type.OBJECT,
+      properties: {
+        shots: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              segment: { type: Type.STRING },
+              visual: { type: Type.STRING },
+              textOnScreen: { type: Type.STRING }
+            },
+            required: ["segment", "visual"]
+          }
+        },
+        notes: { type: Type.ARRAY, items: { type: Type.STRING } }
+      },
+      required: ["shots", "notes"]
+    };
+
+    const response = await generateContentJson({ prompt, schema, maxTokens: 16000, model: aiModel });
+    const parsed = JSON.parse(response.text || "{}");
+
+    if (!Array.isArray(parsed.shots) || parsed.shots.length === 0) {
+      return ka.send(500, { success: false, error: "Der kom ingen shot list tilbage. Prøv igen." });
+    }
+
+    return ka.send(200, { success: true, shots: parsed.shots, notes: parsed.notes || [] });
+  } catch (error: any) {
+    return ka.send(500, { success: false, error: describeGenerationError(error) });
+  }
+});
+
 app.post("/api/recommend-angles", async (req, res) => {
   try {
     const {

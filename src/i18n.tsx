@@ -440,6 +440,12 @@ const da = {
     copyAll: 'Kopiér hele udkastet',
     copied: 'Kopieret',
     newReview: 'Gennemgå igen',
+    visuals: 'Generér visuals',
+    visualsLoading: 'Laver shot list...',
+    visualsTitle: 'Shot list',
+    visualsNotes: 'Produktionsnoter',
+    visualsOverlay: 'Tekst på skærm:',
+    copyVisuals: 'Kopiér shot list',
     close: 'Luk'
   },
   advisor: {
@@ -1123,6 +1129,12 @@ const en: typeof da = {
     copyAll: 'Copy the whole draft',
     copied: 'Copied',
     newReview: 'Review again',
+    visuals: 'Generate visuals',
+    visualsLoading: 'Building the shot list...',
+    visualsTitle: 'Shot list',
+    visualsNotes: 'Production notes',
+    visualsOverlay: 'Text on screen:',
+    copyVisuals: 'Copy shot list',
     close: 'Close'
   },
   advisor: {
