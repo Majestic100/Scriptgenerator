@@ -309,6 +309,36 @@ Et hook er de første tre sekunder, altså den første linje. Den skal skabe én
 
 ---
 
+## Gennemprøvede formuleringsskabeloner
+
+Skabelonerne herunder er ikke nye hook-formater - de er færdige formuleringsmønstre, der kan lægges ned over formaterne ovenfor. Udfyld klammerne med målgruppens egne ord fra analysen.
+
+**Call-out-princippet:** Et call-out-hook nævner målgruppen eller deres konkrete problem inden for de første 3 sekunder. Det tvinger de rigtige seere til at udpege sig selv - scrollet stopper, fordi de føler sig set. Jo mere præcist call-out'et rammer, jo mindre skal resten af hooket løfte.
+
+**De 4 call-out-formler (hører til kategori E):**
+
+1. Demografi/identitet: "Er du [rolle/aldersgruppe], der kæmper med [problem]..." (format 21/22)
+2. Direkte fejl-callout: "Stop med at begå den her fejl med [emne]..." (format 4)
+3. Status quo-callout: "Alle siger, du skal [gængs handling]. De tager fejl." (format 6/7)
+4. Situations-callout: "Ser dit [tal/emne] sådan her ud, så hør efter." (format 5/21)
+
+**10 skabeloner mappet til formaterne:**
+
+1. "Du gør [gængs handling] forkert. Sådan retter du det." - fejl-callout, positionerer løsningen (format 4/6)
+2. "De fleste fejler med [mål] på grund af DEN her ene fejl." - overraskende indsigt (format 2)
+3. "Den [konkrete metode], ingen taler om - men den virker." - insider-viden (format 16)
+4. "Hvad nu hvis alt, du ved om [problem], er forkert?" - antagelses-udfordring (format 6/7)
+5. "Træt af [problem]? Prøv [konkret løsning]." - direkte smerte-til-løsning (format 1)
+6. "Det her ene greb sparede mig for [konkret gevinst]." - personlig gevinst, autentisk (format 17)
+7. "[X%] fejler med [mål]. Lad være med at være en af dem." - tal som troværdighed (format 11 - KUN med ægte tal og kilde)
+8. "Sådan løste jeg [problem] på [tidsramme]." - effektivitet med målbart løfte (format 13)
+9. "Stop med at følge [gængs råd]. Gør DET her i stedet." - mytebust med retning (format 4/7)
+10. "Den enkleste vej til [mål], som ingen fortæller dig om." - klarhed i det komplekse (format 16/23)
+
+**Regler for skabelonerne:** Samme belægskrav som resten af biblioteket - tal, procenter og "sparede mig for X" kun med dækning i materialet. Politik-reglerne gælder uændret: ingen "du"-udpegning på helbred, økonomi, vægt eller udseende. Oversæt aldrig ordret fra engelsk - skabelonen er strukturen, ordene skal være målgruppens egne.
+
+---
+
 ## Sådan bruges biblioteket
 
 **Vælg efter tragtled.** Toppen: A, B, D og 24. Midten: C, D og E. Bunden og retargeting: 14, 25 og 4.
