@@ -1175,20 +1175,6 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           </div>
         </Field>
 
-        <Field label={t.form.aiModelLabel} hint={t.form.aiModelHint} htmlFor="ai-model">
-          <select
-            id="ai-model"
-            value={aiModel}
-            onChange={(e) => setAiModel(normalizeAiModel(e.target.value))}
-            className="control"
-            aria-label={t.form.aiModelLabel}
-          >
-            <option value="claude-fable-5">{t.form.aiModelFable}</option>
-            <option value="claude-opus-5">{t.form.aiModelOpus}</option>
-            <option value="grok-4.6">{t.form.aiModelGrok}</option>
-          </select>
-        </Field>
-
         {/* Faneblade pr. script */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
           <div className="flex gap-1.5 overflow-x-auto" role="tablist">

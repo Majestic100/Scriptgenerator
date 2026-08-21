@@ -311,13 +311,13 @@ const OPUS_MODEL = "claude-opus-5";
 // Grok kører via xAI's OpenAI-kompatible API og kræver XAI_API_KEY i miljøet.
 const GROK_MODEL = "grok-4.6";
 
-/** Ukendte eller tomme værdier falder tilbage til standardmodellen. */
-const normalizeModel = (value?: string): string => {
-  const v = String(value || "").toLowerCase();
-  if (v.includes("grok")) return GROK_MODEL;
-  if (v.includes("opus")) return OPUS_MODEL;
-  return CLAUDE_MODEL;
-};
+/**
+ * Grok 4.6 er den eneste aktive model: Fable 5 og Opus 5 er fravalgt.
+ * Alt normaliseres hertil - også gamle scripts stemplet med claude-id'er,
+ * så regenerering af dem kører på Grok. Claude-kaldsvejen står urørt
+ * nedenfor; skal Claude-modellerne tilbage, genindsættes opslaget her.
+ */
+const normalizeModel = (_value?: string): string => GROK_MODEL;
 
 const getGrokClient = () => {
   const apiKey = process.env.XAI_API_KEY;
