@@ -65,15 +65,19 @@ export const normalizeDuration = (value?: string): string => {
  * AI-modeller der kan skrive scripts. Fable 5 er standard; Opus 5 kan vælges
  * til, fx når den ene model er ustabil, eller man vil sammenligne resultaterne.
  */
-export type AiModel = 'claude-fable-5' | 'claude-opus-5';
+export type AiModel = 'claude-fable-5' | 'claude-opus-5' | 'grok-4.6';
 
 export const DEFAULT_AI_MODEL: AiModel = 'claude-fable-5';
 
-export const AI_MODEL_IDS: AiModel[] = ['claude-fable-5', 'claude-opus-5'];
+export const AI_MODEL_IDS: AiModel[] = ['claude-fable-5', 'claude-opus-5', 'grok-4.6'];
 
 /** Ukendte eller gamle værdier falder tilbage til standardmodellen. */
-export const normalizeAiModel = (value?: string): AiModel =>
-  (value || '').toLowerCase().includes('opus') ? 'claude-opus-5' : DEFAULT_AI_MODEL;
+export const normalizeAiModel = (value?: string): AiModel => {
+  const v = (value || '').toLowerCase();
+  if (v.includes('grok')) return 'grok-4.6';
+  if (v.includes('opus')) return 'claude-opus-5';
+  return DEFAULT_AI_MODEL;
+};
 
 export type TrafficTemperature = 'cold' | 'warm' | 'hot';
 
