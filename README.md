@@ -61,7 +61,7 @@ Bemærk: På gratis-planen "sover" appen efter inaktivitet (første besøg tager
 
 - Frontenden (React/Vite) er uændret fra den oprindelige app.
 - Backend (`server.ts`) kalder Claude med **structured outputs** (JSON Schema), så alle scripts kommer tilbage i præcis det format, appen forventer. Svaret streames, så store bestillinger ikke rammer SDK'ets grænse for ikke-streamede kald.
-- Modellen vælges i formularen: **Fable 5** er standard, **Opus 5** kan vælges pr. bestilling. Valget følger med scriptet, så regenerering af hooks/scener og visuals bruger samme model.
+- Modellen vælges i formularen: **Fable 5** er standard; **Opus 5** og **Grok 4.6** (xAI) kan vælges pr. bestilling. Valget følger med scriptet, så regenerering af hooks/scener og visuals bruger samme model. Grok kræver `XAI_API_KEY` som miljøvariabel (nøgle oprettes på console.x.ai).
 - Begge modeller styrer selv deres reasoning (thinking er altid slået til), og et evt. sikkerhedsafslag besvares automatisk af en fallback-model (`fallbacks: "default"`).
 - Standardmodellen skiftes ét sted: konstanten `CLAUDE_MODEL` i `server.ts`.
 - Projekter og AI-træningseksempler gemmes lokalt i `data/` (oprettes automatisk, ikke i git).

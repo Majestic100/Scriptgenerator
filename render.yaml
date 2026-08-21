@@ -12,6 +12,8 @@ services:
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: XAI_API_KEY
+        sync: false
       - key: APP_PASSWORDS
         sync: false
       - key: NODE_ENV

@@ -1185,6 +1185,7 @@ export const ScriptForm: React.FC<ScriptFormProps> = ({
           >
             <option value="claude-fable-5">{t.form.aiModelFable}</option>
             <option value="claude-opus-5">{t.form.aiModelOpus}</option>
+            <option value="grok-4.6">{t.form.aiModelGrok}</option>
           </select>
         </Field>
 

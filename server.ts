@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import dotenv from "dotenv";
 import * as pdfParseModule from "pdf-parse";
 import mammoth from "mammoth";
@@ -304,13 +305,32 @@ function getScriptTypeGuidelinesPrompt(requestedTypes: string[]): string {
   return `\n\n🎯 REGEL-SÆT OG BEATS FOR VALGTE SCRIPT-TYPER (SKAL OVERHOLDES 100%):\n${sections.join("\n\n")}\n\n`;
 }
 
-// Claude setup. Fable 5 er standard; Opus 5 kan vælges pr. bestilling i formularen.
+// Claude setup. Fable 5 er standard; Opus 5 og Grok 4.6 kan vælges pr. bestilling.
 const CLAUDE_MODEL = "claude-fable-5";
 const OPUS_MODEL = "claude-opus-5";
+// Grok kører via xAI's OpenAI-kompatible API og kræver XAI_API_KEY i miljøet.
+const GROK_MODEL = "grok-4.6";
 
 /** Ukendte eller tomme værdier falder tilbage til standardmodellen. */
-const normalizeModel = (value?: string): string =>
-  String(value || "").toLowerCase().includes("opus") ? OPUS_MODEL : CLAUDE_MODEL;
+const normalizeModel = (value?: string): string => {
+  const v = String(value || "").toLowerCase();
+  if (v.includes("grok")) return GROK_MODEL;
+  if (v.includes("opus")) return OPUS_MODEL;
+  return CLAUDE_MODEL;
+};
+
+const getGrokClient = () => {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Grok er ikke sat op endnu: tilføj XAI_API_KEY under Environment i Render, så virker valget.");
+  }
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.XAI_BASE_URL || "https://api.x.ai/v1",
+    timeout: 30 * 60 * 1000,
+    maxRetries: 3,
+  });
+};
 
 const getAnthropicClient = () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -358,15 +378,17 @@ async function generateContentJson(options: {
   model?: string;
   signal?: AbortSignal;
 }): Promise<{ text: string }> {
-  const client = getAnthropicClient();
   const model = normalizeModel(options.model);
+  const isGrok = model === GROK_MODEL;
   // Modellens thinking tæller med i max_tokens, og hvor meget den tænker, kan
   // ikke forudsiges. Derfor rundhåndet budget fra start - og loftet er kun et
   // loft: man betaler for det, der bruges, ikke for det, der reserveres.
   const hardCap = model === OPUS_MODEL ? 100000 : 64000;
   const baseTokens = Math.min(hardCap, (options.maxTokens ?? 16000) + (model === OPUS_MODEL ? 12000 : 0));
 
-  const callOnce = async (maxTokens: number): Promise<any> => {
+  // Begge veje returnerer samme form, så retry- og fejllogikken er fælles.
+  const callClaude = async (maxTokens: number): Promise<{ stopReason: string; text: string }> => {
+    const client = getAnthropicClient();
     // Streames, fordi SDK'et afviser store max_tokens uden streaming ("Streaming is
     // required for operations that may take longer than 10 minutes"). Uden streaming
     // fejlede store bestillinger før kaldet overhovedet blev sendt afsted.
@@ -379,33 +401,68 @@ async function generateContentJson(options: {
       output_config: { format: { type: "json_schema", schema: toStrictSchema(options.schema) } },
       messages: [{ role: "user", content: options.prompt }],
     }, options.signal ? { signal: options.signal } : undefined);
-    return stream.finalMessage();
+    const response: any = await stream.finalMessage();
+    return {
+      stopReason: response.stop_reason || "end_turn",
+      text: response.content?.find((block: any) => block.type === "text")?.text ?? "{}",
+    };
   };
 
-  let response: any = await callOnce(baseTokens);
+  // Grok kører via xAI's OpenAI-kompatible API: samme structured output-princip
+  // (response_format json_schema), streamet af samme grund som Claude-kaldet.
+  const callGrok = async (maxTokens: number): Promise<{ stopReason: string; text: string }> => {
+    const client = getGrokClient();
+    const stream: any = await client.chat.completions.create({
+      model: GROK_MODEL,
+      max_tokens: maxTokens,
+      stream: true,
+      messages: [
+        ...(options.system ? [{ role: "system" as const, content: options.system }] : []),
+        { role: "user" as const, content: options.prompt },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "output", strict: true, schema: toStrictSchema(options.schema) },
+      },
+    } as any, options.signal ? { signal: options.signal } : undefined);
+    let text = "";
+    let finish: string | null = null;
+    for await (const chunk of stream) {
+      const choice = chunk.choices?.[0];
+      if (choice?.delta?.content) text += choice.delta.content;
+      if (choice?.finish_reason) finish = choice.finish_reason;
+    }
+    return {
+      stopReason: finish === "length" ? "max_tokens" : finish === "content_filter" ? "refusal" : "end_turn",
+      text: text || "{}",
+    };
+  };
+
+  const callOnce = (maxTokens: number) => (isGrok ? callGrok(maxTokens) : callClaude(maxTokens));
+
+  let result = await callOnce(baseTokens);
 
   // Blev svaret klippet af, prøves igen med fordoblet budget i stedet for at
   // fejle med det samme. Halv JSON kan ikke bruges til noget alligevel.
-  if (response.stop_reason === "max_tokens" && baseTokens < hardCap) {
+  if (result.stopReason === "max_tokens" && baseTokens < hardCap) {
     const retryTokens = Math.min(hardCap, baseTokens * 2);
     console.warn(`Svar afbrudt ved ${baseTokens} tokens - prøver igen med ${retryTokens}.`);
-    response = await callOnce(retryTokens);
+    result = await callOnce(retryTokens);
   }
 
-  if (response.stop_reason === "refusal") {
+  if (result.stopReason === "refusal") {
     throw new Error("AI-modellen afviste forespørgslen. Prøv at omformulere dit input.");
   }
 
   // Løber svaret tør for plads selv efter det store budget, kommer JSON'en halv
   // tilbage. Uden det her ville det ende som "ugyldigt format".
-  if (response.stop_reason === "max_tokens") {
+  if (result.stopReason === "max_tokens") {
     throw new Error(
       "Svaret fra AI-modellen blev for langt, selv med maksimalt tokenbudget. Prøv med færre scripts eller færre hooks pr. script."
     );
   }
 
-  const text = response.content?.find((block: any) => block.type === "text")?.text ?? "{}";
-  return { text };
+  return { text: result.text };
 }
 
 /**
